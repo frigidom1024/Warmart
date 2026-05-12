@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @TableName("`order`")
@@ -23,4 +24,6 @@ public class Order {
     private String receiverAddress;
     private LocalDateTime createdTime;
     private LocalDateTime updatedTime;
+    @TableField(exist = false)
+    private List<OrderItem> items;
 }

@@ -24,7 +24,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             try {
                 JWT jwt = JWTParser.parse(token);
                 var claims = jwt.getJWTClaimsSet();
-                String userId = claims.getSubject();
+                String userId = claims.getSubject() != null ? claims.getSubject() : "";
                 String role = claims.getStringClaim("role");
 
                 ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()

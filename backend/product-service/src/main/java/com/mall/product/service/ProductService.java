@@ -3,13 +3,18 @@ package com.mall.product.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.mall.product.entity.*;
 import com.mall.product.mapper.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,6 +25,7 @@ public class ProductService {
     private final ProductMapper productMapper;
     private final ProductSpecMapper productSpecMapper;
     private final ProductImageMapper productImageMapper;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     public IPage<Product> list(Long categoryId, String sortBy, int page, int size) {
         Page<Product> p = new Page<>(page, size);
@@ -49,6 +55,18 @@ public class ProductService {
     }
 
     public Product detail(Long id) {
+        String cacheKey = "product:detail:" + id;
+
+        // Try cache first
+        Object cached = redisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new JavaTimeModule());
+            mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            return mapper.convertValue(cached, Product.class);
+        }
+
+        // Query DB
         Product product = productMapper.selectById(id);
         if (product != null) {
             List<ProductSpec> specs = productSpecMapper.selectList(
@@ -62,6 +80,9 @@ public class ProductService {
                             .eq(ProductImage::getProductId, id)
                             .orderByAsc(ProductImage::getSort));
             product.setImageList(images);
+
+            // Cache for 30 minutes
+            redisTemplate.opsForValue().set(cacheKey, product, Duration.ofMinutes(30));
         }
         return product;
     }

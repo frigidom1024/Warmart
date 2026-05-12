@@ -8,10 +8,12 @@ import com.mall.auth.dto.RegisterRequest;
 import com.mall.auth.entity.User;
 import com.mall.auth.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -21,6 +23,7 @@ public class AuthService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Transactional
     public Result<Void> register(RegisterRequest req) {
@@ -64,6 +67,10 @@ public class AuthService {
         String accessToken = UUID.randomUUID().toString().replace("-", "");
         String refreshToken = UUID.randomUUID().toString().replace("-", "");
 
+        // Store tokens in Redis for verification
+        redisTemplate.opsForValue().set("token:access:" + accessToken, user.getId().toString(), Duration.ofSeconds(1800));
+        redisTemplate.opsForValue().set("token:refresh:" + refreshToken, user.getId().toString(), Duration.ofDays(7));
+
         return Result.success(AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
@@ -80,5 +87,22 @@ public class AuthService {
         }
         // For now, just return success (simulate sending email)
         return Result.success(null);
+    }
+
+    public void logout(String refreshToken) {
+        // Blacklist the refresh token
+        redisTemplate.opsForValue().set("token:blacklist:" + refreshToken, "1", Duration.ofDays(7));
+    }
+
+    public boolean isTokenBlacklisted(String refreshToken) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey("token:blacklist:" + refreshToken));
+    }
+
+    public Result<Long> validateToken(String token) {
+        String userId = (String) redisTemplate.opsForValue().get("token:access:" + token);
+        if (userId == null) {
+            return Result.error(401, "Invalid or expired token");
+        }
+        return Result.success(Long.valueOf(userId));
     }
 }

@@ -1,0 +1,41 @@
+services:
+  nacos:
+    image: nacos/nacos-server:v2.3.2
+    container_name: mall-nacos
+    environment:
+      MODE: standalone
+      PREFER_HOST_MODE: hostname
+    ports:
+      - "8848:8848"
+    networks:
+      - mall-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: mall-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql-data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - mall-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: mall-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - mall-network
+
+volumes:
+  mysql-data:
+
+networks:
+  mall-network:
+    driver: bridge

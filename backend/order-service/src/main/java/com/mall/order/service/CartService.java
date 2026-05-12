@@ -48,10 +48,11 @@ public class CartService {
     }
 
     @Transactional
-    public void updateQuantity(Long id, Integer quantity) {
+    public void updateQuantity(Long id, Long userId, Integer quantity) {
         cartMapper.update(null,
                 new LambdaUpdateWrapper<Cart>()
                         .eq(Cart::getId, id)
+                        .eq(Cart::getUserId, userId)
                         .set(Cart::getQuantity, quantity)
                         .set(Cart::getUpdatedTime, LocalDateTime.now()));
     }
@@ -65,10 +66,11 @@ public class CartService {
     }
 
     @Transactional
-    public void check(Long id, Integer checked) {
+    public void check(Long id, Long userId, Integer checked) {
         cartMapper.update(null,
                 new LambdaUpdateWrapper<Cart>()
                         .eq(Cart::getId, id)
+                        .eq(Cart::getUserId, userId)
                         .set(Cart::getChecked, checked));
     }
 

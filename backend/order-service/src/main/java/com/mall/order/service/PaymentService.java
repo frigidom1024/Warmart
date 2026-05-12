@@ -19,10 +19,13 @@ public class PaymentService {
     private final OrderMapper orderMapper;
 
     @Transactional
-    public void pay(Long orderId, String method) {
+    public void pay(Long orderId, Long userId, String method) {
         Order order = orderMapper.selectById(orderId);
         if (order == null || order.getStatus() != 0) {
             throw new RuntimeException("Order cannot be paid");
+        }
+        if (!order.getUserId().equals(userId)) {
+            throw new RuntimeException("Order not found");
         }
 
         // Create payment record

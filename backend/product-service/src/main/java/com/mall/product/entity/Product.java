@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @TableName("product")
@@ -22,4 +23,10 @@ public class Product {
     private Integer hasSpec;
     private LocalDateTime createdTime;
     private LocalDateTime updatedTime;
+
+    @TableField(exist = false)
+    private List<ProductSpec> specList;
+
+    @TableField(exist = false)
+    private List<ProductImage> imageList;
 }

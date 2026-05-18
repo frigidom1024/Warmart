@@ -17,9 +17,12 @@ public class Product {
     private BigDecimal price;
     private Integer stock;
     private Integer sales;
+    @TableField("image")
     private String mainImage;
     private Integer status;
+    @TableField("is_recommended")
     private Integer isRecommend;
+    @TableField(exist = false)
     private Integer hasSpec;
     private LocalDateTime createdTime;
     private LocalDateTime updatedTime;

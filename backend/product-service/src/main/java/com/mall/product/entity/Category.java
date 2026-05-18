@@ -13,9 +13,12 @@ public class Category {
     private String name;
     private Long parentId;
     private Integer sort;
+    @TableField("icon")
     private String imageUrl;
+    @TableField(exist = false)
     private Integer status;
     private LocalDateTime createdTime;
+    private LocalDateTime updatedTime;
 
     @TableField(exist = false)
     private List<Category> children;

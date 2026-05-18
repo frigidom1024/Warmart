@@ -17,6 +17,12 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: http://localhost:8081
+springdoc:
+  api-docs:
+    path: /order-service/v3/api-docs
+  swagger-ui:
+    path: /order-service/swagger-ui.html
+
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
   type-aliases-package: com.mall.order.entity

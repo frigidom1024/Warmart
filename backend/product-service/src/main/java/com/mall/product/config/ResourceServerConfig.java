@@ -17,6 +17,7 @@ public class ResourceServerConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/product-service/**", "/v3/api-docs/**", "/swagger-ui/**", "/webjars/swagger-ui/**").permitAll()
                 .requestMatchers("/api/product/list", "/api/product/detail/**",
                     "/api/product/search", "/api/product/category/**",
                     "/api/product/banner/**", "/api/product/spec/**",

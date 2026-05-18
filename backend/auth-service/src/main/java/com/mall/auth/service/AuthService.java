@@ -10,10 +10,16 @@ import com.mall.auth.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -24,14 +30,14 @@ public class AuthService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final JwtEncoder jwtEncoder;
+    private final JwtDecoder jwtDecoder;
 
     @Transactional
     public Result<Void> register(RegisterRequest req) {
-        // Check username uniqueness
         if (userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getUsername, req.getUsername())) > 0) {
             return Result.error(400, "用户名已存在");
         }
-        // Check email uniqueness
         if (userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getEmail, req.getEmail())) > 0) {
             return Result.error(400, "邮箱已被注册");
         }
@@ -62,14 +68,12 @@ public class AuthService {
             return Result.error(403, "账号已被禁用");
         }
 
-        // For this initial implementation, generate a simple token
-        // In production, this would use OAuth2 authorization server token endpoint
-        String accessToken = UUID.randomUUID().toString().replace("-", "");
-        String refreshToken = UUID.randomUUID().toString().replace("-", "");
+        Instant now = Instant.now();
+        Instant accessExp = now.plusSeconds(1800);
+        Instant refreshExp = now.plusSeconds(604800);
 
-        // Store tokens in Redis for verification
-        redisTemplate.opsForValue().set("token:access:" + accessToken, user.getId().toString(), Duration.ofSeconds(1800));
-        redisTemplate.opsForValue().set("token:refresh:" + refreshToken, user.getId().toString(), Duration.ofDays(7));
+        String accessToken = generateJwt(user, now, accessExp, "access");
+        String refreshToken = generateJwt(user, now, refreshExp, "refresh");
 
         return Result.success(AuthResponse.builder()
                 .accessToken(accessToken)
@@ -79,18 +83,30 @@ public class AuthService {
                 .build());
     }
 
+    private String generateJwt(User user, Instant now, Instant expiration, String type) {
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer("http://auth-service:8081")
+                .subject(user.getId().toString())
+                .claim("username", user.getUsername())
+                .claim("role", user.getRole())
+                .claim("type", type)
+                .issuedAt(now)
+                .expiresAt(expiration)
+                .id(UUID.randomUUID().toString())
+                .build();
+        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+    }
+
     public Result<Void> forgotPassword(String email) {
         User user = userMapper.selectOne(
                 new LambdaQueryWrapper<User>().eq(User::getEmail, email));
         if (user == null) {
             return Result.error(400, "该邮箱未注册");
         }
-        // For now, just return success (simulate sending email)
         return Result.success(null);
     }
 
     public void logout(String refreshToken) {
-        // Blacklist the refresh token
         redisTemplate.opsForValue().set("token:blacklist:" + refreshToken, "1", Duration.ofDays(7));
     }
 
@@ -99,10 +115,11 @@ public class AuthService {
     }
 
     public Result<Long> validateToken(String token) {
-        String userId = (String) redisTemplate.opsForValue().get("token:access:" + token);
-        if (userId == null) {
-            return Result.error(401, "Invalid or expired token");
+        try {
+            Jwt jwt = jwtDecoder.decode(token);
+            return Result.success(Long.valueOf(jwt.getSubject()));
+        } catch (Exception e) {
+            return Result.error(401, "Invalid token");
         }
-        return Result.success(Long.valueOf(userId));
     }
 }

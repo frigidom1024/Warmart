@@ -1,0 +1,1 @@
+import{r as s}from"./request-COV4KvYM.js";const c=()=>s.get("/product/banner/list"),r=()=>s.get("/product/category/list"),a=t=>s.get("/product/list",{params:t}),n=t=>s.get(`/product/detail/${t}`),g=(t,e)=>s.get(`/product/comment/list/${t}`,{params:e}),i=t=>s.get(`/product/consultation/list/${t}`);export{r as a,g as b,i as c,n as d,a as e,c as g};

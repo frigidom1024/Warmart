@@ -41,12 +41,12 @@ services:
     ports:
       - "${GATEWAY_PORT:-8080}:8080"
     environment:
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:${NACOS_PORT:-8848}
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:${MYSQL_PORT:-3306}/mall_auth?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall_auth?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
       SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
+      SPRING_DATA_REDIS_PORT: 6379
     depends_on:
       - nacos
       - mysql
@@ -62,12 +62,12 @@ services:
     ports:
       - "${AUTH_SERVICE_PORT:-8081}:8081"
     environment:
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:${NACOS_PORT:-8848}
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:${MYSQL_PORT:-3306}/mall_auth?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall_auth?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
       SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
+      SPRING_DATA_REDIS_PORT: 6379
     depends_on:
       - nacos
       - mysql
@@ -83,10 +83,11 @@ services:
     ports:
       - "${USER_SERVICE_PORT:-8082}:8082"
     environment:
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:${NACOS_PORT:-8848}
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:${MYSQL_PORT:-3306}/mall_user?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall_user?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: http://auth-service:8081
     depends_on:
       - nacos
       - mysql
@@ -102,10 +103,13 @@ services:
     ports:
       - "${PRODUCT_SERVICE_PORT:-8083}:8083"
     environment:
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:${NACOS_PORT:-8848}
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:${MYSQL_PORT:-3306}/mall_product?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall_product?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: http://auth-service:8081
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
     depends_on:
       - nacos
       - mysql
@@ -121,10 +125,11 @@ services:
     ports:
       - "${ORDER_SERVICE_PORT:-8084}:8084"
     environment:
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:${NACOS_PORT:-8848}
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:${MYSQL_PORT:-3306}/mall_order?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall_order?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: http://auth-service:8081
     depends_on:
       - nacos
       - mysql

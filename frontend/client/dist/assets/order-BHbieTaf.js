@@ -1,0 +1,1 @@
+import{r as e}from"./request-COV4KvYM.js";const o=r=>e.post("/order/create",r),s=r=>e.get("/order/list",{params:r}),a=r=>e.get(`/order/detail/${r}`),d=r=>e.post(`/order/cancel/${r}`),c=r=>e.post(`/order/confirm/${r}`),n=r=>e.post(`/order/refund/${r}`),p=r=>e.post("/order/payment/pay",r);export{n as a,c as b,d as c,o as d,s as e,a as g,p};

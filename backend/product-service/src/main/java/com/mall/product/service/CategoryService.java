@@ -21,6 +21,7 @@ public class CategoryService {
 
     private final CategoryMapper categoryMapper;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final ObjectMapper objectMapper;
 
     public List<Category> listAll() {
         String cacheKey = "product:category:list";
@@ -28,8 +29,7 @@ public class CategoryService {
         // Try cache first
         Object cached = redisTemplate.opsForValue().get(cacheKey);
         if (cached != null) {
-            ObjectMapper mapper = new ObjectMapper();
-            return mapper.convertValue(cached, new TypeReference<List<Category>>() {});
+            return objectMapper.convertValue(cached, new TypeReference<List<Category>>() {});
         }
 
         // Query DB

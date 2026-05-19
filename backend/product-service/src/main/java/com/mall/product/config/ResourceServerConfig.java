@@ -21,7 +21,8 @@ public class ResourceServerConfig {
                 .requestMatchers("/api/product/list", "/api/product/detail/**",
                     "/api/product/search", "/api/product/category/**",
                     "/api/product/banner/**", "/api/product/spec/**",
-                    "/api/product/comment/list/**", "/api/product/consultation/list/**")
+                    "/api/product/comment/list/**", "/api/product/consultation/list/**",
+                    "/api/product/inner/**")
                 .permitAll()
                 .anyRequest().authenticated()
             )

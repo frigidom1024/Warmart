@@ -10,12 +10,15 @@ import com.mall.order.mapper.OrderMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +27,7 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final CartService cartService;
+    private final RestTemplate restTemplate;
 
     @Transactional
     public Order create(Long userId, String receiverName, String receiverPhone,
@@ -38,13 +42,18 @@ public class OrderService {
         String orderNo = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
                 + String.format("%08d", new Random().nextInt(100000000));
 
-        // Calculate total
-        BigDecimal total = cartItems.stream()
-                .map(item -> {
-                    // In a real app, fetch price from product-service
-                    return BigDecimal.valueOf(100); // placeholder
-                })
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // Calculate total and fetch product details
+        List<Long> productIds = cartItems.stream()
+                .map(cartItem -> cartItem.getProductId()).collect(Collectors.toList());
+
+        Map<Long, Map<String, Object>> productMap = fetchProductMap(productIds);
+
+        BigDecimal total = BigDecimal.ZERO;
+        for (var cartItem : cartItems) {
+            Map<String, Object> p = productMap.get(cartItem.getProductId());
+            BigDecimal price = p != null ? new BigDecimal(p.get("price").toString()) : BigDecimal.valueOf(100);
+            total = total.add(price.multiply(BigDecimal.valueOf(cartItem.getQuantity())));
+        }
 
         // Create order
         Order order = new Order();
@@ -65,10 +74,20 @@ public class OrderService {
             OrderItem item = new OrderItem();
             item.setOrderId(order.getId());
             item.setProductId(cartItem.getProductId());
-            item.setProductName("Product " + cartItem.getProductId()); // placeholder
+
+            Map<String, Object> p = productMap.get(cartItem.getProductId());
+            if (p != null) {
+                item.setProductName((String) p.getOrDefault("name", "商品"));
+                item.setProductImage((String) p.getOrDefault("mainImage", null));
+                BigDecimal price = new BigDecimal(p.get("price").toString());
+                item.setPrice(price);
+                item.setSubtotal(price.multiply(BigDecimal.valueOf(cartItem.getQuantity())));
+            } else {
+                item.setProductName("Product " + cartItem.getProductId());
+                item.setPrice(BigDecimal.valueOf(100));
+                item.setSubtotal(BigDecimal.valueOf(100).multiply(BigDecimal.valueOf(cartItem.getQuantity())));
+            }
             item.setQuantity(cartItem.getQuantity());
-            item.setPrice(BigDecimal.valueOf(100)); // placeholder
-            item.setSubtotal(BigDecimal.valueOf(100).multiply(BigDecimal.valueOf(cartItem.getQuantity())));
             orderItemMapper.insert(item);
 
             // Remove from cart
@@ -85,7 +104,16 @@ public class OrderService {
             wrapper.eq(Order::getStatus, status);
         }
         wrapper.orderByDesc(Order::getCreatedTime);
-        return orderMapper.selectPage(new Page<>(page, size), wrapper);
+        IPage<Order> orderPage = orderMapper.selectPage(new Page<>(page, size), wrapper);
+
+        // Populate items for each order
+        for (Order order : orderPage.getRecords()) {
+            List<OrderItem> items = orderItemMapper.selectList(
+                    new LambdaQueryWrapper<OrderItem>()
+                            .eq(OrderItem::getOrderId, order.getId()));
+            order.setItems(items);
+        }
+        return orderPage;
     }
 
     public Order detail(Long id) {
@@ -139,5 +167,24 @@ public class OrderService {
             order.setUpdatedTime(LocalDateTime.now());
             orderMapper.updateById(order);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<Long, Map<String, Object>> fetchProductMap(List<Long> productIds) {
+        try {
+            String url = "http://product-service:8083/api/product/inner/listByIds";
+            var response = restTemplate.postForEntity(url, productIds, Map.class);
+            Map<String, Object> result = response.getBody();
+            if (result != null && Integer.valueOf(200).equals(result.get("code"))) {
+                List<Map<String, Object>> products = (List<Map<String, Object>>) result.get("data");
+                if (products != null) {
+                    return products.stream()
+                            .collect(Collectors.toMap(
+                                    p -> Long.valueOf(p.get("id").toString()),
+                                    p -> p));
+                }
+            }
+        } catch (Exception ignored) {}
+        return Map.of();
     }
 }

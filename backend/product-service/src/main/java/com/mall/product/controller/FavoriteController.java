@@ -2,7 +2,7 @@ package com.mall.product.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.mall.product.common.Result;
-import com.mall.product.entity.Favorite;
+import com.mall.product.dto.FavoriteVO;
 import com.mall.product.service.FavoriteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -31,9 +31,9 @@ public class FavoriteController {
     }
 
     @GetMapping("/favorite/list")
-    public Result<IPage<Favorite>> list(@AuthenticationPrincipal Jwt jwt,
-                                         @RequestParam(defaultValue = "1") int page,
-                                         @RequestParam(defaultValue = "20") int size) {
+    public Result<IPage<FavoriteVO>> list(@AuthenticationPrincipal Jwt jwt,
+                                           @RequestParam(defaultValue = "1") int page,
+                                           @RequestParam(defaultValue = "20") int size) {
         Long userId = Long.valueOf(jwt.getSubject());
         return Result.success(favoriteService.listByUserId(userId, page, size));
     }

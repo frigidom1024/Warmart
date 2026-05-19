@@ -2,7 +2,7 @@ package com.mall.product.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.mall.product.common.Result;
-import com.mall.product.entity.Comment;
+import com.mall.product.dto.CommentVO;
 import com.mall.product.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,9 +19,9 @@ public class CommentController {
     private final CommentService commentService;
 
     @GetMapping("/comment/list/{productId}")
-    public Result<IPage<Comment>> list(@PathVariable Long productId,
-                                        @RequestParam(defaultValue = "1") int page,
-                                        @RequestParam(defaultValue = "10") int size) {
+    public Result<IPage<CommentVO>> list(@PathVariable Long productId,
+                                          @RequestParam(defaultValue = "1") int page,
+                                          @RequestParam(defaultValue = "10") int size) {
         return Result.success(commentService.listByProductId(productId, page, size));
     }
 

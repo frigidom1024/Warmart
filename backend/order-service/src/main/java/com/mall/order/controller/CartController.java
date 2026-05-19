@@ -1,7 +1,7 @@
 package com.mall.order.controller;
 
 import com.mall.order.common.Result;
-import com.mall.order.entity.Cart;
+import com.mall.order.dto.CartVO;
 import com.mall.order.service.CartService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -23,7 +23,7 @@ public class CartController {
     private final CartService cartService;
 
     @GetMapping("/list")
-    public Result<List<Cart>> list(@AuthenticationPrincipal Jwt jwt) {
+    public Result<List<CartVO>> list(@AuthenticationPrincipal Jwt jwt) {
         Long userId = Long.valueOf(jwt.getSubject());
         return Result.success(cartService.listByUserId(userId));
     }

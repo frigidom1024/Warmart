@@ -169,4 +169,10 @@ public class ProductService {
                         .eq(Product::getStatus, 0)
                         .orderByDesc(Product::getCreatedTime));
     }
+
+    public List<Product> listByIds(List<Long> ids) {
+        return productMapper.selectList(
+                new LambdaQueryWrapper<Product>()
+                        .in(Product::getId, ids));
+    }
 }

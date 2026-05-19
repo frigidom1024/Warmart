@@ -31,4 +31,11 @@ public class ConsultationService {
                         .eq(Consultation::getProductId, productId)
                         .orderByDesc(Consultation::getCreatedTime));
     }
+
+    public List<Consultation> listByUserId(Long userId) {
+        return consultationMapper.selectList(
+                new LambdaQueryWrapper<Consultation>()
+                        .eq(Consultation::getUserId, userId)
+                        .orderByDesc(Consultation::getCreatedTime));
+    }
 }

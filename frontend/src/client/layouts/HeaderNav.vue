@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
@@ -7,8 +7,25 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const scrolled = ref(false)
+const hidden = ref(false)
+let lastScrollY = 0
 const searchKeyword = ref('')
 const cartCount = ref(0)
+const showSuggestions = ref(false)
+
+const hotSearchesMap: Record<string, string[]> = {
+  '': ['连衣裙', '蓝牙耳机', '防晒霜', '运动鞋', '破壁机', '面膜', '台灯', '投影仪'],
+  clothing: ['连衣裙', '卫衣', '牛仔外套', '风衣', '衬衫', '手提包', '牛仔裤'],
+  beauty: ['粉底液', '精华液', '面膜', '防晒霜', '口红', '眼影'],
+  digital: ['蓝牙耳机', '投影仪', '扫地机器人', '机械键盘', '充电宝', '智能手表'],
+  home: ['台灯', '懒人沙发', '落地衣架', '四件套', '香薰', '收纳盒'],
+  food: ['坚果', '抹茶生巧', '零食礼盒', '咖啡', '饼干', '牛肉干'],
+  sports: ['跑步鞋', '瑜伽垫', '背包', '帐篷', '哑铃', '跳绳']
+}
+
+const hotSearches = computed(() => {
+  return hotSearchesMap[selectedCategory.value.value] || hotSearchesMap['']
+})
 
 const categories = [
   { label: '全部', value: '' },
@@ -22,25 +39,48 @@ const categories = [
 const selectedCategory = ref(categories[0])
 
 function handleScroll() {
-  scrolled.value = window.scrollY > 40
+  const sy = window.scrollY
+  scrolled.value = sy > 40
+
+  if (sy > 600) {
+    hidden.value = sy > lastScrollY
+  } else {
+    hidden.value = false
+  }
+  lastScrollY = sy
 }
 
-function doSearch() {
-  if (searchKeyword.value.trim()) {
+function doSearch(keyword?: string) {
+  const q = (keyword || searchKeyword.value).trim()
+  if (q) {
+    searchKeyword.value = q
+    showSuggestions.value = false
     router.push({
       path: '/product/list',
       query: {
-        keyword: searchKeyword.value.trim(),
+        keyword: q,
         ...(selectedCategory.value.value ? { category: selectedCategory.value.value } : {})
       }
     })
   }
 }
 
+function onSearchFocus() {
+  showSuggestions.value = true
+}
+
+function onSearchBlur() {
+  setTimeout(() => { showSuggestions.value = false }, 200)
+}
+
+function selectSuggestion(keyword: string) {
+  doSearch(keyword)
+}
+
 function goHome() { router.push('/') }
 function goCart() { router.push('/cart') }
-function goLogin() { router.push('/auth/login') }
-function goRegister() { router.push('/auth/register') }
+function goLogin() { router.push('/auth') }
+function goRegister() { router.push('/auth?mode=register') }
 function goRoute(name: string) { router.push({ name }) }
 
 function handleLogout() {
@@ -53,7 +93,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 </script>
 
 <template>
-  <header :class="['header-nav', { 'header-nav--scrolled': scrolled }]">
+  <header :class="['header-nav', { 'header-nav--scrolled': scrolled, 'header-nav--hidden': hidden }]">
     <div class="header-nav__inner">
       <!-- Logo -->
       <div class="header-nav__brand" @click="goHome">
@@ -62,47 +102,64 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
       </div>
 
       <!-- Center: Search bar -->
-      <div class="header-nav__search">
-        <el-dropdown trigger="click" @command="(v: string) => selectedCategory = categories.find(c => c.value === v) || categories[0]">
-          <button class="header-nav__search-cat">
-            <span>{{ selectedCategory.label }}</span>
-            <svg width="8" height="6" viewBox="0 0 8 6" fill="none" class="header-nav__search-arrow">
-              <path d="M1 1.5L4 4.5L7 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <div class="header-nav__search-wrapper">
+        <div class="header-nav__search">
+          <el-dropdown trigger="click" @command="(v: string) => selectedCategory = categories.find(c => c.value === v) || categories[0]">
+            <button class="header-nav__search-cat">
+              <span>{{ selectedCategory.label }}</span>
+              <svg width="8" height="6" viewBox="0 0 8 6" fill="none" class="header-nav__search-arrow">
+                <path d="M1 1.5L4 4.5L7 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  v-for="cat in categories"
+                  :key="cat.value"
+                  :command="cat.value"
+                  :class="{ 'is-active': cat.value === selectedCategory.value }"
+                >
+                  {{ cat.label }}
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+
+          <span class="header-nav__search-divider" />
+
+          <input
+            v-model="searchKeyword"
+            type="text"
+            class="header-nav__search-input"
+            placeholder="搜搜你喜欢的商品…"
+            @keyup.enter="doSearch()"
+            @focus="onSearchFocus"
+            @blur="onSearchBlur"
+          />
+
+          <button v-if="searchKeyword" class="header-nav__search-clear" @click="searchKeyword = ''">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+
+          <button class="header-nav__search-btn" @click="doSearch()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
           </button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item
-                v-for="cat in categories"
-                :key="cat.value"
-                :command="cat.value"
-                :class="{ 'is-active': cat.value === selectedCategory.value }"
-              >
-                {{ cat.label }}
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+        </div>
 
-        <span class="header-nav__search-divider" />
-
-        <input
-          v-model="searchKeyword"
-          type="text"
-          class="header-nav__search-input"
-          placeholder="搜搜你喜欢的商品…"
-          @keyup.enter="doSearch"
-        />
-
-        <button v-if="searchKeyword" class="header-nav__search-clear" @click="searchKeyword = ''">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-        </button>
-
-        <button class="header-nav__search-btn" @click="doSearch">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-        </button>
+        <!-- Suggestions dropdown -->
+        <div v-if="showSuggestions" class="header-nav__suggestions">
+          <div class="header-nav__suggestions-header">热门搜索</div>
+          <div class="header-nav__suggestions-tags">
+            <span
+              v-for="word in hotSearches"
+              :key="word"
+              class="header-nav__suggestion-tag"
+              @mousedown.prevent="selectSuggestion(word)"
+            >{{ word }}</span>
+          </div>
+        </div>
       </div>
 
       <!-- Actions -->
@@ -159,11 +216,16 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
   z-index: 100;
   background: var(--wz-bg);
   border-bottom: 1px solid var(--wz-border);
-  transition: border-color var(--wz-duration-normal) var(--wz-ease-out);
+  transition: border-color var(--wz-duration-normal) var(--wz-ease-out),
+              transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .header-nav--scrolled {
   border-color: rgba(255, 255, 255, 0.08);
+}
+
+.header-nav--hidden {
+  transform: translateY(-100%);
 }
 
 .header-nav__inner {
@@ -202,10 +264,15 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
   letter-spacing: 0.05em;
 }
 
-/* ---- Center Search Bar ---- */
-.header-nav__search {
+/* ---- Search Wrapper (for dropdown positioning) ---- */
+.header-nav__search-wrapper {
   flex: 1;
   max-width: 560px;
+  position: relative;
+}
+
+/* ---- Center Search Bar ---- */
+.header-nav__search {
   display: flex;
   align-items: center;
   background: var(--wz-bg-card);
@@ -314,6 +381,57 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 .header-nav__search-btn:hover {
   background: var(--wz-orange-dark);
   box-shadow: 0 0 12px rgba(255, 107, 53, 0.35);
+}
+
+/* ---- Search Suggestions Dropdown ---- */
+.header-nav__suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--wz-bg-card);
+  border: 1px solid var(--wz-border);
+  border-radius: 12px;
+  padding: 16px;
+  z-index: 200;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  animation: suggest-fade-in 0.15s var(--wz-ease-out);
+}
+
+@keyframes suggest-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header-nav__suggestions-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wz-text-soft);
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+
+.header-nav__suggestions-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.header-nav__suggestion-tag {
+  display: inline-block;
+  padding: 5px 14px;
+  font-size: 13px;
+  color: var(--wz-text);
+  background: var(--wz-bg);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background var(--wz-duration-fast) var(--wz-ease-out),
+              color var(--wz-duration-fast) var(--wz-ease-out);
+}
+
+.header-nav__suggestion-tag:hover {
+  background: var(--wz-orange-muted);
+  color: var(--wz-orange);
 }
 
 /* ---- Actions ---- */
@@ -473,7 +591,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
     display: none;
   }
 
-  .header-nav__search {
+  .header-nav__search-wrapper {
     max-width: none;
   }
 

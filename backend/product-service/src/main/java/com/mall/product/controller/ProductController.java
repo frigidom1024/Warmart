@@ -61,4 +61,9 @@ public class ProductController {
                         .eq(ProductSpec::getProductId, productId)
                         .orderByAsc(ProductSpec::getSort)));
     }
+
+    @PostMapping("/inner/listByIds")
+    public Result<List<Product>> listByIds(@RequestBody List<Long> ids) {
+        return Result.success(productService.listByIds(ids));
+    }
 }

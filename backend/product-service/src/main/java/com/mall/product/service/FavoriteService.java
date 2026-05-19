@@ -3,18 +3,26 @@ package com.mall.product.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mall.product.dto.FavoriteVO;
 import com.mall.product.entity.Favorite;
+import com.mall.product.entity.Product;
 import com.mall.product.mapper.FavoriteMapper;
+import com.mall.product.mapper.ProductMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class FavoriteService {
 
     private final FavoriteMapper favoriteMapper;
+    private final ProductMapper productMapper;
 
     public void add(Long userId, Long productId) {
         // Check if already favorited
@@ -38,11 +46,45 @@ public class FavoriteService {
                         .eq(Favorite::getProductId, productId));
     }
 
-    public IPage<Favorite> listByUserId(Long userId, int page, int size) {
-        return favoriteMapper.selectPage(new Page<>(page, size),
+    public IPage<FavoriteVO> listByUserId(Long userId, int page, int size) {
+        Page<Favorite> favPage = favoriteMapper.selectPage(new Page<>(page, size),
                 new LambdaQueryWrapper<Favorite>()
                         .eq(Favorite::getUserId, userId)
                         .orderByDesc(Favorite::getCreatedTime));
+
+        Page<FavoriteVO> voPage = new Page<>(favPage.getCurrent(), favPage.getSize(), favPage.getTotal());
+        if (favPage.getRecords().isEmpty()) {
+            voPage.setRecords(Collections.emptyList());
+            return voPage;
+        }
+
+        List<Long> productIds = favPage.getRecords().stream()
+                .map(Favorite::getProductId).collect(Collectors.toList());
+        Map<Long, Product> productMap = productMapper.selectList(
+                new LambdaQueryWrapper<Product>().in(Product::getId, productIds))
+                .stream().collect(Collectors.toMap(Product::getId, p -> p));
+
+        List<FavoriteVO> vos = favPage.getRecords().stream().map(fav -> {
+            FavoriteVO vo = new FavoriteVO();
+            vo.setId(fav.getId());
+            vo.setUserId(fav.getUserId());
+            vo.setProductId(fav.getProductId());
+            vo.setCreatedTime(fav.getCreatedTime());
+
+            Product p = productMap.get(fav.getProductId());
+            if (p != null) {
+                vo.setProductName(p.getName());
+                vo.setProductPrice(p.getPrice());
+                vo.setProductOldPrice(p.getOriginalPrice());
+                vo.setProductImage(p.getMainImage());
+                vo.setProductTag(p.getTag());
+                vo.setProductSales(p.getSales());
+            }
+            return vo;
+        }).collect(Collectors.toList());
+
+        voPage.setRecords(vos);
+        return voPage;
     }
 
     public boolean isFavorited(Long userId, Long productId) {

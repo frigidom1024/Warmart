@@ -15,6 +15,9 @@ public class Product {
     private String name;
     private String description;
     private BigDecimal price;
+    @TableField("original_price")
+    private BigDecimal originalPrice;
+    private String tag;
     private Integer stock;
     private Integer sales;
     @TableField("image")

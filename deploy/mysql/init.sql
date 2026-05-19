@@ -109,8 +109,12 @@ CREATE TABLE IF NOT EXISTS category (
 CREATE TABLE IF NOT EXISTS banner (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(200),
+    subtitle VARCHAR(200),
+    description TEXT,
     image_url VARCHAR(500) NOT NULL,
     link_url VARCHAR(500),
+    btn_text VARCHAR(50),
+    align VARCHAR(20) DEFAULT 'left',
     sort INT DEFAULT 0,
     status INT DEFAULT 0,
     created_time DATETIME NOT NULL,
@@ -188,9 +192,9 @@ INSERT INTO category (id, name, parent_id, sort, created_time, updated_time) VAL
 (6, 'Men''s Clothing', 2, 1, NOW(), NOW()),
 (7, 'Women''s Clothing', 2, 2, NOW(), NOW());
 
-INSERT INTO banner (title, image_url, link_url, sort, status, created_time, updated_time) VALUES
-('Summer Sale', '/images/banner1.jpg', '/product/list', 1, 0, NOW(), NOW()),
-('New Arrivals', '/images/banner2.jpg', '/product/list', 2, 0, NOW(), NOW());
+INSERT INTO banner (title, subtitle, description, image_url, link_url, btn_text, align, sort, status, created_time, updated_time) VALUES
+('Summer Sale', 'Up to 50% off', 'Summer promotion on all items', '/images/banner1.jpg', '/product/list', 'Shop Now', 'left', 1, 0, NOW(), NOW()),
+('New Arrivals', 'Check out new products', 'Latest products just arrived', '/images/banner2.jpg', '/product/list', 'Explore', 'center', 2, 0, NOW(), NOW());
 
 INSERT INTO product (id, name, description, price, image, category_id, stock, sales, status, is_recommended, created_time, updated_time) VALUES
 (1, 'iPhone 15', 'Latest Apple smartphone', 6999.00, '/images/product1.jpg', 4, 100, 50, 0, 1, NOW(), NOW()),

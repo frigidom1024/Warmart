@@ -1,1 +1,0 @@
-import{r as o}from"./request-COV4KvYM.js";const r=s=>o.post("/auth/login",s),a=s=>o.post("/auth/register",s),e=s=>o.post("/auth/forgot-password",null,{params:{email:s}}),g=()=>o.get("/user/info");export{e as f,g,r as l,a as r};

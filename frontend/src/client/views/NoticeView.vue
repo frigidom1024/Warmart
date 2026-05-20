@@ -1,51 +1,131 @@
 <script setup lang="ts">
-const pageTitle = '系统公告'
-const noticeTypes = ['全部', '平台公告', '活动通知', '系统维护']
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { getNoticePage } from '@/api/notice'
+import type { Notice } from '@/api/notice'
+
+const router = useRouter()
+const notices = ref<Notice[]>([])
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = 10
+const activeType = ref('')
+const loading = ref(true)
+
+const typeOptions = [
+  { label: '全部', value: '' },
+  { label: '平台公告', value: '平台公告' },
+  { label: '活动通知', value: '活动通知' },
+  { label: '系统维护', value: '系统维护' },
+]
+
+onMounted(async () => {
+  await loadNotices()
+})
+
+async function loadNotices() {
+  loading.value = true
+  try {
+    const res = await getNoticePage({
+      type: activeType.value || undefined,
+      page: currentPage.value,
+      size: pageSize
+    })
+    const pageResult = res as any
+    notices.value = pageResult.records || []
+    total.value = pageResult.total || 0
+  } catch { /* handled */ } finally {
+    loading.value = false
+  }
+}
+
+function switchType(value: string) {
+  activeType.value = value
+  currentPage.value = 1
+  loadNotices()
+}
+
+function goPage(p: number) {
+  currentPage.value = p
+  loadNotices()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const selectedNotice = ref<Notice | null>(null)
+
+function toggleDetail(item: Notice) {
+  selectedNotice.value = selectedNotice.value?.id === item.id ? null : item
+}
+
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)))
+
 </script>
 
 <template>
   <div class="page-container">
     <div class="notice">
-      <h1 class="notice__title">{{ pageTitle }}</h1>
+      <h1 class="notice__title">系统公告</h1>
 
-      <!-- Filter Placeholder -->
+      <!-- Filter -->
       <div class="notice__filter">
         <span
-          v-for="type in noticeTypes"
-          :key="type"
+          v-for="opt in typeOptions"
+          :key="opt.value"
           class="notice__filter-item"
-          :class="{ 'notice__filter-item--active': type === '全部' }"
-        >
-          {{ type }}
-        </span>
+          :class="{ 'notice__filter-item--active': activeType === opt.value }"
+          @click="switchType(opt.value)"
+        >{{ opt.label }}</span>
       </div>
 
-      <!-- Notice Cards Placeholder -->
-      <div class="notice__list">
-        <div v-for="i in 4" :key="i" class="notice__card">
-          <div class="notice__card-icon">📢</div>
+      <!-- List -->
+      <div v-if="notices.length" class="notice__list">
+        <div
+          v-for="item in notices"
+          :key="item.id"
+          class="notice__card"
+          @click="toggleDetail(item)"
+        >
           <div class="notice__card-content">
             <div class="notice__card-top">
-              <h3 class="notice__card-title">系统公告标题 {{ i }}</h3>
-              <span class="notice__card-tag" v-if="i === 1">最新</span>
+              <h3 class="notice__card-title">{{ item.title }}</h3>
+              <span v-if="item.type" class="notice__card-tag">{{ item.type }}</span>
             </div>
-            <p class="notice__card-summary">
-              这是公告 {{ i }} 的简要内容描述，点击可查看完整公告详情…
-            </p>
+            <p class="notice__card-summary">{{ item.content }}</p>
+            <div
+              v-if="selectedNotice?.id === item.id"
+              class="notice__card-full"
+            >{{ item.content }}</div>
             <div class="notice__card-meta">
-              <span class="notice__card-type">平台公告</span>
-              <span class="notice__card-date">2026-05-1{{ i }}</span>
-              <span class="notice__card-views">阅读 {{ i * 100 }}</span>
+              <span class="notice__card-date">{{ item.createdTime }}</span>
             </div>
           </div>
         </div>
       </div>
 
+      <!-- Empty -->
+      <div v-else-if="!loading" class="notice__empty">
+        <p class="notice__empty-text">暂无公告</p>
+      </div>
+
       <!-- Pagination -->
-      <div class="notice__pagination">
-        <span class="notice__page-item notice__page-item--active">1</span>
-        <span class="notice__page-item">2</span>
-        <span class="notice__page-item">3</span>
+      <div v-if="totalPages > 1" class="notice__pagination">
+        <button
+          class="notice__page-item"
+          :disabled="currentPage <= 1"
+          @click="goPage(currentPage - 1)"
+        >‹</button>
+        <button
+          v-for="p in totalPages"
+          :key="p"
+          class="notice__page-item"
+          :class="{ 'notice__page-item--active': p === currentPage }"
+          @click="goPage(p)"
+        >{{ p }}</button>
+        <button
+          class="notice__page-item"
+          :disabled="currentPage >= totalPages"
+          @click="goPage(currentPage + 1)"
+        >›</button>
       </div>
     </div>
   </div>
@@ -164,6 +244,24 @@ const noticeTypes = ['全部', '平台公告', '活动通知', '系统维护']
 .notice__card-type {
   color: var(--wz-orange);
 }
+.notice__card-full {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--wz-bg);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--wz-text);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+.notice__empty {
+  text-align: center;
+  padding: 80px 24px;
+  color: var(--wz-text-soft);
+}
+.notice__empty-text {
+  font-size: 16px;
+}
 .notice__pagination {
   display: flex;
   justify-content: center;
@@ -179,14 +277,21 @@ const noticeTypes = ['全部', '平台公告', '活动通知', '系统维护']
   font-size: 14px;
   color: var(--wz-text-soft);
   background: var(--wz-bg-card, #fff);
+  border: 1px solid transparent;
   cursor: pointer;
+  font-family: var(--wz-font-body);
   transition: all 0.2s;
 }
-.notice__page-item:hover {
+.notice__page-item:hover:not(:disabled):not(.notice__page-item--active) {
   color: var(--wz-orange);
+  border-color: var(--wz-orange);
 }
 .notice__page-item--active {
   background: var(--wz-orange);
   color: #fff;
+}
+.notice__page-item:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 </style>

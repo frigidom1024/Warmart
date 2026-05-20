@@ -1,41 +1,96 @@
 <script setup lang="ts">
-const pageTitle = '售前咨询'
+import { ref, onMounted } from 'vue'
+import { getConsultationList, addConsultation } from '@/api/consultation'
+import type { Consultation } from '@/api/consultation'
+import { showToast } from '@/utils/toast'
+
+const list = ref<Consultation[]>([])
+const loading = ref(true)
+const showForm = ref(false)
+const form = ref({ productId: 0, question: '' })
+const submitting = ref(false)
+
+onMounted(async () => {
+  loading.value = true
+  try {
+    list.value = await getConsultationList() as Consultation[]
+  } catch { /* handled */ } finally {
+    loading.value = false
+  }
+})
+
+async function handleSubmit() {
+  if (!form.value.question.trim()) {
+    showToast('请输入咨询内容', 'warning')
+    return
+  }
+  submitting.value = true
+  try {
+    await addConsultation({ productId: form.value.productId || 1, question: form.value.question.trim() })
+    showToast('咨询已提交', 'success')
+    showForm.value = false
+    form.value.question = ''
+    // reload
+    list.value = await getConsultationList() as Consultation[]
+  } catch { /* handled */ } finally {
+    submitting.value = false
+  }
+}
+
+const statusLabels: Record<number, string> = {
+  0: '待回复', 1: '已回复'
+}
 </script>
 
 <template>
   <div class="page-container">
     <div class="consultation">
-      <h1 class="consultation__title">{{ pageTitle }}</h1>
+      <h1 class="consultation__title">售前咨询</h1>
 
-      <!-- Conversation List Placeholder -->
-      <div class="consultation__list">
-        <div v-for="i in 4" :key="i" class="consultation__item">
+      <!-- List -->
+      <div v-if="list.length" class="consultation__list">
+        <div v-for="item in list" :key="item.id" class="consultation__item">
           <div class="consultation__avatar"></div>
           <div class="consultation__content">
             <div class="consultation__top">
-              <span class="consultation__name">客服 {{ i }}</span>
-              <span class="consultation__time">{{ i }} 小时前</span>
+              <span class="consultation__name">我</span>
+              <span class="consultation__time">{{ item.createdTime }}</span>
+              <span class="consultation__status">{{ statusLabels[item.status] || '待回复' }}</span>
             </div>
-            <p class="consultation__message">
-              {{ i === 1 ? '您好，请问有什么可以帮助您的？' : '关于商品的问题，您可以随时咨询我们。' }}
-            </p>
-            <div class="consultation__badge" v-if="i === 1">
-              <span class="consultation__badge-dot"></span>
-              未读消息
-            </div>
+            <p class="consultation__message"><strong>问：</strong>{{ item.question }}</p>
+            <p v-if="item.answer" class="consultation__answer"><strong>答：</strong>{{ item.answer }}</p>
           </div>
         </div>
       </div>
 
-      <!-- Start New Consultation -->
-      <div class="consultation__start">
-        <div class="consultation__start-btn">开始新的咨询</div>
+      <!-- Empty -->
+      <div v-else-if="!loading" class="consultation__empty">
+        <p class="consultation__empty-text">暂无咨询记录</p>
+        <p class="consultation__empty-hint">您可向我们咨询商品相关问题</p>
       </div>
 
-      <!-- Empty State -->
-      <div class="consultation__empty" style="display: none;">
-        <p class="consultation__empty-text">暂无咨询记录</p>
-        <p class="consultation__empty-hint">联系客服，获取帮助</p>
+      <!-- Start / Form -->
+      <div class="consultation__start">
+        <div v-if="!showForm" class="consultation__start-btn" @click="showForm = true">开始新的咨询</div>
+        <div v-else class="consultation__form-card">
+          <textarea
+            v-model="form.question"
+            class="consultation__textarea"
+            placeholder="请输入您要咨询的问题..."
+            rows="4"
+          ></textarea>
+          <div class="consultation__form-actions">
+            <button
+              class="consultation__cancel-btn"
+              @click="showForm = false"
+            >取消</button>
+            <button
+              class="consultation__submit-btn"
+              :disabled="submitting"
+              @click="handleSubmit"
+            >{{ submitting ? '提交中...' : '提交咨询' }}</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -132,6 +187,75 @@ const pageTitle = '售前咨询'
   height: 6px;
   border-radius: 50%;
   background: var(--wz-orange);
+}
+.consultation__status {
+  font-size: 12px;
+  color: var(--wz-orange);
+  font-weight: 500;
+}
+.consultation__answer {
+  font-size: 14px;
+  color: var(--wz-text);
+  line-height: 1.5;
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: var(--wz-bg);
+  border-radius: 8px;
+}
+.consultation__form-card {
+  background: var(--wz-bg-card);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.consultation__textarea {
+  width: 100%;
+  background: var(--wz-bg);
+  border: 1px solid var(--wz-border);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: var(--wz-font-body);
+  font-size: 14px;
+  color: var(--wz-text);
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color var(--wz-duration-fast) var(--wz-ease-out);
+}
+.consultation__textarea:focus {
+  border-color: var(--wz-orange);
+}
+.consultation__textarea::placeholder {
+  color: var(--wz-text-soft);
+}
+.consultation__form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+  justify-content: flex-end;
+}
+.consultation__cancel-btn {
+  padding: 8px 24px;
+  background: var(--wz-bg);
+  border: 1px solid var(--wz-border);
+  border-radius: 20px;
+  font-family: var(--wz-font-body);
+  font-size: 14px;
+  color: var(--wz-text);
+  cursor: pointer;
+}
+.consultation__submit-btn {
+  padding: 8px 24px;
+  background: var(--wz-orange);
+  border: none;
+  border-radius: 20px;
+  font-family: var(--wz-font-body);
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+}
+.consultation__submit-btn:disabled {
+  opacity: 0.7;
 }
 .consultation__start {
   text-align: center;

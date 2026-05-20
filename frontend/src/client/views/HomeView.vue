@@ -1,88 +1,159 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getCategoryList, getProductList } from '@/api/product'
+import { addFavorite } from '@/api/favorite'
+import { showToast } from '@/utils/toast'
+import type { Category as ApiCategory, Product } from '@/api/product'
 
-interface Category {
-  label: string
-  icon: string
-  children: string[]
+// Categories from API
+const categoryTree = ref<ApiCategory[]>([])
+const loading = ref(true)
+
+const catIconMap: Record<string, string> = {
+  '服饰鞋包': 'shirt', '数码家电': 'laptop', '家居生活': 'home',
+  '美妆个护': 'sparkles', '运动户外': 'activity',
+  '食品饮料': 'food', '母婴用品': 'baby', '图书文具': 'books',
+  '宠物生活': 'pets', '汽车用品': 'auto', '医药健康': 'health',
+  '珠宝配饰': 'jewelry',
 }
 
-const categories: Category[] = [
-  { label: '潮流服饰', icon: 'shirt', children: ['女装', '男装', '连衣裙', '外套', '衬衫', '裤装', '针织衫', '配饰'] },
-  { label: '美妆护肤', icon: 'sparkles', children: ['面部护肤', '彩妆', '面膜', '防晒', '身体护理', '香水', '美妆工具'] },
-  { label: '数码家电', icon: 'laptop', children: ['手机', '电脑', '耳机', '智能家居', '厨房电器', '生活电器', '个护电器'] },
-  { label: '家居软装', icon: 'home', children: ['灯具', '家纺', '香薰', '收纳', '装饰摆件', '餐厨用品', '布艺'] },
-  { label: '休闲零食', icon: 'cookie', children: ['坚果', '巧克力', '饼干', '肉干', '冲饮', '进口零食', '糕点'] },
-  { label: '运动户外', icon: 'activity', children: ['跑步鞋', '瑜伽', '户外装备', '健身器材', '骑行', '游泳', '运动服饰'] },
-]
+const categories = computed(() =>
+  categoryTree.value.map(c => ({
+    label: c.name,
+    icon: catIconMap[c.name] || 'default',
+    children: c.children?.map(ch => ch.name) || []
+  }))
+)
 
 const catIcons: Record<string, string> = {
+  default: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
   shirt: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5 3 8l4 4 2-2"/><path d="M18 5l3 3-4 4-2-2"/><path d="M6 5h4v2a2 2 0 0 0 4 0V5h4"/><path d="M9 19V9"/><path d="M15 19V9"/></svg>',
   sparkles: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 13.5 7.5 18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5Z"/><path d="M5 16 6 16.5 6.5 17.5 7 16.5 8 16 7 15.5 6.5 14.5 6 15.5Z"/><path d="M18 14 19 14.5 19.5 15.5 20 14.5 21 14 20 13.5 19.5 12.5 19 13.5Z"/></svg>',
   laptop: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="13" rx="2"/><path d="M2 20h20"/><path d="M10 16v4"/><path d="M14 16v4"/></svg>',
   home: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12 12 3 21 12"/><path d="M5 10v10a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1V10"/></svg>',
   cookie: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="8" cy="9" r="1"/><circle cx="16" cy="8" r="1"/><circle cx="13" cy="14" r="1"/><circle cx="9" cy="16" r="1"/><circle cx="15" cy="13" r="1"/></svg>',
   activity: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><path d="M10 21 13 15 16 18 20 9"/><path d="M7 13 10 10 13 13"/></svg>',
+  food: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 1-6 6"/><path d="M6 2v4a6 6 0 0 0 12 0V2"/><path d="M2 22h20"/><path d="M8 22v-8"/><path d="M16 22v-8"/></svg>',
+  baby: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/><path d="M7 15c0-2.8 2.2-5 5-5s5 2.2 5 5"/><path d="M3 22c2-3 5-5 9-5s7 2 9 5"/></svg>',
+  books: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M12 6v7"/><path d="M9 9h6"/></svg>',
+  pets: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17a5 5 0 0 0 5-5c0-2-1-3.5-2.5-4.5"/><path d="M8 12a3 3 0 0 0 3-3c0-1.2-.6-2-1.5-2.5"/><circle cx="4" cy="8" r="1"/><circle cx="20" cy="8" r="1"/><path d="M2 14c0 5 4.5 8 10 8s10-3 10-8"/></svg>',
+  auto: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17a2 2 0 0 1-2-2V9l2-5h14l2 5v6a2 2 0 0 1-2 2"/><path d="M5 17h14"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>',
+  health: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
+  jewelry: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9 7l3 4 3-4-3-5z"/><path d="M9 7H5l-1 5 8 10"/><path d="M15 7h4l1 5-8 10"/></svg>',
 }
 
-const hoveredCat = ref(0)
-const panelVisible = ref(false)
-const triggerEl = ref<HTMLElement | null>(null)
+const hoveredCat = ref(-1)
 let hideTimer: ReturnType<typeof setTimeout> | null = null
-let trackRaf: number | null = null
 
 function onCatEnter(i: number) {
   hoveredCat.value = i
+  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
 }
 
-function onPanelLeave() {
-  hoveredCat.value = 0
+function onBrowseLeave() {
+  hideTimer = setTimeout(() => { hoveredCat.value = 0 }, 300)
 }
 
-function trackMouse(e: MouseEvent) {
-  if (trackRaf) return
-  trackRaf = requestAnimationFrame(() => {
-    trackRaf = null
-    const el = triggerEl.value
-    if (!el) return
+function cancelHide() {
+  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
+}
 
-    const r = el.getBoundingClientRect()
-    const xOk = e.clientX >= r.left && e.clientX <= r.right
-    const inBar = xOk && e.clientY >= r.top && e.clientY <= r.top + 45
-    const inPanel = xOk && e.clientY > r.top + 40 && e.clientY <= r.top + 360
+onMounted(async () => {
+  try {
+    const [catRes, productRes] = await Promise.all([
+      getCategoryList(),
+      getProductList({ size: 50 })
+    ])
+    categoryTree.value = catRes as ApiCategory[]
 
-    if (panelVisible.value) {
-      if (inBar || inPanel) {
-        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
-      } else if (!hideTimer) {
-        hideTimer = setTimeout(() => { panelVisible.value = false; hideTimer = null }, 300)
+    const products = (productRes as any).records || (productRes as Product[]) || []
+
+    // Fisher-Yates shuffle
+    function shuffleArray<T>(arr: T[]): T[] {
+      const a = [...arr]
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]]
       }
-    } else if (inBar) {
-      panelVisible.value = true
+      return a
     }
-  })
-}
 
-onMounted(() => document.addEventListener('mousemove', trackMouse))
+    // Build category id → zone index (include all descendant IDs)
+    const catToZone: Record<number, number> = {}
+    function walk(cats: ApiCategory[], zoneIdx: number) {
+      for (const cat of cats) {
+        catToZone[cat.id] = zoneIdx
+        if (cat.children?.length) walk(cat.children, zoneIdx)
+      }
+    }
+    categoryTree.value.forEach((cat, i) => {
+      if (i < 12) walk([cat], i)
+    })
+
+    // Max products per zone
+    const zoneLimits: Record<string, number> = {
+      clothing: 8, digital: 6, home: 6,
+      beauty: 6, sports: 6, food: 6,
+      baby: 6, books: 6, pets: 6,
+      auto: 6, health: 6, jewelry: 6,
+      hotsale: 8,
+    }
+
+    // Group products into zones, randomize & limit
+    const buckets: Zone[] = zoneNames.map((id, i) => ({
+      id, title: zoneTitles[id], size: zoneSizes[id], products: []
+    }))
+
+    for (const p of (Array.isArray(products) ? products : [])) {
+      const pi = p as Product
+      const zoneIdx = catToZone[pi.categoryId]
+      const zp: ZoneProduct = {
+        id: pi.id, title: pi.name, price: pi.price,
+        old: pi.originalPrice, tag: pi.tag, img: pi.mainImage
+      }
+      if (zoneIdx !== undefined && zoneIdx < 12) {
+        buckets[zoneIdx].products.push(zp)
+      }
+    }
+
+    // Randomize each zone and limit count
+    for (const zone of buckets) {
+      zone.products = shuffleArray(zone.products).slice(0, zoneLimits[zone.id] || 8)
+    }
+
+    // Hotsale: random selection across all products
+    const allZp = (Array.isArray(products) ? products : []).map((pi: Product) => ({
+      id: pi.id, title: pi.name, price: pi.price,
+      old: pi.originalPrice, tag: pi.tag, img: pi.mainImage
+    }))
+    buckets[zoneNames.indexOf('hotsale')].products = shuffleArray(allZp).slice(0, 8)
+
+    zones.value = buckets
+  } catch {
+    // keep empty
+  } finally {
+    loading.value = false
+  }
+})
 onUnmounted(() => {
-  document.removeEventListener('mousemove', trackMouse)
-  if (trackRaf) cancelAnimationFrame(trackRaf)
+  if (hideTimer) clearTimeout(hideTimer)
 })
 
 const catZoneMap: Record<string, string> = {
-  '潮流服饰': 'clothing',
-  '美妆护肤': 'beauty',
-  '数码家电': 'digital',
-  '家居软装': 'home',
-  '运动户外': 'sports',
+  '服饰鞋包': 'clothing', '数码家电': 'digital', '家居生活': 'home',
+  '美妆个护': 'beauty', '运动户外': 'sports',
+  '食品饮料': 'food', '母婴用品': 'baby', '图书文具': 'books',
+  '宠物生活': 'pets', '汽车用品': 'auto', '医药健康': 'health',
+  '珠宝配饰': 'jewelry',
 }
 
 const hoveredCatProducts = computed(() => {
-  const label = categories[hoveredCat.value].label
-  const zoneId = catZoneMap[label]
+  const cat = categories.value[hoveredCat.value]
+  if (!cat) return []
+  const zoneId = catZoneMap[cat.label]
   if (!zoneId) return []
-  const zone = zones.find(z => z.id === zoneId)
+  const zone = zones.value.find(z => z.id === zoneId)
   return zone ? zone.products.slice(0, 3) : []
 })
 
@@ -153,66 +224,39 @@ const stats = [
   { value: '99%', label: '好评率' }
 ]
 
-const zones = [
-  {
-    id: 'clothing', title: '潮流服饰', size: '4x4',
-    products: [
-      { id: 1, title: '轻奢百搭手提包', price: 199, old: 399, tag: '热卖', img: 'https://picsum.photos/id/1/300/300' },
-      { id: 5, title: '纯棉宽松卫衣', price: 159, img: 'https://picsum.photos/id/5/300/300' },
-      { id: 9, title: '法式碎花连衣裙', price: 239, old: 359, img: 'https://picsum.photos/id/9/300/300' },
-      { id: 10, title: '韩版宽松牛仔外套', price: 189, img: 'https://picsum.photos/id/10/300/300' },
-      { id: 19, title: '复古英伦风衣', price: 299, old: 499, tag: '新品', img: 'https://picsum.photos/id/19/300/300' },
-      { id: 20, title: '简约通勤小西装', price: 359, img: 'https://picsum.photos/id/20/300/300' },
-      { id: 21, title: '高腰直筒牛仔裤', price: 139, tag: '推荐', img: 'https://picsum.photos/id/21/300/300' },
-      { id: 22, title: '桑蚕丝印花衬衫', price: 189, old: 289, img: 'https://picsum.photos/id/22/300/300' },
-    ]
-  },
-  {
-    id: 'digital', title: '数码家电', size: '2x1',
-    products: [
-      { id: 4, title: '无线蓝牙耳机', price: 129, old: 229, tag: '6折', img: 'https://picsum.photos/id/4/300/300' },
-      { id: 6, title: '智能扫地机器人', price: 1299, img: 'https://picsum.photos/id/6/300/300' },
-      { id: 23, title: '4K超清投影仪', price: 2399, old: 2999, tag: '直降', img: 'https://picsum.photos/id/23/300/300' },
-      { id: 24, title: '机械键盘青轴', price: 159, img: 'https://picsum.photos/id/24/300/300' },
-    ]
-  },
-  {
-    id: 'home', title: '家居日用', size: '2x1',
-    products: [
-      { id: 11, title: '北欧ins风台灯', price: 79, tag: '新品', img: 'https://picsum.photos/id/11/300/300' },
-      { id: 12, title: '日式懒人沙发', price: 299, old: 429, img: 'https://picsum.photos/id/12/300/300' },
-      { id: 25, title: '简约落地衣架', price: 89, img: 'https://picsum.photos/id/25/300/300' },
-      { id: 26, title: '纯棉四件套', price: 199, old: 299, tag: '热卖', img: 'https://picsum.photos/id/26/300/300' },
-    ]
-  },
-  {
-    id: 'beauty', title: '美妆护肤', size: '2x1',
-    products: [
-      { id: 3, title: '持妆粉底液控油遮瑕', price: 89, tag: '爆款', img: 'https://picsum.photos/id/3/300/300' },
-      { id: 7, title: '天然植物精萃精华液', price: 139, old: 269, img: 'https://picsum.photos/id/7/300/300' },
-    ]
-  },
-  {
-    id: 'sports', title: '运动户外', size: '2x1',
-    products: [
-      { id: 13, title: '专业跑步鞋减震透气', price: 259, old: 359, tag: '推荐', img: 'https://picsum.photos/id/13/300/300' },
-      { id: 8, title: '户外背包大容量防水', price: 179, img: 'https://picsum.photos/id/8/300/300' },
-    ]
-  },
-  {
-    id: 'hotsale', title: '热销爆款', size: '4x4',
-    products: [
-      { id: 2, title: '全自动小型破壁机', price: 269, old: 459, tag: '限时特惠', img: 'https://picsum.photos/id/2/300/300' },
-      { id: 14, title: '加厚防滑瑜伽垫', price: 69, old: 129, img: 'https://picsum.photos/id/14/300/300' },
-      { id: 18, title: '无线降噪耳机', price: 459, img: 'https://picsum.photos/id/18/300/300' },
-      { id: 15, title: '防风防雨露营帐篷', price: 399, old: 599, tag: '直降200', img: 'https://picsum.photos/id/15/300/300' },
-      { id: 27, title: '智能电饭煲', price: 199, old: 299, img: 'https://picsum.photos/id/27/300/300' },
-      { id: 28, title: '挂烫机手持便携', price: 89, old: 159, tag: '特价', img: 'https://picsum.photos/id/28/300/300' },
-      { id: 29, title: '感应小夜灯', price: 29, old: 49, img: 'https://picsum.photos/id/29/300/300' },
-      { id: 30, title: '保温杯大容量', price: 79, old: 129, img: 'https://picsum.photos/id/30/300/300' },
-    ]
-  }
-]
+interface ZoneProduct {
+  id: number
+  title: string
+  price: number
+  old: number | null
+  tag: string | null
+  img: string
+}
+
+interface Zone {
+  id: string
+  title: string
+  size: string
+  products: ZoneProduct[]
+}
+
+const zoneNames = ['clothing', 'digital', 'home', 'beauty', 'sports', 'food', 'baby', 'books', 'pets', 'auto', 'health', 'jewelry', 'hotsale']
+const zoneTitles: Record<string, string> = {
+  clothing: '潮流服饰', digital: '数码家电', home: '家居日用',
+  beauty: '美妆护肤', sports: '运动户外', food: '食品饮料',
+  baby: '母婴用品', books: '图书文具', pets: '宠物生活',
+  auto: '汽车用品', health: '医药健康', jewelry: '珠宝配饰',
+  hotsale: '热销爆款',
+}
+const zoneSizes: Record<string, string> = {
+  clothing: '4x4', digital: '2x1', home: '2x1',
+  beauty: '2x1', sports: '2x1', food: '2x1',
+  baby: '2x1', books: '2x1', pets: '2x1',
+  auto: '2x1', health: '2x1', jewelry: '2x1',
+  hotsale: '4x4',
+}
+
+const zones = ref<Zone[]>([])
 
 const banners = [
   {
@@ -237,16 +281,34 @@ const banners = [
 
 const sections = computed(() => {
   const result: any[] = []
-  for (let i = 0; i < zones.length; i++) {
-    result.push({ ...zones[i], _type: 'zone' })
+  for (let i = 0; i < zones.value.length; i++) {
+    result.push({ ...zones.value[i], _type: 'zone' })
     if (i === 2) result.push({ _type: 'banner', ...banners[0] })
     if (i === 4) result.push({ _type: 'banner', ...banners[1] })
   }
   return result
 })
 
-function goProduct() {
+const animatingIds = reactive(new Set<number>())
+const favoritedIds = reactive(new Set<number>())
+
+async function handleFavorite(id: number) {
+  if (animatingIds.has(id)) return
+  animatingIds.add(id)
+  try {
+    await addFavorite(id)
+    favoritedIds.add(id)
+    showToast('已收藏', 'success')
+  } catch { /* handled */ }
+  setTimeout(() => animatingIds.delete(id), 700)
+}
+
+function goProductList() {
   router.push('/product/list')
+}
+
+function goProductDetail(id: number) {
+  window.open('/product/detail/' + id, '_blank')
 }
 </script>
 
@@ -271,8 +333,8 @@ function goProduct() {
               <h1 class="hero__title" v-html="slide.title" />
               <p class="hero__desc">{{ slide.desc }}</p>
               <div class="hero__btns">
-                <button class="hero__btn-primary" @click="goProduct">{{ slide.btn }}</button>
-                <button class="hero__btn-ghost" @click="goProduct">{{ slide.btn2 }}</button>
+                <button class="hero__btn-primary" @click="goProductList">{{ slide.btn }}</button>
+                <button class="hero__btn-ghost" @click="goProductList">{{ slide.btn2 }}</button>
               </div>
               <div v-if="i === 0" class="hero__stats">
                 <div v-for="s in stats" :key="s.label" class="hero__stat">
@@ -305,27 +367,44 @@ function goProduct() {
       </div>
     </section>
 
-    <!-- ============ TRANSITION ============ -->
-    <section class="transition-strip">
-      <div class="section__inner">
-        <div class="transition-strip__inner">
-          <span class="transition-strip__ornament"></span>
-          <p class="transition-strip__text">每一件好物，都值得被认真挑选</p>
-          <span class="transition-strip__ornament"></span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============ CATEGORY TRIGGER ============ -->
-    <section class="cat-trigger" ref="triggerEl">
-      <div class="section__inner">
-        <div class="cat-trigger__bar">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-          <span>全部分类</span>
+    <!-- ============ CATEGORY BROWSE ============ -->
+    <section class="cat-browse">
+      <!-- Decorative header -->
+      <div class="cat-browse__header">
+        <div class="section__inner">
+          <div class="cat-browse__header-inner">
+            <span class="cat-browse__ornament"></span>
+            <span class="cat-browse__slogan">每一件好物，都值得被认真挑选</span>
+            <span class="cat-browse__ornament"></span>
+          </div>
         </div>
       </div>
 
-      <div class="cat-trigger__panel" :class="{ 'cat-trigger__panel--visible': panelVisible }">
+      <div class="cat-browse__body"
+        @mouseleave="onBrowseLeave"
+      >
+        <div class="section__inner">
+          <div class="cat-browse__grid">
+            <button
+              v-for="(cat, i) in categories"
+              :key="cat.label"
+              class="cat-browse__tile"
+              :class="{ 'cat-browse__tile--active': hoveredCat === i }"
+              @mouseenter="onCatEnter(i)"
+              @click="goProductList"
+            >
+              <span class="cat-browse__tile-icon" v-html="catIcons[cat.icon]" />
+              <span class="cat-browse__tile-label">{{ cat.label }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Flyout panel (reuses trigger panel styles) -->
+        <div
+          class="cat-trigger__panel"
+          :class="{ 'cat-trigger__panel--visible': hoveredCat > 0 }"
+          @mouseenter="cancelHide"
+        >
           <div class="section__inner">
             <div class="cat-trigger__panel-inner">
               <div class="cat-trigger__left">
@@ -344,10 +423,10 @@ function goProduct() {
               <div class="cat-trigger__right">
                 <div class="cat-trigger__subcats">
                   <span
-                    v-for="child in categories[hoveredCat].children"
+                    v-for="child in categories[hoveredCat]?.children"
                     :key="child"
                     class="cat-trigger__subcat-tag"
-                    @click="goProduct"
+                    @click="goProductList"
                   >{{ child }}</span>
                 </div>
                 <div v-if="hoveredCatProducts.length" class="cat-trigger__products">
@@ -355,7 +434,7 @@ function goProduct() {
                     v-for="p in hoveredCatProducts"
                     :key="p.id"
                     class="cat-trigger__product"
-                    @click="goProduct"
+                    @click="goProductDetail(p.id)"
                   >
                     <div class="cat-trigger__product-img">
                       <img :src="p.img" :alt="p.title">
@@ -370,6 +449,7 @@ function goProduct() {
             </div>
           </div>
         </div>
+      </div>
     </section>
 
     <!-- ============ ZONE GRID ============ -->
@@ -386,11 +466,11 @@ function goProduct() {
                 <span class="zone-banner__label">{{ item.subtitle }}</span>
                 <h3 class="zone-banner__title">{{ item.title }}</h3>
                 <p class="zone-banner__desc">{{ item.desc }}</p>
-                <button class="zone-banner__btn" @click="goProduct">{{ item.btn }}</button>
+                <button class="zone-banner__btn" @click="goProductList">{{ item.btn }}</button>
               </div>
             </div>
             <div v-else :class="['zone', `zone--${item.size}`]">
-              <div class="zone__header" @click="goProduct">
+              <div class="zone__header" @click="goProductList">
                 <h3 class="zone__title">{{ item.title }}</h3>
               </div>
               <div class="zone__products">
@@ -398,11 +478,22 @@ function goProduct() {
                   v-for="p in item.products"
                   :key="p.id"
                   class="zone__product"
-                  @click="goProduct"
+                  @click="goProductDetail(p.id)"
                 >
                   <div class="zone__product-img">
                     <img :src="p.img" :alt="p.title">
                     <span v-if="p.tag" class="zone__product-badge">{{ p.tag }}</span>
+                    <button
+                      class="zone__product-fav"
+                      :class="{ 'zone__product-fav--active': favoritedIds.has(p.id) || animatingIds.has(p.id) }"
+                      @click.stop="handleFavorite(p.id)"
+                      title="收藏"
+                    >
+                      <svg class="zone__product-fav-heart" viewBox="0 0 24 24" width="16" height="16">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="none" stroke="currentColor" stroke-width="2"/>
+                      </svg>
+                      <span class="zone__product-fav-ring"></span>
+                    </button>
                     <div class="zone__product-info">
                       <p class="zone__product-name">{{ p.title }}</p>
                       <div class="zone__product-prices">
@@ -737,26 +828,30 @@ function goProduct() {
   background: rgba(255, 255, 255, 0.5);
 }
 
-/* ---- Transition Strip ---- */
-.transition-strip {
-  padding: 36px 16px;
+/* ---- Category Browse (merged transition + category grid) ---- */
+.cat-browse {
+  background: var(--wz-bg-elevated);
+}
+
+.cat-browse__header {
+  padding: 40px 16px;
   background: var(--wz-orange);
 }
 
-.transition-strip__inner {
+.cat-browse__header-inner {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 24px;
 }
 
-.transition-strip__ornament {
+.cat-browse__ornament {
   width: 60px;
   height: 1px;
   background: rgba(255, 255, 255, 0.5);
 }
 
-.transition-strip__text {
+.cat-browse__slogan {
   font-family: var(--wz-font-display);
   font-size: 20px;
   font-weight: 600;
@@ -765,37 +860,91 @@ function goProduct() {
   white-space: nowrap;
 }
 
-@media (max-width: 640px) {
-  .transition-strip { padding: 24px 16px; }
-  .transition-strip__text { font-size: 16px; letter-spacing: 0.15em; }
-  .transition-strip__ornament { width: 32px; }
-}
-
-/* ---- Category Trigger ---- */
-.cat-trigger {
+/* Body wraps grid + flyout */
+.cat-browse__body {
   position: relative;
-  border-bottom: 1px solid var(--wz-border);
-  background: var(--wz-bg-elevated);
 }
 
-.cat-trigger__bar {
+/* Category tile grid */
+.cat-browse__grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 8px;
+  padding: 20px 0;
+}
+
+.cat-browse__tile {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 8px;
-  height: 40px;
-  font-size: 13px;
-  font-weight: 500;
+  padding: 16px 8px 14px;
+  background: var(--wz-bg-card);
+  border: 1px solid var(--wz-border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: var(--wz-font-body);
   color: var(--wz-text-soft);
-  cursor: default;
-  user-select: none;
+  transition: background var(--wz-duration-fast) var(--wz-ease-out),
+              border-color var(--wz-duration-fast) var(--wz-ease-out),
+              color var(--wz-duration-fast) var(--wz-ease-out),
+              transform var(--wz-duration-fast) var(--wz-ease-out),
+              box-shadow var(--wz-duration-fast) var(--wz-ease-out);
 }
 
-.cat-trigger__bar svg {
+.cat-browse__tile:hover {
+  background: var(--wz-bg-hover);
+  border-color: var(--wz-orange-muted);
+  color: var(--wz-text);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.cat-browse__tile--active {
+  background: var(--wz-orange-muted);
+  border-color: var(--wz-orange);
   color: var(--wz-orange);
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.15);
 }
 
+.cat-browse__tile-icon {
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+  transition: opacity var(--wz-duration-fast) var(--wz-ease-out),
+              transform var(--wz-duration-fast) var(--wz-ease-out);
+}
 
-/* Flyout panel */
+.cat-browse__tile:hover .cat-browse__tile-icon {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.cat-browse__tile--active .cat-browse__tile-icon {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.cat-browse__tile-label {
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.3;
+}
+
+@media (max-width: 1024px) {
+  .cat-browse__grid { grid-template-columns: repeat(6, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .cat-browse__header { padding: 24px 16px; }
+  .cat-browse__slogan { font-size: 16px; letter-spacing: 0.15em; }
+  .cat-browse__ornament { width: 32px; }
+  .cat-browse__grid { grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 12px 0; }
+  .cat-browse__tile { padding: 12px 6px; }
+}
+
+/* Flyout panel (shared with cat-trigger styles) */
 .cat-trigger__panel {
   position: absolute;
   top: 100%;
@@ -823,7 +972,7 @@ function goProduct() {
 .cat-trigger__panel-inner {
   display: flex;
   gap: 32px;
-  height: 300px;
+  min-height: 440px;
 }
 
 /* Left: category list */
@@ -833,6 +982,7 @@ function goProduct() {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  overflow-y: auto;
 }
 
 .cat-trigger__cat-btn {
@@ -1250,6 +1400,82 @@ function goProduct() {
 
 .zone__product:nth-child(4) .zone__product-badge {
   background: #007aff;
+}
+
+/* Favorite button */
+.zone__product-fav {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--wz-duration-normal) var(--wz-ease-out),
+              background var(--wz-duration-fast) var(--wz-ease-out),
+              color var(--wz-duration-fast) var(--wz-ease-out),
+              transform var(--wz-duration-fast) var(--wz-ease-out);
+  backdrop-filter: blur(4px);
+}
+
+.zone__product:hover .zone__product-fav {
+  opacity: 1;
+}
+
+.zone__product-fav:hover {
+  background: rgba(255, 107, 53, 0.85);
+  color: #fff;
+  transform: scale(1.1);
+}
+
+/* Favorite button animation */
+.zone__product-fav--active {
+  background: rgba(255, 107, 53, 0.85);
+  color: #fff;
+}
+
+.zone__product-fav-heart {
+  position: relative;
+  z-index: 1;
+  transition: transform 0.3s var(--wz-ease-out);
+}
+
+.zone__product-fav--active .zone__product-fav-heart {
+  fill: currentColor;
+  animation: fav-beat 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.zone__product-fav-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--wz-orange);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.zone__product-fav--active .zone__product-fav-ring {
+  animation: fav-ripple 0.6s ease-out forwards;
+}
+
+@keyframes fav-beat {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.5); }
+  60% { transform: scale(0.9); }
+  100% { transform: scale(1.2); }
+}
+
+@keyframes fav-ripple {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(2); opacity: 0; }
 }
 
 /* Prices row */

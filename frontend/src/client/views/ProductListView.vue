@@ -1,61 +1,19 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, reactive, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-
-interface Product {
-  id: number
-  title: string
-  price: number
-  old?: number
-  tag?: string
-  img: string
-  category: string
-  sales: number
-}
+import { getProductList, getCategoryList, searchProducts } from '@/api/product'
+import { addFavorite } from '@/api/favorite'
+import { showToast } from '@/utils/toast'
+import type { Product, Category } from '@/api/product'
 
 const route = useRoute()
 const router = useRouter()
 
-const allProducts: Product[] = [
-  { id: 101, title: '轻奢百搭手提包', price: 199, old: 399, tag: '热卖', img: 'https://picsum.photos/id/1/400/300', category: 'clothing', sales: 2834 },
-  { id: 102, title: '纯棉宽松卫衣', price: 159, img: 'https://picsum.photos/id/5/400/300', category: 'clothing', sales: 1542 },
-  { id: 103, title: '法式碎花连衣裙', price: 239, old: 359, tag: '新品', img: 'https://picsum.photos/id/9/400/300', category: 'clothing', sales: 982 },
-  { id: 104, title: '韩版宽松牛仔外套', price: 189, img: 'https://picsum.photos/id/10/400/300', category: 'clothing', sales: 671 },
-  { id: 105, title: '复古英伦风衣', price: 299, old: 499, tag: '推荐', img: 'https://picsum.photos/id/19/400/300', category: 'clothing', sales: 445 },
-  { id: 106, title: '高腰直筒牛仔裤', price: 139, img: 'https://picsum.photos/id/21/400/300', category: 'clothing', sales: 2103 },
-  { id: 107, title: '桑蚕丝印花衬衫', price: 189, old: 289, img: 'https://picsum.photos/id/22/400/300', category: 'clothing', sales: 756 },
-  { id: 108, title: '纯色针织开衫', price: 169, tag: '新品', img: 'https://picsum.photos/id/40/400/300', category: 'clothing', sales: 534 },
-  { id: 201, title: '持妆粉底液', price: 89, tag: '爆款', img: 'https://picsum.photos/id/3/400/300', category: 'beauty', sales: 4521 },
-  { id: 202, title: '天然植物精华液', price: 139, old: 269, img: 'https://picsum.photos/id/7/400/300', category: 'beauty', sales: 3210 },
-  { id: 203, title: '补水面膜套装', price: 59, tag: '热卖', img: 'https://picsum.photos/id/36/400/300', category: 'beauty', sales: 6789 },
-  { id: 204, title: '防晒霜SPF50', price: 79, img: 'https://picsum.photos/id/37/400/300', category: 'beauty', sales: 5432 },
-  { id: 301, title: '无线蓝牙耳机', price: 129, old: 229, tag: '6折', img: 'https://picsum.photos/id/4/400/300', category: 'digital', sales: 8765 },
-  { id: 302, title: '智能扫地机器人', price: 1299, img: 'https://picsum.photos/id/6/400/300', category: 'digital', sales: 1234 },
-  { id: 303, title: '4K超清投影仪', price: 2399, old: 2999, tag: '直降', img: 'https://picsum.photos/id/23/400/300', category: 'digital', sales: 876 },
-  { id: 304, title: '机械键盘青轴', price: 159, img: 'https://picsum.photos/id/24/400/300', category: 'digital', sales: 3456 },
-  { id: 401, title: '北欧ins风台灯', price: 79, tag: '新品', img: 'https://picsum.photos/id/11/400/300', category: 'home', sales: 2345 },
-  { id: 402, title: '日式懒人沙发', price: 299, old: 429, img: 'https://picsum.photos/id/12/400/300', category: 'home', sales: 1567 },
-  { id: 403, title: '简约落地衣架', price: 89, img: 'https://picsum.photos/id/25/400/300', category: 'home', sales: 3210 },
-  { id: 404, title: '纯棉四件套', price: 199, old: 299, tag: '热卖', img: 'https://picsum.photos/id/26/400/300', category: 'home', sales: 2890 },
-  { id: 501, title: '混合坚果礼盒', price: 59, img: 'https://picsum.photos/id/31/400/300', category: 'food', sales: 5678 },
-  { id: 502, title: '抹茶生巧', price: 39, tag: '爆款', img: 'https://picsum.photos/id/32/400/300', category: 'food', sales: 7890 },
-  { id: 503, title: '手撕牛肉干', price: 49, img: 'https://picsum.photos/id/33/400/300', category: 'food', sales: 4567 },
-  { id: 601, title: '专业跑步鞋', price: 259, old: 359, tag: '推荐', img: 'https://picsum.photos/id/13/400/300', category: 'sports', sales: 1876 },
-  { id: 602, title: '户外背包大容量', price: 179, img: 'https://picsum.photos/id/8/400/300', category: 'sports', sales: 1245 },
-  { id: 603, title: '加厚防滑瑜伽垫', price: 69, old: 129, img: 'https://picsum.photos/id/14/400/300', category: 'sports', sales: 3456 },
-]
+const allProducts = ref<Product[]>([])
+const categories = ref<{ label: string; value: number | '' }[]>([{ label: '全部', value: '' }])
+const loading = ref(false)
 
-const categories = [
-  { label: '全部', value: '' },
-  { label: '潮流服饰', value: 'clothing' },
-  { label: '美妆护肤', value: 'beauty' },
-  { label: '数码家电', value: 'digital' },
-  { label: '家居软装', value: 'home' },
-  { label: '休闲零食', value: 'food' },
-  { label: '运动户外', value: 'sports' },
-]
-
-const activeCategory = ref((route.query.category as string) || '')
+const activeCategory = ref<number | ''>((route.query.categoryId ? Number(route.query.categoryId) : '') as number | '')
 const keyword = ref((route.query.keyword as string) || '')
 const sortBy = ref('default')
 const currentPage = ref(1)
@@ -64,15 +22,15 @@ const maxPrice = ref('')
 const pageSize = 12
 
 const filteredProducts = computed(() => {
-  let list = [...allProducts]
+  let list = [...allProducts.value]
 
-  if (activeCategory.value) {
-    list = list.filter(p => p.category === activeCategory.value)
+  if (activeCategory.value !== '') {
+    list = list.filter(p => p.categoryId === activeCategory.value)
   }
 
   if (keyword.value) {
     const kw = keyword.value.toLowerCase()
-    list = list.filter(p => p.title.includes(kw))
+    list = list.filter(p => p.name.toLowerCase().includes(kw))
   }
 
   const min = parseFloat(minPrice.value)
@@ -109,10 +67,10 @@ const pagedProducts = computed(() => {
 
 const totalCount = computed(() => filteredProducts.value.length)
 
-function setCategory(value: string) {
+function setCategory(value: number | '') {
   activeCategory.value = value
   currentPage.value = 1
-  router.replace({ query: { ...route.query, category: value || undefined } })
+  router.replace({ query: { ...route.query, categoryId: value || undefined } })
 }
 
 function setSort(value: string) {
@@ -122,6 +80,20 @@ function setSort(value: string) {
 
 function goProduct(id: number) {
   router.push({ name: 'ProductDetail', params: { id } })
+}
+
+const animatingIds = reactive(new Set<number>())
+const favoritedIds = reactive(new Set<number>())
+
+async function handleFavorite(id: number) {
+  if (animatingIds.has(id)) return
+  animatingIds.add(id)
+  try {
+    await addFavorite(id)
+    favoritedIds.add(id)
+    showToast('已收藏', 'success')
+  } catch { /* handled */ }
+  setTimeout(() => animatingIds.delete(id), 700)
 }
 
 function goPage(p: number) {
@@ -145,7 +117,7 @@ watch(keyword, (val) => {
 })
 
 const categoryLabel = computed(() => {
-  const c = categories.find(c => c.value === activeCategory.value)
+  const c = categories.value.find(c => c.value === activeCategory.value)
   return c ? c.label : ''
 })
 
@@ -160,13 +132,38 @@ const sortOptions = [
 const activeFilters = computed(() => {
   const filters: { label: string; onRemove: () => void }[] = []
   if (keyword.value) filters.push({ label: `搜索：${keyword.value}`, onRemove: clearKeyword })
-  if (activeCategory.value) {
+  if (activeCategory.value !== '') {
     filters.push({ label: `分类：${categoryLabel.value}`, onRemove: () => setCategory('') })
   }
   if (minPrice.value || maxPrice.value) {
     filters.push({ label: `价格 ${minPrice.value || '0'} ~ ${maxPrice.value || '不限'}`, onRemove: clearPrice })
   }
   return filters
+})
+
+// Data loading
+async function loadProducts() {
+  loading.value = true
+  try {
+    const res = await getProductList({ size: 200 })
+    allProducts.value = (res as any).records || (res as Product[]) || []
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(async () => {
+  try {
+    const catRes = await getCategoryList()
+    const cats = catRes as Category[]
+    categories.value = [
+      { label: '全部', value: '' },
+      ...cats.map(c => ({ label: c.name, value: c.id }))
+    ]
+  } catch {
+    // use default
+  }
+  loadProducts()
 })
 </script>
 
@@ -246,14 +243,23 @@ const activeFilters = computed(() => {
               @click="goProduct(p.id)"
             >
               <div class="plp__card-img">
-                <img :src="p.img" :alt="p.title" loading="lazy">
+                <img :src="p.mainImage" :alt="p.name" loading="lazy">
                 <span v-if="p.tag" class="plp__card-badge">{{ p.tag }}</span>
+                <button
+                  class="plp__card-fav"
+                  :class="{ 'plp__card-fav--active': favoritedIds.has(p.id) || animatingIds.has(p.id) }"
+                  @click.stop="handleFavorite(p.id)"
+                  title="收藏"
+                >
+                  <svg class="plp__card-fav-heart" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  <span class="plp__card-fav-ring"></span>
+                </button>
               </div>
               <div class="plp__card-body">
-                <p class="plp__card-name">{{ p.title }}</p>
+                <p class="plp__card-name">{{ p.name }}</p>
                 <div class="plp__card-prices">
                   <span class="plp__card-price">¥{{ p.price }}</span>
-                  <span v-if="p.old" class="plp__card-old">¥{{ p.old }}</span>
+                  <span v-if="p.originalPrice" class="plp__card-old">¥{{ p.originalPrice }}</span>
                 </div>
                 <div class="plp__card-footer">
                   <span class="plp__card-sales">已售 {{ p.sales > 999 ? (p.sales / 1000).toFixed(1) + 'k' : p.sales }}</span>
@@ -602,6 +608,81 @@ const activeFilters = computed(() => {
 
 .plp__card:nth-child(3n+3) .plp__card-badge {
   background: #af52de;
+}
+
+.plp__card-fav {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--wz-duration-normal) var(--wz-ease-out),
+              background var(--wz-duration-fast) var(--wz-ease-out),
+              color var(--wz-duration-fast) var(--wz-ease-out),
+              transform var(--wz-duration-fast) var(--wz-ease-out);
+  backdrop-filter: blur(4px);
+}
+
+.plp__card:hover .plp__card-fav {
+  opacity: 1;
+}
+
+.plp__card-fav:hover {
+  background: rgba(255, 107, 53, 0.85);
+  color: #fff;
+  transform: scale(1.1);
+}
+
+/* Favorite button animation */
+.plp__card-fav--active {
+  background: rgba(255, 107, 53, 0.85);
+  color: #fff;
+}
+
+.plp__card-fav-heart {
+  position: relative;
+  z-index: 1;
+  transition: transform 0.3s var(--wz-ease-out);
+}
+
+.plp__card-fav--active .plp__card-fav-heart {
+  fill: currentColor;
+  animation: plp-fav-beat 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.plp__card-fav-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--wz-orange);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.plp__card-fav--active .plp__card-fav-ring {
+  animation: plp-fav-ripple 0.6s ease-out forwards;
+}
+
+@keyframes plp-fav-beat {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.5); }
+  60% { transform: scale(0.9); }
+  100% { transform: scale(1.2); }
+}
+
+@keyframes plp-fav-ripple {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(2); opacity: 0; }
 }
 
 .plp__card-body {

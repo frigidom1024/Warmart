@@ -1,49 +1,75 @@
 <script setup lang="ts">
-const pageTitle = '意见反馈'
+import { ref, reactive, onMounted } from 'vue'
+import { addFeedback } from '@/api/feedback'
+import { showToast } from '@/utils/toast'
+
+const typeOptions = ['功能建议', '商品问题', '配送问题', '其他']
+const form = reactive({ type: '功能建议', content: '', contactInfo: '' })
+const submitting = ref(false)
+const history = ref<{ id: number; type: string; content: string; status: number; replyContent: string | null; createdTime: string }[]>([])
+
+onMounted(async () => {
+  // history not available via API — left empty
+})
+
+async function handleSubmit() {
+  if (!form.content.trim()) {
+    showToast('请输入反馈内容', 'warning')
+    return
+  }
+  submitting.value = true
+  try {
+    await addFeedback({ type: form.type, content: form.content.trim() })
+    showToast('感谢你的反馈！', 'success')
+    form.content = ''
+    form.contactInfo = ''
+  } catch { /* handled */ } finally {
+    submitting.value = false
+  }
+}
 </script>
 
 <template>
   <div class="page-container">
     <div class="user-feedback">
-      <h1 class="user-feedback__title">{{ pageTitle }}</h1>
+      <h1 class="user-feedback__title">意见反馈</h1>
 
-      <!-- Feedback Form Placeholder -->
+      <!-- Form -->
       <div class="user-feedback__form">
         <div class="user-feedback__field">
           <span class="user-feedback__label">反馈类型</span>
           <div class="user-feedback__type-selector">
-            <span class="user-feedback__type user-feedback__type--active">功能建议</span>
-            <span class="user-feedback__type">商品问题</span>
-            <span class="user-feedback__type">配送问题</span>
-            <span class="user-feedback__type">其他</span>
+            <span
+              v-for="t in typeOptions"
+              :key="t"
+              class="user-feedback__type"
+              :class="{ 'user-feedback__type--active': form.type === t }"
+              @click="form.type = t"
+            >{{ t }}</span>
           </div>
         </div>
         <div class="user-feedback__field">
           <span class="user-feedback__label">反馈内容</span>
-          <div class="user-feedback__textarea-placeholder">
-            <span class="user-feedback__textarea-hint">请详细描述你的问题或建议…</span>
-          </div>
+          <textarea
+            v-model="form.content"
+            class="user-feedback__textarea"
+            placeholder="请详细描述你的问题或建议…"
+            rows="5"
+          ></textarea>
         </div>
         <div class="user-feedback__field">
           <span class="user-feedback__label">联系方式</span>
-          <div class="user-feedback__input-placeholder"></div>
+          <input
+            v-model="form.contactInfo"
+            class="user-feedback__input"
+            placeholder="手机号或邮箱（选填）"
+          >
         </div>
-        <div class="user-feedback__submit-btn">提交反馈</div>
-      </div>
-
-      <!-- Previous Feedback List Placeholder -->
-      <div class="user-feedback__history">
-        <h2 class="user-feedback__history-title">历史反馈</h2>
-        <div class="user-feedback__list">
-          <div v-for="i in 2" :key="i" class="user-feedback__item">
-            <div class="user-feedback__item-top">
-              <span class="user-feedback__item-type">功能建议</span>
-              <span class="user-feedback__item-status user-feedback__item-status--done">已处理</span>
-            </div>
-            <p class="user-feedback__item-content">这是第 {{ i }} 条历史反馈的内容摘要，仅作占位展示…</p>
-            <span class="user-feedback__item-time">2026-05-1{{ i }}</span>
-          </div>
-        </div>
+        <div
+          class="user-feedback__submit-btn"
+          :class="{ 'user-feedback__submit-btn--disabled': submitting }"
+          @click="handleSubmit"
+        >{{ submitting ? '提交中...' : '提交反馈' }}</div>
       </div>
     </div>
   </div>
@@ -107,24 +133,46 @@ const pageTitle = '意见反馈'
   color: #fff;
   border-color: var(--wz-orange);
 }
-.user-feedback__textarea-placeholder {
+.user-feedback__textarea {
+  width: 100%;
   min-height: 120px;
   background: var(--wz-bg);
-  border-radius: 10px;
   border: 1px solid var(--wz-border);
+  border-radius: 10px;
   padding: 14px;
-  display: flex;
-  align-items: flex-start;
-}
-.user-feedback__textarea-hint {
+  font-family: var(--wz-font-body);
   font-size: 14px;
+  color: var(--wz-text);
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color var(--wz-duration-fast) var(--wz-ease-out);
+}
+.user-feedback__textarea:focus {
+  border-color: var(--wz-orange);
+}
+.user-feedback__textarea::placeholder {
   color: var(--wz-text-soft);
 }
-.user-feedback__input-placeholder {
+.user-feedback__input {
+  width: 100%;
   height: 42px;
   background: var(--wz-bg);
-  border-radius: 8px;
   border: 1px solid var(--wz-border);
+  border-radius: 8px;
+  padding: 0 14px;
+  font-family: var(--wz-font-body);
+  font-size: 14px;
+  color: var(--wz-text);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color var(--wz-duration-fast) var(--wz-ease-out);
+}
+.user-feedback__input:focus {
+  border-color: var(--wz-orange);
+}
+.user-feedback__input::placeholder {
+  color: var(--wz-text-soft);
 }
 .user-feedback__submit-btn {
   width: 100%;
@@ -144,6 +192,10 @@ const pageTitle = '意见反馈'
 }
 .user-feedback__submit-btn:hover {
   background: var(--wz-orange-dark);
+}
+.user-feedback__submit-btn--disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 .user-feedback__history-title {
   font-size: 18px;

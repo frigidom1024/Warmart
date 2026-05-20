@@ -249,3 +249,82 @@ img {
 .el-empty__description p {
   color: var(--wz-text-muted) !important;
 }
+
+/* ============================================
+   Toast — lightweight notifications
+   ============================================ */
+
+.wz-toast-container {
+  position: fixed;
+  top: 72px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.wz-toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 260px;
+  max-width: 380px;
+  padding: 10px 14px;
+  background: var(--wz-bg-card);
+  border-radius: 8px;
+  box-shadow: var(--wz-shadow-md);
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.wz-toast--enter {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.wz-toast--leave {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* Icon */
+.wz-toast__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+}
+
+.wz-toast--success .wz-toast__icon { color: var(--wz-success); }
+.wz-toast--error .wz-toast__icon { color: var(--wz-danger); }
+.wz-toast--warning .wz-toast__icon { color: var(--wz-warning); }
+.wz-toast--info .wz-toast__icon { color: var(--wz-orange); }
+
+/* Message */
+.wz-toast__msg {
+  flex: 1;
+  font-size: 13px;
+  color: var(--wz-text-soft);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .wz-toast-container {
+    right: 12px;
+    left: 12px;
+  }
+  .wz-toast {
+    min-width: 0;
+    max-width: none;
+  }
+}

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import { showToast } from '@/utils/toast'
 import { useUserStore } from '@/stores/user'
 
 const request = axios.create({
@@ -21,8 +21,9 @@ request.interceptors.response.use(
     if (res.code === 200 || res.code === undefined) {
       return res.data !== undefined ? res.data : res
     }
-    ElMessage.error(res.msg || '请求失败')
-    return Promise.reject(new Error(res.msg || '请求失败'))
+    const errMsg = res.msg || res.message || '请求失败'
+    showToast(errMsg, 'error')
+    return Promise.reject(new Error(errMsg))
   },
   (error) => {
     if (error.response?.status === 401) {
@@ -30,7 +31,7 @@ request.interceptors.response.use(
       userStore.logout()
       window.location.href = '/auth/login'
     } else {
-      ElMessage.error(error.message || '网络错误')
+      showToast(error.message || '网络错误', 'error')
     }
     return Promise.reject(error)
   }

@@ -1,62 +1,122 @@
 <script setup lang="ts">
-const pageTitle = '商品详情'
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { getProductDetail } from '@/api/product'
+import { addToCart } from '@/api/cart'
+import type { Product } from '@/api/product'
+import { showToast } from '@/utils/toast'
+
+const route = useRoute()
+const router = useRouter()
+const product = ref<Product | null>(null)
+const loading = ref(true)
+const activeTab = ref('detail')
+
+onMounted(async () => {
+  const id = Number(route.params.id)
+  if (!id) {
+    router.replace('/product/list')
+    return
+  }
+  try {
+    product.value = await getProductDetail(id)
+  } catch {
+    // handled by interceptor
+  } finally {
+    loading.value = false
+  }
+})
+
+async function handleAddToCart() {
+  if (!product.value) return
+  try {
+    await addToCart({ productId: product.value.id, quantity: 1 })
+    showToast('已加入购物车', 'success')
+  } catch {
+    // handled by interceptor
+  }
+}
+
+function handleBuyNow() {
+  if (!product.value) return
+  router.push({ name: 'OrderCreate', query: { productId: product.value.id, quantity: 1 } })
+}
 </script>
 
 <template>
   <div class="page-container">
-    <div class="pdp">
+    <div class="pdp" v-if="product">
       <!-- Breadcrumb -->
-      <div class="pdp__breadcrumb">首页 / 商品列表 / 商品详情</div>
+      <div class="pdp__breadcrumb">
+        <span @click="router.push('/')">首页</span>
+        <span class="pdp__breadcrumb-sep">/</span>
+        <span @click="router.push('/product/list')">商品列表</span>
+        <span class="pdp__breadcrumb-sep">/</span>
+        <span>商品详情</span>
+      </div>
 
-      <!-- Gallery + Info Row -->
+      <!-- Gallery + Info -->
       <div class="pdp__main">
-        <!-- Gallery Placeholder -->
         <div class="pdp__gallery">
-          <div class="pdp__gallery-main">商品主图</div>
+          <div class="pdp__gallery-main">
+            <img :src="product.mainImage" :alt="product.name">
+          </div>
           <div class="pdp__gallery-thumbs">
-            <div v-for="i in 4" :key="i" class="pdp__thumb"></div>
+            <div
+              v-for="(img, i) in product.imageList || [product.mainImage]"
+              :key="i"
+              class="pdp__thumb"
+            >
+              <img :src="img" :alt="product.name">
+            </div>
           </div>
         </div>
 
-        <!-- Info Placeholder -->
         <div class="pdp__info">
-          <h1 class="pdp__name">{{ pageTitle }} — 示例商品名称</h1>
+          <h1 class="pdp__name">{{ product.name }}</h1>
           <div class="pdp__price">
-            <span class="pdp__price-current">¥ 128.00</span>
-            <span class="pdp__price-original">¥ 199.00</span>
+            <span class="pdp__price-current">¥{{ product.price }}</span>
+            <span v-if="product.originalPrice" class="pdp__price-original">¥{{ product.originalPrice }}</span>
+            <span v-if="product.tag" class="pdp__tag">{{ product.tag }}</span>
           </div>
           <div class="pdp__meta">
-            <span class="pdp__meta-item">月销 1000+</span>
-            <span class="pdp__meta-item">库存 999</span>
+            <span class="pdp__meta-item">月销 {{ product.sales > 999 ? (product.sales / 1000).toFixed(1) + 'k' : product.sales }}</span>
+            <span class="pdp__meta-item">库存 {{ product.stock }}</span>
           </div>
-          <div class="pdp__specs">
-            <div v-for="i in 3" :key="i" class="pdp__spec-row">
-              <span class="pdp__spec-label">规格 {{ i }}</span>
+          <div class="pdp__desc">{{ product.description }}</div>
+          <div v-if="product.specList?.length" class="pdp__specs">
+            <div v-for="spec in product.specList" :key="spec.id" class="pdp__spec-row">
+              <span class="pdp__spec-label">{{ spec.specName }}</span>
               <div class="pdp__spec-options">
-                <span class="pdp__spec-option">选项 A</span>
-                <span class="pdp__spec-option">选项 B</span>
-                <span class="pdp__spec-option">选项 C</span>
+                <span class="pdp__spec-option">{{ spec.specValue }}</span>
               </div>
             </div>
           </div>
           <div class="pdp__actions">
-            <div class="pdp__cart-btn">加入购物车</div>
-            <div class="pdp__buy-btn">立即购买</div>
+            <div class="pdp__cart-btn" @click="handleAddToCart">加入购物车</div>
+            <div class="pdp__buy-btn" @click="handleBuyNow">立即购买</div>
           </div>
         </div>
       </div>
 
-      <!-- Tabs Placeholder -->
+      <!-- Tabs -->
       <div class="pdp__tabs">
         <div class="pdp__tabs-header">
-          <span class="pdp__tab pdp__tab--active">商品详情</span>
-          <span class="pdp__tab">规格参数</span>
-          <span class="pdp__tab">用户评价</span>
+          <span
+            class="pdp__tab"
+            :class="{ 'pdp__tab--active': activeTab === 'detail' }"
+            @click="activeTab = 'detail'"
+          >商品详情</span>
         </div>
         <div class="pdp__tabs-content">
-          <div class="pdp__tabs-placeholder">商品详情内容区域</div>
+          <div class="pdp__detail-text">{{ product.description }}</div>
         </div>
       </div>
+    </div>
+
+    <!-- Loading -->
+    <div v-else-if="loading" class="pdp pdp--loading">
+      <div class="pdp__breadcrumb">加载中...</div>
     </div>
   </div>
 </template>
@@ -76,6 +136,15 @@ const pageTitle = '商品详情'
   font-size: 13px;
   color: var(--wz-text-soft);
   margin-bottom: 24px;
+  cursor: pointer;
+}
+.pdp__breadcrumb span:hover {
+  color: var(--wz-orange);
+}
+.pdp__breadcrumb-sep {
+  margin: 0 8px;
+  color: var(--wz-border);
+  cursor: default;
 }
 .pdp__main {
   display: grid;
@@ -86,14 +155,15 @@ const pageTitle = '商品详情'
 .pdp__gallery-main {
   width: 100%;
   aspect-ratio: 1 / 1;
-  background: linear-gradient(135deg, var(--wz-bg), var(--wz-orange-muted));
+  background: var(--wz-bg);
   border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  color: var(--wz-text-soft);
+  overflow: hidden;
   margin-bottom: 12px;
+}
+.pdp__gallery-main img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .pdp__gallery-thumbs {
   display: flex;
@@ -106,6 +176,12 @@ const pageTitle = '商品详情'
   border-radius: 8px;
   border: 2px solid var(--wz-border);
   cursor: pointer;
+  overflow: hidden;
+}
+.pdp__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .pdp__info {
   padding-top: 8px;
@@ -134,6 +210,16 @@ const pageTitle = '商品详情'
   color: var(--wz-text-soft);
   text-decoration: line-through;
 }
+.pdp__tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--wz-orange);
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-left: 8px;
+}
 .pdp__meta {
   display: flex;
   gap: 24px;
@@ -145,6 +231,27 @@ const pageTitle = '商品详情'
 .pdp__meta-item {
   font-size: 13px;
   color: var(--wz-text-soft);
+}
+.pdp__desc {
+  font-size: 14px;
+  color: var(--wz-text-soft);
+  line-height: 1.7;
+  margin-bottom: 20px;
+  padding: 12px 0;
+  border-top: 1px solid var(--wz-border);
+  border-bottom: 1px solid var(--wz-border);
+}
+.pdp--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--wz-text-muted);
+}
+.pdp__detail-text {
+  font-size: 14px;
+  color: var(--wz-text-soft);
+  line-height: 1.8;
 }
 .pdp__specs {
   margin-bottom: 28px;

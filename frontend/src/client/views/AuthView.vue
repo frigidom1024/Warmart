@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { login as loginApi, register as registerApi } from '@/api/auth'
+import { getUserInfo } from '@/api/user'
+import { useUserStore } from '@/stores/user'
+import { showToast } from '@/utils/toast'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 
 const mode = computed(() => (route.query.mode === 'register' ? 'register' : 'login'))
 const isLogin = computed(() => mode.value === 'login')
@@ -17,12 +22,51 @@ function switchMode(m: 'login' | 'register') {
   router.replace({ query: { mode: m === 'login' ? undefined : 'register' } })
 }
 
-function handleSubmit() {
+async function handleLogin() {
+  if (!loginForm.value.account || !loginForm.value.password) return
   loading.value = true
-  setTimeout(() => {
+  try {
+    const res = await loginApi({
+      username: loginForm.value.account,
+      password: loginForm.value.password
+    })
+    userStore.setToken(res.accessToken, res.refreshToken)
+    const userInfo = await getUserInfo()
+    userStore.setUserInfo(userInfo)
+    router.push((route.query.redirect as string) || '/')
+  } catch {
+    // error handled by interceptor
+  } finally {
     loading.value = false
-    // TODO: implement auth
-  }, 1500)
+  }
+}
+
+async function handleRegister() {
+  if (!registerForm.value.email || !registerForm.value.password) return
+  if (registerForm.value.password !== registerForm.value.confirm) {
+    showToast('两次输入的密码不一致', 'warning')
+    return
+  }
+  loading.value = true
+  try {
+    await registerApi({
+      username: registerForm.value.phone || registerForm.value.email,
+      password: registerForm.value.password,
+      nickname: registerForm.value.email.split('@')[0],
+      email: registerForm.value.email
+    })
+    showToast('注册成功，请登录', 'success')
+    switchMode('login')
+  } catch {
+    // error handled by interceptor
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleSubmit() {
+  if (isLogin.value) handleLogin()
+  else handleRegister()
 }
 </script>
 

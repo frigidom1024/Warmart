@@ -1,5 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import request from '../api/request'
+import { useUserStore } from '../stores/user'
+
+const router = useRouter()
+const userStore = useUserStore()
+const loading = ref(false)
 
 const loginForm = ref({
   username: '',
@@ -7,8 +15,25 @@ const loginForm = ref({
   remember: false
 })
 
-const handleLogin = () => {
-  // Placeholder
+const handleLogin = async () => {
+  if (!loginForm.value.username || !loginForm.value.password) {
+    ElMessage.warning('请输入用户名和密码')
+    return
+  }
+  loading.value = true
+  try {
+    const res: any = await request.post<any, any>('/auth/login', {
+      username: loginForm.value.username,
+      password: loginForm.value.password
+    })
+    userStore.setToken(res.accessToken)
+    ElMessage.success('登录成功')
+    router.push('/dashboard')
+  } catch {
+    // 错误由 request 拦截器统一处理
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -46,7 +71,7 @@ const handleLogin = () => {
           <el-checkbox v-model="loginForm.remember">记住我</el-checkbox>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" class="login-btn" @click="handleLogin">
+          <el-button type="primary" class="login-btn" :loading="loading" @click="handleLogin">
             登 录
           </el-button>
         </el-form-item>

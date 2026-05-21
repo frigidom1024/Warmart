@@ -9,9 +9,11 @@ import type { Product, Category } from '@/api/product'
 const route = useRoute()
 const router = useRouter()
 
-const allProducts = ref<Product[]>([])
+const products = ref<Product[]>([])
 const categories = ref<{ label: string; value: number | '' }[]>([{ label: '全部', value: '' }])
 const loading = ref(false)
+const totalCount = ref(0)
+const totalPages = ref(1)
 
 const activeCategory = ref<number | ''>((route.query.categoryId ? Number(route.query.categoryId) : '') as number | '')
 const keyword = ref((route.query.keyword as string) || '')
@@ -21,61 +23,59 @@ const minPrice = ref('')
 const maxPrice = ref('')
 const pageSize = 12
 
-const filteredProducts = computed(() => {
-  let list = [...allProducts.value]
+const isSearching = computed(() => !!keyword.value || !!minPrice.value || !!maxPrice.value)
+
+function buildParams() {
+  const params: Record<string, any> = { page: currentPage.value, size: pageSize }
 
   if (activeCategory.value !== '') {
-    list = list.filter(p => p.categoryId === activeCategory.value)
+    params.categoryId = activeCategory.value
+  }
+  if (sortBy.value !== 'default') {
+    params.sortBy = sortBy.value === 'sales' ? 'sales'
+      : sortBy.value === 'price-asc' ? 'price'
+      : sortBy.value === 'newest' ? 'new' : undefined
   }
 
-  if (keyword.value) {
-    const kw = keyword.value.toLowerCase()
-    list = list.filter(p => p.name.toLowerCase().includes(kw))
+  if (keyword.value) params.keyword = keyword.value
+  if (minPrice.value) params.minPrice = parseFloat(minPrice.value)
+  if (maxPrice.value) params.maxPrice = parseFloat(maxPrice.value)
+
+  return params
+}
+
+async function loadProducts() {
+  loading.value = true
+  try {
+    let res: any
+    if (isSearching.value) {
+      res = await searchProducts(buildParams())
+    } else {
+      res = await getProductList(buildParams())
+    }
+    products.value = res.records || []
+    totalCount.value = res.total || 0
+    totalPages.value = Math.max(1, Math.ceil(totalCount.value / pageSize))
+  } catch {
+    products.value = []
+    totalCount.value = 0
+    totalPages.value = 1
+  } finally {
+    loading.value = false
   }
-
-  const min = parseFloat(minPrice.value)
-  const max = parseFloat(maxPrice.value)
-  if (!isNaN(min)) list = list.filter(p => p.price >= min)
-  if (!isNaN(max)) list = list.filter(p => p.price <= max)
-
-  switch (sortBy.value) {
-    case 'sales':
-      list.sort((a, b) => b.sales - a.sales)
-      break
-    case 'price-asc':
-      list.sort((a, b) => a.price - b.price)
-      break
-    case 'price-desc':
-      list.sort((a, b) => b.price - a.price)
-      break
-    case 'newest':
-      list.sort((a, b) => b.id - a.id)
-      break
-    default:
-      break
-  }
-
-  return list
-})
-
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredProducts.value.length / pageSize)))
-
-const pagedProducts = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredProducts.value.slice(start, start + pageSize)
-})
-
-const totalCount = computed(() => filteredProducts.value.length)
+}
 
 function setCategory(value: number | '') {
   activeCategory.value = value
   currentPage.value = 1
   router.replace({ query: { ...route.query, categoryId: value || undefined } })
+  loadProducts()
 }
 
 function setSort(value: string) {
   sortBy.value = value
   currentPage.value = 1
+  loadProducts()
 }
 
 function goProduct(id: number) {
@@ -97,18 +97,29 @@ async function handleFavorite(id: number) {
 }
 
 function goPage(p: number) {
-  if (p >= 1 && p <= totalPages.value) currentPage.value = p
+  if (p < 1 || p > totalPages.value) return
+  currentPage.value = p
+  loadProducts()
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 function clearKeyword() {
   keyword.value = ''
+  currentPage.value = 1
   router.replace({ query: { ...route.query, keyword: undefined } })
+  loadProducts()
 }
 
 function clearPrice() {
   minPrice.value = ''
   maxPrice.value = ''
+  currentPage.value = 1
+  loadProducts()
+}
+
+function applyPrice() {
+  currentPage.value = 1
+  loadProducts()
 }
 
 watch(keyword, (val) => {
@@ -140,17 +151,6 @@ const activeFilters = computed(() => {
   }
   return filters
 })
-
-// Data loading
-async function loadProducts() {
-  loading.value = true
-  try {
-    const res = await getProductList({ size: 200 })
-    allProducts.value = (res as any).records || (res as Product[]) || []
-  } finally {
-    loading.value = false
-  }
-}
 
 onMounted(async () => {
   try {
@@ -204,7 +204,7 @@ onMounted(async () => {
               <span class="plp__price-dash">—</span>
               <input v-model="maxPrice" type="number" placeholder="最高" class="plp__price-input" min="0">
             </div>
-            <button class="plp__price-apply" @click="currentPage = 1">应用</button>
+            <button class="plp__price-apply" @click="applyPrice">应用</button>
           </div>
         </aside>
 
@@ -235,9 +235,9 @@ onMounted(async () => {
           </div>
 
           <!-- Product Grid -->
-          <div v-if="pagedProducts.length" class="plp__grid">
+          <div v-if="products.length && !loading" class="plp__grid">
             <div
-              v-for="p in pagedProducts"
+              v-for="p in products"
               :key="p.id"
               class="plp__card"
               @click="goProduct(p.id)"

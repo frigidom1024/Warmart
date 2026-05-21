@@ -36,4 +36,32 @@ public class NoticeController {
         }
         return Result.success(notice);
     }
+
+    // ─── Admin endpoints ───
+
+    @GetMapping("/admin/page")
+    public Result<IPage<Notice>> adminPage(
+            @RequestParam(required = false) String type,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return Result.success(noticeService.adminPage(type, page, size));
+    }
+
+    @PostMapping("/admin/add")
+    public Result<Void> adminAdd(@RequestBody Notice notice) {
+        noticeService.add(notice);
+        return Result.success(null);
+    }
+
+    @PutMapping("/admin/update")
+    public Result<Void> adminUpdate(@RequestBody Notice notice) {
+        noticeService.update(notice);
+        return Result.success(null);
+    }
+
+    @DeleteMapping("/admin/delete/{id}")
+    public Result<Void> adminDelete(@PathVariable Long id) {
+        noticeService.delete(id);
+        return Result.success(null);
+    }
 }

@@ -21,4 +21,29 @@ public class BannerController {
     public Result<List<Banner>> list() {
         return Result.success(bannerService.listActive());
     }
+
+    // ─── Admin endpoints ───
+
+    @GetMapping("/banner/admin/list")
+    public Result<List<Banner>> adminList() {
+        return Result.success(bannerService.listAll());
+    }
+
+    @PostMapping("/banner/admin/add")
+    public Result<Void> adminAdd(@RequestBody Banner banner) {
+        bannerService.add(banner);
+        return Result.success(null);
+    }
+
+    @PutMapping("/banner/admin/update")
+    public Result<Void> adminUpdate(@RequestBody Banner banner) {
+        bannerService.update(banner);
+        return Result.success(null);
+    }
+
+    @DeleteMapping("/banner/admin/delete/{id}")
+    public Result<Void> adminDelete(@PathVariable Long id) {
+        bannerService.delete(id);
+        return Result.success(null);
+    }
 }

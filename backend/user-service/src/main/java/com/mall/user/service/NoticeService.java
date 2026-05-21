@@ -39,4 +39,27 @@ public class NoticeService {
     public Notice detail(Long id) {
         return noticeMapper.selectById(id);
     }
+
+    public IPage<Notice> adminPage(String type, int page, int size) {
+        LambdaQueryWrapper<Notice> wrapper = new LambdaQueryWrapper<Notice>()
+                .orderByDesc(Notice::getCreatedTime);
+        if (type != null && !type.isEmpty()) {
+            wrapper.eq(Notice::getType, type);
+        }
+        return noticeMapper.selectPage(new Page<>(page, size), wrapper);
+    }
+
+    public void add(Notice notice) {
+        notice.setCreatedTime(LocalDateTime.now());
+        if (notice.getStatus() == null) notice.setStatus(0);
+        noticeMapper.insert(notice);
+    }
+
+    public void update(Notice notice) {
+        noticeMapper.updateById(notice);
+    }
+
+    public void delete(Long id) {
+        noticeMapper.deleteById(id);
+    }
 }

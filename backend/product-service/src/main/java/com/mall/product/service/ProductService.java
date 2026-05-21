@@ -175,4 +175,17 @@ public class ProductService {
                 new LambdaQueryWrapper<Product>()
                         .in(Product::getId, ids));
     }
+
+    public IPage<Product> adminList(Long categoryId, Integer status, int page, int size) {
+        Page<Product> p = new Page<>(page, size);
+        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
+        if (categoryId != null) {
+            wrapper.eq(Product::getCategoryId, categoryId);
+        }
+        if (status != null) {
+            wrapper.eq(Product::getStatus, status);
+        }
+        wrapper.orderByDesc(Product::getCreatedTime);
+        return productMapper.selectPage(p, wrapper);
+    }
 }

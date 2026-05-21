@@ -169,6 +169,36 @@ public class OrderService {
         }
     }
 
+    public IPage<Order> adminList(Integer status, int page, int size) {
+        LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<>();
+        if (status != null) {
+            wrapper.eq(Order::getStatus, status);
+        }
+        wrapper.orderByDesc(Order::getCreatedTime);
+        IPage<Order> orderPage = orderMapper.selectPage(new Page<>(page, size), wrapper);
+
+        for (Order order : orderPage.getRecords()) {
+            List<OrderItem> items = orderItemMapper.selectList(
+                    new LambdaQueryWrapper<OrderItem>()
+                            .eq(OrderItem::getOrderId, order.getId()));
+            order.setItems(items);
+        }
+        return orderPage;
+    }
+
+    @Transactional
+    public void adminUpdateStatus(Long id, Integer status) {
+        Order order = orderMapper.selectById(id);
+        if (order != null) {
+            order.setStatus(status);
+            order.setUpdatedTime(LocalDateTime.now());
+            if (status == 3) order.setReceiveTime(LocalDateTime.now());
+            if (status >= 1 && order.getPaymentTime() == null) order.setPaymentTime(LocalDateTime.now());
+            if (status >= 2 && order.getDeliveryTime() == null) order.setDeliveryTime(LocalDateTime.now());
+            orderMapper.updateById(order);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private Map<Long, Map<String, Object>> fetchProductMap(List<Long> productIds) {
         try {

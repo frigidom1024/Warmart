@@ -21,4 +21,29 @@ public class CategoryController {
     public Result<List<Category>> list() {
         return Result.success(categoryService.listTree());
     }
+
+    // ─── Admin endpoints ───
+
+    @GetMapping("/category/admin/list")
+    public Result<List<Category>> adminList() {
+        return Result.success(categoryService.listAll());
+    }
+
+    @PostMapping("/category/admin/add")
+    public Result<Void> adminAdd(@RequestBody Category category) {
+        categoryService.add(category);
+        return Result.success(null);
+    }
+
+    @PutMapping("/category/admin/update")
+    public Result<Void> adminUpdate(@RequestBody Category category) {
+        categoryService.update(category);
+        return Result.success(null);
+    }
+
+    @DeleteMapping("/category/admin/delete/{id}")
+    public Result<Void> adminDelete(@PathVariable Long id) {
+        categoryService.delete(id);
+        return Result.success(null);
+    }
 }

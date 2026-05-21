@@ -32,4 +32,17 @@ public class ConsultationController {
         consultationService.add(userId, productId, question);
         return Result.success(null);
     }
+
+    // ─── Admin endpoints ───
+
+    @GetMapping("/admin/list")
+    public Result<List<Consultation>> adminList() {
+        return Result.success(consultationService.adminList());
+    }
+
+    @PutMapping("/admin/reply")
+    public Result<Void> adminReply(@RequestParam Long id, @RequestParam String answer) {
+        consultationService.reply(id, answer);
+        return Result.success(null);
+    }
 }

@@ -76,6 +76,22 @@ public class OrderController {
         return Result.success(null);
     }
 
+    // ─── Admin endpoints ───
+
+    @GetMapping("/admin/list")
+    public Result<IPage<Order>> adminList(
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return Result.success(orderService.adminList(status, page, size));
+    }
+
+    @PutMapping("/admin/status")
+    public Result<Void> adminUpdateStatus(@RequestParam Long id, @RequestParam Integer status) {
+        orderService.adminUpdateStatus(id, status);
+        return Result.success(null);
+    }
+
     @Data
     public static class CreateOrderRequest {
         @NotBlank

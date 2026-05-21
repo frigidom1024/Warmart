@@ -66,4 +66,33 @@ public class ProductController {
     public Result<List<Product>> listByIds(@RequestBody List<Long> ids) {
         return Result.success(productService.listByIds(ids));
     }
+
+    // ─── Admin endpoints ───
+
+    @GetMapping("/admin/list")
+    public Result<IPage<Product>> adminList(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return Result.success(productService.adminList(categoryId, status, page, size));
+    }
+
+    @PostMapping("/admin/add")
+    public Result<Void> adminAdd(@RequestBody Product product) {
+        productService.add(product);
+        return Result.success(null);
+    }
+
+    @PutMapping("/admin/update")
+    public Result<Void> adminUpdate(@RequestBody Product product) {
+        productService.update(product);
+        return Result.success(null);
+    }
+
+    @DeleteMapping("/admin/delete/{id}")
+    public Result<Void> adminDelete(@PathVariable Long id) {
+        productService.delete(id);
+        return Result.success(null);
+    }
 }

@@ -38,4 +38,19 @@ public class ConsultationService {
                         .eq(Consultation::getUserId, userId)
                         .orderByDesc(Consultation::getCreatedTime));
     }
+
+    public List<Consultation> adminList() {
+        return consultationMapper.selectList(
+                new LambdaQueryWrapper<Consultation>()
+                        .orderByDesc(Consultation::getCreatedTime));
+    }
+
+    public void reply(Long id, String answer) {
+        Consultation consultation = consultationMapper.selectById(id);
+        if (consultation != null) {
+            consultation.setAnswer(answer);
+            consultation.setStatus(1);
+            consultationMapper.updateById(consultation);
+        }
+    }
 }

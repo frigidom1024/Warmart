@@ -31,4 +31,20 @@ public class UserFeedbackService {
                         .eq(UserFeedback::getUserId, userId)
                         .orderByDesc(UserFeedback::getCreatedTime));
     }
+
+    public List<UserFeedback> adminList() {
+        return feedbackMapper.selectList(
+                new LambdaQueryWrapper<UserFeedback>()
+                        .orderByDesc(UserFeedback::getCreatedTime));
+    }
+
+    public void reply(Long id, String replyContent) {
+        UserFeedback feedback = feedbackMapper.selectById(id);
+        if (feedback != null) {
+            feedback.setReply(replyContent);
+            feedback.setReplyTime(LocalDateTime.now());
+            feedback.setStatus(1);
+            feedbackMapper.updateById(feedback);
+        }
+    }
 }

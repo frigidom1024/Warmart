@@ -19,6 +19,7 @@ export interface CartItem {
 export interface AddCartRequest {
   productId: number
   quantity: number
+  specInfo?: string
 }
 
 export interface UpdateQuantityRequest {

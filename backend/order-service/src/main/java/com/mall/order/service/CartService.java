@@ -81,21 +81,35 @@ public class CartService {
     }
 
     @Transactional
-    public void add(Long userId, Long productId, Integer quantity) {
-        // Check if product already in cart
-        Cart existing = cartMapper.selectOne(
-                new LambdaQueryWrapper<Cart>()
-                        .eq(Cart::getUserId, userId)
-                        .eq(Cart::getProductId, productId));
+    public void add(Long userId, Long productId, Integer quantity, String specInfo) {
+        // Check if product already in cart (same product + same spec)
+        LambdaQueryWrapper<Cart> wrapper = new LambdaQueryWrapper<Cart>()
+                .eq(Cart::getUserId, userId)
+                .eq(Cart::getProductId, productId);
+        if (specInfo != null) {
+            wrapper.eq(Cart::getSpecInfo, specInfo);
+        } else {
+            wrapper.isNull(Cart::getSpecInfo);
+        }
+        Cart existing = cartMapper.selectOne(wrapper);
+
         if (existing != null) {
             existing.setQuantity(existing.getQuantity() + quantity);
             existing.setUpdatedTime(LocalDateTime.now());
             cartMapper.updateById(existing);
+            // Uncheck all, then check this one
+            checkAll(userId, 0);
+            existing.setChecked(1);
+            cartMapper.updateById(existing);
         } else {
+            // Uncheck all first
+            checkAll(userId, 0);
+
             Cart cart = new Cart();
             cart.setUserId(userId);
             cart.setProductId(productId);
             cart.setQuantity(quantity);
+            cart.setSpecInfo(specInfo);
             cart.setChecked(1);
             cart.setCreatedTime(LocalDateTime.now());
             cart.setUpdatedTime(LocalDateTime.now());

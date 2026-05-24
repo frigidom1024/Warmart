@@ -3,8 +3,10 @@ package com.mall.order.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mall.order.entity.Cart;
 import com.mall.order.entity.Order;
 import com.mall.order.entity.OrderItem;
+import com.mall.order.mapper.CartMapper;
 import com.mall.order.mapper.OrderItemMapper;
 import com.mall.order.mapper.OrderMapper;
 import lombok.RequiredArgsConstructor;
@@ -27,13 +29,20 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final CartService cartService;
+    private final CartMapper cartMapper;
     private final RestTemplate restTemplate;
 
     @Transactional
     public Order create(Long userId, String receiverName, String receiverPhone,
                         String receiverAddress, String paymentMethod, List<Long> cartItemIds) {
-        // Get checked cart items
-        var cartItems = cartService.getCheckedItems(userId);
+        // Get cart items by IDs (instead of getCheckedItems)
+        if (cartItemIds == null || cartItemIds.isEmpty()) {
+            throw new RuntimeException("No items selected");
+        }
+        List<Cart> cartItems = cartMapper.selectList(
+                new LambdaQueryWrapper<Cart>()
+                        .in(Cart::getId, cartItemIds)
+                        .eq(Cart::getUserId, userId));
         if (cartItems.isEmpty()) {
             throw new RuntimeException("No items selected");
         }
@@ -44,7 +53,7 @@ public class OrderService {
 
         // Calculate total and fetch product details
         List<Long> productIds = cartItems.stream()
-                .map(cartItem -> cartItem.getProductId()).collect(Collectors.toList());
+                .map(Cart::getProductId).collect(Collectors.toList());
 
         Map<Long, Map<String, Object>> productMap = fetchProductMap(productIds);
 
@@ -60,7 +69,7 @@ public class OrderService {
         order.setUserId(userId);
         order.setOrderNo(orderNo);
         order.setTotalAmount(total);
-        order.setStatus(0); // pending_payment
+        order.setStatus(0);
         order.setPaymentMethod(paymentMethod);
         order.setReceiverName(receiverName);
         order.setReceiverPhone(receiverPhone);
@@ -88,6 +97,7 @@ public class OrderService {
                 item.setSubtotal(BigDecimal.valueOf(100).multiply(BigDecimal.valueOf(cartItem.getQuantity())));
             }
             item.setQuantity(cartItem.getQuantity());
+            item.setSpecInfo(cartItem.getSpecInfo());  // Pass specInfo through
             orderItemMapper.insert(item);
 
             // Remove from cart

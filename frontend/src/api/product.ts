@@ -103,3 +103,38 @@ export function getBannerList() {
 export function getProductSpecs(productId: number) {
   return request.get<ProductSpec[]>('/product/spec/list/' + productId)
 }
+
+export interface CommentItem {
+  id: number
+  productId: number
+  userId: number
+  content: string
+  rating: number
+  imageUrls: string | null
+  createdTime: string
+  userNickname: string
+  userAvatar: string | null
+}
+
+export interface CommentPageResult {
+  records: CommentItem[]
+  total: number
+  size: number
+  current: number
+  pages: number
+}
+
+export function getCommentList(productId: number, page = 1, size = 10) {
+  return request.get<CommentPageResult>('/product/comment/list/' + productId, {
+    params: { page, size }
+  })
+}
+
+export function addComment(data: {
+  productId: number
+  content: string
+  rating: number
+  imageUrls?: string
+}) {
+  return request.post<void>('/product/comment/add', data)
+}

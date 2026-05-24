@@ -46,6 +46,7 @@ public class CartService {
             vo.setChecked(cart.getChecked());
             vo.setCreatedTime(cart.getCreatedTime());
             vo.setUpdatedTime(cart.getUpdatedTime());
+            vo.setSpecInfo(cart.getSpecInfo());
 
             Map<String, Object> p = productMap.get(cart.getProductId());
             if (p != null) {
@@ -94,12 +95,11 @@ public class CartService {
         Cart existing = cartMapper.selectOne(wrapper);
 
         if (existing != null) {
-            existing.setQuantity(existing.getQuantity() + quantity);
-            existing.setUpdatedTime(LocalDateTime.now());
-            cartMapper.updateById(existing);
-            // Uncheck all, then check this one
+            // Uncheck all first
             checkAll(userId, 0);
+            existing.setQuantity(existing.getQuantity() + quantity);
             existing.setChecked(1);
+            existing.setUpdatedTime(LocalDateTime.now());
             cartMapper.updateById(existing);
         } else {
             // Uncheck all first

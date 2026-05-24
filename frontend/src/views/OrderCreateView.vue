@@ -26,7 +26,8 @@ onMounted(async () => {
       getCartList(),
       getAddressList()
     ])
-    cartItems.value = cartRes as CartItem[]
+    const allItems = cartRes as CartItem[]
+    cartItems.value = allItems.filter(i => i.checked === 1)
     addressList.value = addrRes as Address[]
   } catch {
     // handled
@@ -95,6 +96,7 @@ async function handleSubmit() {
             <div v-else class="order-create__item-image"></div>
             <div class="order-create__item-info">
               <p class="order-create__item-name">{{ item.productName }}</p>
+              <p v-if="item.specInfo" class="order-create__item-spec">{{ item.specInfo }}</p>
               <span v-if="item.productTag" class="order-create__item-tag">{{ item.productTag }}</span>
             </div>
             <div class="order-create__item-price">¥{{ item.productPrice }}</div>
@@ -246,6 +248,7 @@ async function handleSubmit() {
 .order-create__item-spec {
   font-size: 12px;
   color: var(--wz-text-soft);
+  margin-top: 2px;
 }
 .order-create__item-price {
   font-size: 15px;

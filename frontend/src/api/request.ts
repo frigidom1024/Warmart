@@ -1,11 +1,25 @@
 import axios from 'axios'
 import { showToast } from '@/utils/toast'
 import { useUserStore } from '@/stores/user'
+import { refreshToken as refreshTokenApi } from './auth'
 
 const request = axios.create({
   baseURL: '/api',
   timeout: 15000
 })
+
+let isRefreshing = false
+let pendingQueue: Array<{ resolve: (token: string) => void; reject: () => void }> = []
+
+function onRefreshed(token: string) {
+  pendingQueue.forEach(p => p.resolve(token))
+  pendingQueue = []
+}
+
+function onRefreshFailed() {
+  pendingQueue.forEach(p => p.reject())
+  pendingQueue = []
+}
 
 request.interceptors.request.use((config) => {
   const userStore = useUserStore()
@@ -25,12 +39,52 @@ request.interceptors.response.use(
     showToast(errMsg, 'error')
     return Promise.reject(new Error(errMsg))
   },
-  (error) => {
-    if (error.response?.status === 401) {
+  async (error) => {
+    const originalRequest = error.config
+    if (error.response?.status === 401 && !originalRequest._retry) {
       const userStore = useUserStore()
-      userStore.logout()
-      window.location.href = '/auth/login'
-    } else {
+      if (!userStore.refreshToken) {
+        userStore.logout()
+        window.location.href = '/auth/login'
+        return Promise.reject(error)
+      }
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          pendingQueue.push({
+            resolve: (token: string) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`
+              resolve(request(originalRequest))
+            },
+            reject: () => {
+              reject(error)
+            }
+          })
+        })
+      }
+
+      originalRequest._retry = true
+      isRefreshing = true
+
+      try {
+        const res = await refreshTokenApi(userStore.refreshToken) as any
+        const newToken = res.accessToken
+        const newRefreshToken = res.refreshToken
+        userStore.setToken(newToken, newRefreshToken)
+        onRefreshed(newToken)
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
+        return request(originalRequest)
+      } catch {
+        onRefreshFailed()
+        userStore.logout()
+        window.location.href = '/auth/login'
+        return Promise.reject(error)
+      } finally {
+        isRefreshing = false
+      }
+    }
+
+    if (error.response?.status !== 401) {
       showToast(error.message || '网络错误', 'error')
     }
     return Promise.reject(error)

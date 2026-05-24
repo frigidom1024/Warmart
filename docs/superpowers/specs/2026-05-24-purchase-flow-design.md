@@ -101,30 +101,23 @@
    - 当前：方法内部调 `getCheckedItems(userId)` 忽略参数
    - 修复：用传入的 `cartItemIds` 查询并过滤购物车商品
 
-2. **加购时调整勾选状态**（方案A：后端自动处理）
+2. **加购时调整勾选状态**
    - 修改 `CartService.add()`：加购成功后，将该用户购物车全部 uncheck，仅当前商品 check=1
    - 若商品已在购物车中，更新其数量为当前选择
    - 前端无需额外请求
 
-3. **购物车全选/勾选 API 接入**
+3. **购物车支持规格信息**
+   - Cart 表新增 `spec_info` VARCHAR 字段，存储选中规格的 JSON 描述
+   - `AddCartRequest` 新增 `specInfo` 字段
+   - `CartVO` / 前端 `CartItem` 新增 `specInfo`
+   - 创建订单时将 `specInfo` 传递到 `OrderItem`
+
+4. **购物车全选/勾选 API 接入**
    - 前端接入已有的 `checkCartItem` 和 `checkAllCart` API
 
-4. **模拟支付接口**
-   - 在 `PaymentController` 中新增 `POST /order/pay/{id}` 接口
-   - 逻辑：将订单状态从 0 更新为 1，记录支付时间
-   - 前端订单详情页展示「模拟支付」按钮
-
-1. **`OrderService.create()` 使用传入的 `cartItemIds`**
-   - 当前：方法内部调 `getCheckedItems(userId)` 忽略参数
-   - 修复：用传入的 `cartItemIds` 查询并过滤购物车商品
-
-2. **加购时调整勾选状态**
-   - 新增 `POST /order/cart/selectForPurchase` 接口
-   - 逻辑：用户购物车全部 uncheck → 指定商品 check=1 → 若商品已存在则更新数量
-   - 或者复用 `checkAll` + `check` 接口组合实现
-
-3. **购物车全选/勾选 API 接入**
-   - 前端接入已有的 `checkCartItem` 和 `checkAllCart` API
+5. **支付 API 已存在，无需新增**
+   - `POST /api/order/payment/pay` 已实现
+   - 前端订单详情页展示「去支付」按钮
 
 ### 库存校验（可选增强）
 
@@ -151,8 +144,9 @@
 | `frontend/src/views/ProductDetailView.vue` | 交互式规格选择、数量选择器、价格联动 |
 | `frontend/src/views/CartView.vue` | 勾选/全选 UI、结算栏联动 |
 | `frontend/src/views/OrderCreateView.vue` | 过滤勾选商品、修复立即购买流程 |
-| `frontend/src/api/cart.ts` | 接入 check/checkAll API |
-| `frontend/src/api/order.ts` | 新增模拟支付接口 |
+| `frontend/src/api/cart.ts` | 接入 check/checkAll API（已有，补齐调用） |
+| `frontend/src/api/order.ts` | 无变动（支付 API 已存在） |
+| `frontend/src/views/OrderDetailView.vue` | 添加「去支付」按钮 |
 
 ### 后端
 

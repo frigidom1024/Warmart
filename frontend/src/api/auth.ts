@@ -30,3 +30,7 @@ export function register(data: RegisterRequest) {
 export function forgotPassword(email: string) {
   return request.post<void>('/auth/forgot-password', null, { params: { email } })
 }
+
+export function refreshToken(refreshToken: string) {
+  return request.post<AuthResponse>('/auth/refresh', null, { params: { refreshToken } })
+}

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getFavoriteList, cancelFavorite } from '@/api/favorite'
+import { getFavoriteList, addFavorite, cancelFavorite } from '@/api/favorite'
 import { addToCart } from '@/api/cart'
 import type { FavoriteItem } from '@/api/favorite'
 import { showToast } from '@/utils/toast'
@@ -10,6 +10,7 @@ const router = useRouter()
 const favorites = ref<FavoriteItem[]>([])
 const total = ref(0)
 const loading = ref(true)
+const favoritedIds = reactive(new Set<number>())
 
 onMounted(async () => {
   loading.value = true
@@ -17,17 +18,25 @@ onMounted(async () => {
     const res = await getFavoriteList({ size: 50 })
     favorites.value = (res as any).records || (res as FavoriteItem[]) || []
     total.value = (res as any).total || favorites.value.length
+    favorites.value.forEach(f => favoritedIds.add(f.productId))
   } catch { /* handled */ } finally {
     loading.value = false
   }
 })
 
-async function handleCancel(id: number) {
-  try {
-    await cancelFavorite(id)
-    favorites.value = favorites.value.filter(f => f.id !== id)
-    total.value = Math.max(0, total.value - 1)
-  } catch { /* handled */ }
+async function handleToggle(productId: number) {
+  if (favoritedIds.has(productId)) {
+    try {
+      await cancelFavorite(productId)
+      favoritedIds.delete(productId)
+    } catch { /* handled */ }
+  } else {
+    try {
+      await addFavorite(productId)
+      favoritedIds.add(productId)
+      showToast('已收藏', 'success')
+    } catch { /* handled */ }
+  }
 }
 
 async function handleAddToCart(productId: number) {
@@ -59,12 +68,16 @@ function goProduct(id: number) {
               :src="item.productImage"
               :alt="item.productName || ''"
             >
-            <span
+            <button
               class="user-favorites__heart"
-              @click.stop="handleCancel(item.id)"
+              :class="{ 'user-favorites__heart--active': favoritedIds.has(item.productId) }"
+              @click.stop="handleToggle(item.productId)"
+              :title="favoritedIds.has(item.productId) ? '取消收藏' : '收藏'"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            </span>
+              <svg class="user-favorites__heart-icon" viewBox="0 0 24 24" width="14" height="14">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="none" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </button>
           </div>
           <div class="user-favorites__card-info" @click="goProduct(item.productId)">
             <p class="user-favorites__card-name">{{ item.productName }}</p>
@@ -149,15 +162,42 @@ function goProduct(id: number) {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  pointer-events: none;
 }
 .user-favorites__heart {
-  font-size: 20px;
-  color: var(--wz-orange);
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
-  transition: transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--wz-duration-fast) var(--wz-ease-out), color var(--wz-duration-fast) var(--wz-ease-out), transform var(--wz-duration-fast) var(--wz-ease-out);
+  backdrop-filter: blur(4px);
 }
 .user-favorites__heart:hover {
-  transform: scale(1.2);
+  background: rgba(0, 0, 0, 0.6);
+  color: rgba(255, 255, 255, 0.8);
+  transform: scale(1.1);
+}
+.user-favorites__heart--active {
+  background: rgba(255, 107, 53, 0.85);
+  color: #fff;
+}
+.user-favorites__heart--active:hover {
+  background: var(--wz-orange-dark);
+  transform: scale(1.1);
+}
+.user-favorites__heart-icon {
+  position: relative;
+  z-index: 1;
 }
 .user-favorites__card-info {
   padding: 14px;

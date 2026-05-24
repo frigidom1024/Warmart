@@ -30,4 +30,9 @@ public class AuthController {
     public Result<Void> forgotPassword(@RequestParam String email) {
         return authService.forgotPassword(email);
     }
+
+    @PostMapping("/refresh")
+    public Result<AuthResponse> refresh(@RequestParam String refreshToken) {
+        return authService.refresh(refreshToken);
+    }
 }

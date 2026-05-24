@@ -1,6 +1,7 @@
 package com.mall.auth.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mall.auth.config.JwtProperties;
 import com.mall.auth.common.Result;
 import com.mall.auth.dto.AuthResponse;
 import com.mall.auth.dto.LoginRequest;
@@ -32,6 +33,7 @@ public class AuthService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final JwtEncoder jwtEncoder;
     private final JwtDecoder jwtDecoder;
+    private final JwtProperties jwtProperties;
 
     @Transactional
     public Result<Void> register(RegisterRequest req) {
@@ -69,8 +71,8 @@ public class AuthService {
         }
 
         Instant now = Instant.now();
-        Instant accessExp = now.plusSeconds(1800);
-        Instant refreshExp = now.plusSeconds(604800);
+        Instant accessExp = now.plusSeconds(jwtProperties.getAccessTokenExp());
+        Instant refreshExp = now.plusSeconds(jwtProperties.getRefreshTokenExp());
 
         String accessToken = generateJwt(user, now, accessExp, "access");
         String refreshToken = generateJwt(user, now, refreshExp, "refresh");
@@ -78,7 +80,7 @@ public class AuthService {
         return Result.success(AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
-                .expiresIn(1800)
+                .expiresIn((int) jwtProperties.getAccessTokenExp())
                 .tokenType("Bearer")
                 .build());
     }
@@ -104,6 +106,42 @@ public class AuthService {
             return Result.error(400, "该邮箱未注册");
         }
         return Result.success(null);
+    }
+
+    public Result<AuthResponse> refresh(String refreshToken) {
+        try {
+            Jwt jwt = jwtDecoder.decode(refreshToken);
+            if (!"refresh".equals(jwt.getClaimAsString("type"))) {
+                return Result.error(400, "Invalid refresh token");
+            }
+            if (isTokenBlacklisted(refreshToken)) {
+                return Result.error(401, "Refresh token has been revoked");
+            }
+            Long userId = Long.valueOf(jwt.getSubject());
+            User user = userMapper.selectById(userId);
+            if (user == null) {
+                return Result.error(401, "User not found");
+            }
+            if (user.getStatus() == 1) {
+                return Result.error(403, "Account disabled");
+            }
+
+            Instant now = Instant.now();
+            Instant accessExp = now.plusSeconds(jwtProperties.getAccessTokenExp());
+            Instant refreshExp = now.plusSeconds(jwtProperties.getRefreshTokenExp());
+
+            String newAccessToken = generateJwt(user, now, accessExp, "access");
+            String newRefreshToken = generateJwt(user, now, refreshExp, "refresh");
+
+            return Result.success(AuthResponse.builder()
+                    .accessToken(newAccessToken)
+                    .refreshToken(newRefreshToken)
+                    .expiresIn((int) jwtProperties.getAccessTokenExp())
+                    .tokenType("Bearer")
+                    .build());
+        } catch (Exception e) {
+            return Result.error(401, "Invalid refresh token");
+        }
     }
 
     public void logout(String refreshToken) {

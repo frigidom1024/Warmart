@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getOrderDetail, cancelOrder, confirmOrder } from '@/api/order'
+import { getOrderDetail, cancelOrder, confirmOrder, payOrder } from '@/api/order'
 import type { Order } from '@/api/order'
+import { showToast } from '@/utils/toast'
 
 const route = useRoute()
 const router = useRouter()
@@ -49,6 +50,15 @@ async function handleConfirm() {
   try {
     await confirmOrder(order.value.id)
     order.value.status = 3
+  } catch { /* handled */ }
+}
+
+async function handlePay() {
+  if (!order.value) return
+  try {
+    await payOrder({ orderId: order.value.id, method: order.value.paymentMethod || 'wechat' })
+    order.value.status = 1
+    showToast('支付成功', 'success')
   } catch { /* handled */ }
 }
 
@@ -146,6 +156,11 @@ function stepStatus(stepIndex: number) {
           <span>¥{{ order.totalAmount }}</span>
         </div>
         <div v-if="order.status === 0 || order.status === 2" class="order-detail__actions">
+          <span
+            v-if="order.status === 0"
+            class="order-detail__action order-detail__action--primary"
+            @click="handlePay"
+          >去支付</span>
           <span
             v-if="order.status === 0"
             class="order-detail__action order-detail__action--danger"

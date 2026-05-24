@@ -65,3 +65,7 @@ export function confirmOrder(id: number) {
 export function applyRefund(id: number) {
   return request.post<void>('/order/refund/' + id)
 }
+
+export function payOrder(data: { orderId: number; method: string }) {
+  return request.post<void>('/order/payment/pay', data)
+}

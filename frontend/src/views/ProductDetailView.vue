@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getProductDetail } from '@/api/product'
 import { addToCart } from '@/api/cart'
-import type { Product } from '@/api/product'
+import type { Product, ProductSpec } from '@/api/product'
 import { showToast } from '@/utils/toast'
 
 const route = useRoute()
@@ -11,6 +11,44 @@ const router = useRouter()
 const product = ref<Product | null>(null)
 const loading = ref(true)
 const activeTab = ref('detail')
+
+// Spec selection state
+const specGroups = ref<{ name: string; values: ProductSpec[] }[]>([])
+const selectedSpecs = ref<Record<string, string>>({})
+const quantity = ref(1)
+
+// Computed price: basePrice + sum of extraPrice of selected specs
+const displayPrice = computed(() => {
+  if (!product.value) return 0
+  let extra = 0
+  for (const group of specGroups.value) {
+    const selectedValue = selectedSpecs.value[group.name]
+    if (selectedValue) {
+      const spec = group.values.find(v => v.specValue === selectedValue)
+      if (spec) extra += spec.extraPrice
+    }
+  }
+  return product.value.price + extra
+})
+
+// Computed stock: min stock of selected specs
+const displayStock = computed(() => {
+  if (!product.value) return 0
+  if (!specGroups.value.length) return product.value.stock
+  let minStock = Infinity
+  for (const group of specGroups.value) {
+    const selectedValue = selectedSpecs.value[group.name]
+    if (!selectedValue) return 0
+    const spec = group.values.find(v => v.specValue === selectedValue)
+    if (spec && spec.stock < minStock) minStock = spec.stock
+  }
+  return minStock === Infinity ? 0 : minStock
+})
+
+// All specs selected?
+const allSpecsSelected = computed(() => {
+  return specGroups.value.every(g => selectedSpecs.value[g.name])
+})
 
 onMounted(async () => {
   const id = Number(route.params.id)
@@ -20,6 +58,7 @@ onMounted(async () => {
   }
   try {
     product.value = await getProductDetail(id)
+    buildSpecGroups()
   } catch {
     // handled by interceptor
   } finally {
@@ -27,19 +66,58 @@ onMounted(async () => {
   }
 })
 
+// Build spec groups from product specList
+function buildSpecGroups() {
+  if (!product.value?.specList) return
+  const groups: Record<string, ProductSpec[]> = {}
+  for (const spec of product.value.specList) {
+    if (!groups[spec.specName]) groups[spec.specName] = []
+    groups[spec.specName].push(spec)
+  }
+  specGroups.value = Object.entries(groups).map(([name, values]) => ({ name, values }))
+  // Auto-select first value of each group
+  for (const group of specGroups.value) {
+    selectedSpecs.value[group.name] = group.values[0].specValue
+  }
+  quantity.value = 1
+}
+
+function selectSpec(groupName: string, specValue: string) {
+  selectedSpecs.value[groupName] = specValue
+  quantity.value = 1
+}
+
+// Build specInfo string for cart/order
+function getSpecInfo(): string {
+  return specGroups.value.map(g => `${g.name}: ${selectedSpecs.value[g.name] || ''}`).join('; ')
+}
+
 async function handleAddToCart() {
-  if (!product.value) return
+  if (!product.value || !allSpecsSelected.value) return
   try {
-    await addToCart({ productId: product.value.id, quantity: 1 })
+    await addToCart({
+      productId: product.value.id,
+      quantity: quantity.value,
+      specInfo: getSpecInfo()
+    })
     showToast('已加入购物车', 'success')
   } catch {
     // handled by interceptor
   }
 }
 
-function handleBuyNow() {
-  if (!product.value) return
-  router.push({ name: 'OrderCreate', query: { productId: product.value.id, quantity: 1 } })
+async function handleBuyNow() {
+  if (!product.value || !allSpecsSelected.value) return
+  try {
+    await addToCart({
+      productId: product.value.id,
+      quantity: quantity.value,
+      specInfo: getSpecInfo()
+    })
+    router.push('/order/create')
+  } catch {
+    // handled by interceptor
+  }
 }
 </script>
 
@@ -75,7 +153,7 @@ function handleBuyNow() {
         <div class="pdp__info">
           <h1 class="pdp__name">{{ product.name }}</h1>
           <div class="pdp__price">
-            <span class="pdp__price-current">¥{{ product.price }}</span>
+            <span class="pdp__price-current">¥{{ displayPrice }}</span>
             <span v-if="product.originalPrice" class="pdp__price-original">¥{{ product.originalPrice }}</span>
             <span v-if="product.tag" class="pdp__tag">{{ product.tag }}</span>
           </div>
@@ -84,17 +162,47 @@ function handleBuyNow() {
             <span class="pdp__meta-item">库存 {{ product.stock }}</span>
           </div>
           <div class="pdp__desc">{{ product.description }}</div>
-          <div v-if="product.specList?.length" class="pdp__specs">
-            <div v-for="spec in product.specList" :key="spec.id" class="pdp__spec-row">
-              <span class="pdp__spec-label">{{ spec.specName }}</span>
+          <!-- Spec Selection -->
+          <div v-if="specGroups.length" class="pdp__specs">
+            <div v-for="group in specGroups" :key="group.name" class="pdp__spec-row">
+              <span class="pdp__spec-label">{{ group.name }}</span>
               <div class="pdp__spec-options">
-                <span class="pdp__spec-option">{{ spec.specValue }}</span>
+                <span
+                  v-for="spec in group.values"
+                  :key="spec.id"
+                  class="pdp__spec-option"
+                  :class="{ 'pdp__spec-option--active': selectedSpecs[group.name] === spec.specValue }"
+                  @click="selectSpec(group.name, spec.specValue)"
+                >
+                  {{ spec.specValue }}
+                  <span v-if="spec.extraPrice > 0" class="pdp__spec-extra">+¥{{ spec.extraPrice }}</span>
+                </span>
               </div>
             </div>
           </div>
+
+          <!-- Quantity -->
+          <div v-if="specGroups.length" class="pdp__qty-row">
+            <span class="pdp__qty-label">数量</span>
+            <div class="pdp__qty-control">
+              <span class="pdp__qty-btn" :class="{ 'pdp__qty-btn--disabled': quantity <= 1 }" @click="quantity > 1 && quantity--">-</span>
+              <span class="pdp__qty-value">{{ quantity }}</span>
+              <span class="pdp__qty-btn" :class="{ 'pdp__qty-btn--disabled': quantity >= displayStock }" @click="quantity < displayStock && quantity++">+</span>
+            </div>
+            <span class="pdp__qty-hint">库存 {{ displayStock }} 件</span>
+          </div>
+
           <div class="pdp__actions">
-            <div class="pdp__cart-btn" @click="handleAddToCart">加入购物车</div>
-            <div class="pdp__buy-btn" @click="handleBuyNow">立即购买</div>
+            <div
+              class="pdp__cart-btn"
+              :class="{ 'pdp__btn--disabled': !allSpecsSelected }"
+              @click="handleAddToCart"
+            >加入购物车</div>
+            <div
+              class="pdp__buy-btn"
+              :class="{ 'pdp__btn--disabled': !allSpecsSelected }"
+              @click="handleBuyNow"
+            >立即购买</div>
           </div>
         </div>
       </div>
@@ -360,6 +468,65 @@ function handleBuyNow() {
 .pdp__tabs-placeholder {
   font-size: 14px;
   color: var(--wz-text-soft);
+}
+.pdp__spec-option--active {
+  border-color: var(--wz-orange);
+  background: rgba(255, 107, 53, 0.06);
+  color: var(--wz-orange);
+}
+.pdp__spec-extra {
+  font-size: 11px;
+  color: var(--wz-orange);
+  margin-left: 2px;
+}
+.pdp__qty-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding-top: 12px;
+  border-top: 1px solid var(--wz-border);
+}
+.pdp__qty-label {
+  font-size: 13px;
+  color: var(--wz-text-soft);
+  min-width: 48px;
+}
+.pdp__qty-control {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--wz-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.pdp__qty-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+.pdp__qty-btn:hover { background: var(--wz-bg); }
+.pdp__qty-btn--disabled { opacity: 0.3; cursor: not-allowed; }
+.pdp__qty-value {
+  width: 44px;
+  text-align: center;
+  font-size: 14px;
+  border-left: 1px solid var(--wz-border);
+  border-right: 1px solid var(--wz-border);
+  line-height: 32px;
+}
+.pdp__qty-hint {
+  font-size: 12px;
+  color: var(--wz-text-soft);
+}
+.pdp__btn--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {

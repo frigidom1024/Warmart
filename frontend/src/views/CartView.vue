@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getCartList, updateCartQuantity, deleteCartItem } from '@/api/cart'
+import { getCartList, updateCartQuantity, deleteCartItem, checkCartItem, checkAllCart } from '@/api/cart'
 import type { CartItem } from '@/api/cart'
 
 const router = useRouter()
 const cartItems = ref<CartItem[]>([])
 const loading = ref(true)
 
-const totalCount = computed(() => cartItems.value.length)
+const checkedItems = computed(() => cartItems.value.filter(i => i.checked))
+const totalCount = computed(() => checkedItems.value.length)
 const totalPrice = computed(() =>
-  cartItems.value.reduce((sum, item) => sum + (item.productPrice || 0) * item.quantity, 0)
+  checkedItems.value.reduce((sum, item) => sum + (item.productPrice || 0) * item.quantity, 0)
+)
+const allChecked = computed(() =>
+  cartItems.value.length > 0 && cartItems.value.every(i => i.checked)
 )
 
 onMounted(async () => {
@@ -43,8 +47,24 @@ async function handleDelete(id: number) {
   }
 }
 
+async function handleCheck(item: CartItem) {
+  const newChecked = item.checked ? 0 : 1
+  try {
+    await checkCartItem({ id: item.id, checked: newChecked })
+    item.checked = newChecked
+  } catch { /* handled */ }
+}
+
+async function handleCheckAll() {
+  const newChecked = allChecked.value ? 0 : 1
+  try {
+    await checkAllCart(newChecked)
+    cartItems.value.forEach(i => i.checked = newChecked)
+  } catch { /* handled */ }
+}
+
 function goCheckout() {
-  if (!cartItems.value.length) return
+  if (!checkedItems.value.length) return
   router.push('/order/create')
 }
 </script>
@@ -60,6 +80,11 @@ function goCheckout() {
       <!-- Cart Table -->
       <div v-if="cartItems.length" class="cart__table">
         <div class="cart__table-header">
+          <span class="cart__col cart__col--check">
+            <span class="cart__checkbox" :class="{ 'cart__checkbox--checked': allChecked }" @click="handleCheckAll">
+              <span v-if="allChecked">✓</span>
+            </span>
+          </span>
           <span class="cart__col cart__col--info">商品信息</span>
           <span class="cart__col cart__col--price">单价</span>
           <span class="cart__col cart__col--qty">数量</span>
@@ -67,6 +92,11 @@ function goCheckout() {
           <span class="cart__col cart__col--action">操作</span>
         </div>
         <div v-for="item in cartItems" :key="item.id" class="cart__row">
+          <div class="cart__col cart__col--check">
+            <span class="cart__checkbox" :class="{ 'cart__checkbox--checked': item.checked }" @click="handleCheck(item)">
+              <span v-if="item.checked">✓</span>
+            </span>
+          </div>
           <div class="cart__col cart__col--info">
             <div class="cart__product" @click="router.push('/product/detail/' + item.productId)">
               <img v-if="item.productImage" :src="item.productImage" class="cart__product-image">
@@ -98,10 +128,12 @@ function goCheckout() {
       <!-- Summary -->
       <div v-if="cartItems.length" class="cart__footer">
         <div class="cart__summary">
-          <span class="cart__summary-text">合计：</span>
+          <span class="cart__summary-text">已选 {{ checkedItems.length }} 件，合计：</span>
           <span class="cart__summary-price">¥{{ totalPrice.toFixed(2) }}</span>
         </div>
-        <div class="cart__checkout-btn" @click="goCheckout">去结算</div>
+        <div class="cart__checkout-btn" :class="{ 'cart__checkout-btn--disabled': !checkedItems.length }" @click="goCheckout">
+          去结算
+        </div>
       </div>
 
       <!-- Empty State -->
@@ -320,5 +352,28 @@ function goCheckout() {
   .cart__table-header { display: none; }
   .cart__row { flex-wrap: wrap; gap: 12px; }
   .cart__col--info { flex: 1 1 100%; }
+}
+
+.cart__col--check { flex: 0 0 40px; text-align: center; }
+.cart__checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--wz-border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #fff;
+  transition: all 0.2s;
+}
+.cart__checkbox--checked {
+  background: var(--wz-orange);
+  border-color: var(--wz-orange);
+}
+.cart__checkout-btn--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

@@ -11,6 +11,7 @@ public class CartVO {
     private Long productId;
     private Integer quantity;
     private Integer checked;
+    private String specInfo;
     private LocalDateTime createdTime;
     private LocalDateTime updatedTime;
 

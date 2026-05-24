@@ -234,6 +234,7 @@ CREATE TABLE IF NOT EXISTS cart (
     product_id BIGINT NOT NULL,
     quantity INT DEFAULT 1,
     checked INT DEFAULT 1,
+    spec_info VARCHAR(500) DEFAULT NULL,
     created_time DATETIME NOT NULL,
     updated_time DATETIME NOT NULL,
     INDEX idx_user_id (user_id),

@@ -6,6 +6,7 @@ export interface CartItem {
   productId: number
   quantity: number
   checked: number
+  specInfo: string | null
   createdTime: string
   updatedTime: string
   productName: string | null

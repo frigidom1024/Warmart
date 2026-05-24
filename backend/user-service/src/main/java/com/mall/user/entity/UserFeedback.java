@@ -12,6 +12,7 @@ public class UserFeedback {
     private Long userId;
     private String type; // complaint, suggestion
     private String content;
+    @TableField("reply_content")
     private String reply;
     private LocalDateTime replyTime;
     private Integer status; // 0=pending, 1=replied

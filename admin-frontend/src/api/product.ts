@@ -8,6 +8,24 @@ export interface PageResult<T> {
   pages: number
 }
 
+export interface ProductImage {
+  id?: number
+  productId?: number
+  url: string
+  sort?: number
+}
+
+export interface ProductSpec {
+  id?: number
+  productId?: number
+  specName: string
+  specValue: string
+  extraPrice?: number
+  stock?: number
+  image?: string
+  sort?: number
+}
+
 export interface Product {
   id: number
   categoryId: number
@@ -24,8 +42,8 @@ export interface Product {
   hasSpec: number | null
   createdTime: string
   updatedTime: string
-  specList: any[] | null
-  imageList: any[] | null
+  specList: ProductSpec[] | null
+  imageList: ProductImage[] | null
 }
 
 export function getAdminProductList(params: {

@@ -10,6 +10,6 @@ public class StaticResourceConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/images/**")
-                .addResourceLocations("file:/app/static/images/");
+                .addResourceLocations("file:/app/static/images/", "file:./static/images/");
     }
 }

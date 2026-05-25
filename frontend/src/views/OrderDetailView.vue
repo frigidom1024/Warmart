@@ -53,6 +53,12 @@ async function handleConfirm() {
   } catch { /* handled */ }
 }
 
+function goToComment() {
+  if (order.value?.items?.length) {
+    router.push(`/product/detail/${order.value.items[0].productId}?orderId=${order.value.id}`)
+  }
+}
+
 async function handlePay() {
   if (!order.value) return
   try {
@@ -155,7 +161,7 @@ function stepStatus(stepIndex: number) {
           <span>实付金额：</span>
           <span>¥{{ order.totalAmount }}</span>
         </div>
-        <div v-if="order.status === 0 || order.status === 2" class="order-detail__actions">
+        <div class="order-detail__actions">
           <span
             v-if="order.status === 0"
             class="order-detail__action order-detail__action--primary"
@@ -171,6 +177,11 @@ function stepStatus(stepIndex: number) {
             class="order-detail__action order-detail__action--primary"
             @click="handleConfirm"
           >确认收货</span>
+          <span
+            v-if="order.status === 3"
+            class="order-detail__action order-detail__action--primary"
+            @click="goToComment"
+          >去评价</span>
         </div>
       </div>
     </div>

@@ -98,6 +98,11 @@ onMounted(async () => {
     buildSpecGroups()
     buildThumbList()
     await loadComments(true)
+
+    if (route.query.orderId) {
+      activeTab.value = 'comments'
+      showCommentForm.value = true
+    }
   } catch {
     // handled by interceptor
   } finally {

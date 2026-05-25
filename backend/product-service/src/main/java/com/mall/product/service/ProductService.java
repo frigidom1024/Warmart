@@ -26,6 +26,7 @@ public class ProductService {
     private final ProductSpecMapper productSpecMapper;
     private final ProductImageMapper productImageMapper;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final CategoryService categoryService;
 
     public IPage<Product> list(Long categoryId, String sortBy, int page, int size) {
         Page<Product> p = new Page<>(page, size);
@@ -33,7 +34,8 @@ public class ProductService {
                 .eq(Product::getStatus, 0);
 
         if (categoryId != null) {
-            wrapper.eq(Product::getCategoryId, categoryId);
+            List<Long> ids = categoryService.getRecursiveCategoryIds(categoryId);
+            wrapper.in(Product::getCategoryId, ids);
         }
 
         switch (sortBy != null ? sortBy : "new") {
@@ -98,7 +100,8 @@ public class ProductService {
                     .or().like(Product::getDescription, keyword));
         }
         if (categoryId != null) {
-            wrapper.eq(Product::getCategoryId, categoryId);
+            List<Long> ids = categoryService.getRecursiveCategoryIds(categoryId);
+            wrapper.in(Product::getCategoryId, ids);
         }
         if (minPrice != null) {
             wrapper.ge(Product::getPrice, minPrice);
@@ -144,6 +147,27 @@ public class ProductService {
     public void update(Product product) {
         product.setUpdatedTime(LocalDateTime.now());
         productMapper.updateById(product);
+
+        // Cascade update specs: delete old, insert new
+        if (product.getSpecList() != null) {
+            productSpecMapper.delete(new LambdaQueryWrapper<ProductSpec>()
+                    .eq(ProductSpec::getProductId, product.getId()));
+            for (ProductSpec spec : product.getSpecList()) {
+                spec.setId(null);
+                spec.setProductId(product.getId());
+                productSpecMapper.insert(spec);
+            }
+        }
+        // Cascade update images: delete old, insert new
+        if (product.getImageList() != null) {
+            productImageMapper.delete(new LambdaQueryWrapper<ProductImage>()
+                    .eq(ProductImage::getProductId, product.getId()));
+            for (ProductImage image : product.getImageList()) {
+                image.setId(null);
+                image.setProductId(product.getId());
+                productImageMapper.insert(image);
+            }
+        }
     }
 
     @Transactional
@@ -163,9 +187,10 @@ public class ProductService {
     }
 
     public List<Product> listByCategoryId(Long categoryId) {
+        List<Long> ids = categoryService.getRecursiveCategoryIds(categoryId);
         return productMapper.selectList(
                 new LambdaQueryWrapper<Product>()
-                        .eq(Product::getCategoryId, categoryId)
+                        .in(Product::getCategoryId, ids)
                         .eq(Product::getStatus, 0)
                         .orderByDesc(Product::getCreatedTime));
     }

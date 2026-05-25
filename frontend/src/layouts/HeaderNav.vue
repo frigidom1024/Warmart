@@ -2,6 +2,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { getCategoryList } from '@/api/product'
+import type { Category } from '@/api/product'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -13,30 +15,11 @@ const searchKeyword = ref('')
 const cartCount = ref(0)
 const showSuggestions = ref(false)
 
-const hotSearchesMap: Record<string, string[]> = {
-  '': ['连衣裙', '蓝牙耳机', '防晒霜', '运动鞋', '破壁机', '面膜', '台灯', '投影仪'],
-  clothing: ['连衣裙', '卫衣', '牛仔外套', '风衣', '衬衫', '手提包', '牛仔裤'],
-  beauty: ['粉底液', '精华液', '面膜', '防晒霜', '口红', '眼影'],
-  digital: ['蓝牙耳机', '投影仪', '扫地机器人', '机械键盘', '充电宝', '智能手表'],
-  home: ['台灯', '懒人沙发', '落地衣架', '四件套', '香薰', '收纳盒'],
-  food: ['坚果', '抹茶生巧', '零食礼盒', '咖啡', '饼干', '牛肉干'],
-  sports: ['跑步鞋', '瑜伽垫', '背包', '帐篷', '哑铃', '跳绳']
-}
+const allCategories = ref<Category[]>([])
+const firstLevelCategories = computed(() => allCategories.value.filter(c => !c.parentId))
+const selectedCategoryId = ref<number | ''>('')
 
-const hotSearches = computed(() => {
-  return hotSearchesMap[selectedCategory.value.value] || hotSearchesMap['']
-})
-
-const categories = [
-  { label: '全部', value: '' },
-  { label: '潮流服饰', value: 'clothing' },
-  { label: '美妆护肤', value: 'beauty' },
-  { label: '数码家电', value: 'digital' },
-  { label: '家居软装', value: 'home' },
-  { label: '休闲零食', value: 'food' },
-  { label: '运动户外', value: 'sports' }
-]
-const selectedCategory = ref(categories[0])
+const hotSearches = ref<string[]>(['连衣裙', '蓝牙耳机', '防晒霜', '运动鞋', '破壁机', '面膜', '台灯', '投影仪'])
 
 function handleScroll() {
   const sy = window.scrollY
@@ -59,7 +42,7 @@ function doSearch(keyword?: string) {
       path: '/product/list',
       query: {
         keyword: q,
-        ...(selectedCategory.value.value ? { category: selectedCategory.value.value } : {})
+        ...(selectedCategoryId.value ? { categoryId: selectedCategoryId.value } : {})
       }
     })
   }
@@ -88,7 +71,10 @@ function handleLogout() {
   router.push('/')
 }
 
-onMounted(() => window.addEventListener('scroll', handleScroll))
+onMounted(async () => {
+  window.addEventListener('scroll', handleScroll)
+  try { allCategories.value = await getCategoryList() } catch {}
+})
 onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 </script>
 
@@ -104,22 +90,23 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
       <!-- Center: Search bar -->
       <div class="header-nav__search-wrapper">
         <div class="header-nav__search">
-          <el-dropdown trigger="click" @command="(v: string) => selectedCategory = categories.find(c => c.value === v) || categories[0]">
+          <el-dropdown trigger="click" @command="(v: string) => selectedCategoryId.value = v ? Number(v) : ''">
             <button class="header-nav__search-cat">
-              <span>{{ selectedCategory.label }}</span>
+              <span>{{ selectedCategoryId.value ? (firstLevelCategories.find(c => c.id === selectedCategoryId.value)?.name || '分类') : '全部分类' }}</span>
               <svg width="8" height="6" viewBox="0 0 8 6" fill="none" class="header-nav__search-arrow">
                 <path d="M1 1.5L4 4.5L7 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
             <template #dropdown>
               <el-dropdown-menu>
+                <el-dropdown-item :command="''" :class="{ 'is-active': selectedCategoryId.value === '' }">全部分类</el-dropdown-item>
                 <el-dropdown-item
-                  v-for="cat in categories"
-                  :key="cat.value"
-                  :command="cat.value"
-                  :class="{ 'is-active': cat.value === selectedCategory.value }"
+                  v-for="cat in firstLevelCategories"
+                  :key="cat.id"
+                  :command="String(cat.id)"
+                  :class="{ 'is-active': cat.id === selectedCategoryId.value }"
                 >
-                  {{ cat.label }}
+                  {{ cat.name }}
                 </el-dropdown-item>
               </el-dropdown-menu>
             </template>

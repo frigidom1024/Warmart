@@ -56,6 +56,12 @@ async function handleConfirm(id: number) {
   } catch { /* handled */ }
 }
 
+function goToComment(order: Order) {
+  if (order.items?.length) {
+    router.push(`/product/detail/${order.items[0].productId}?orderId=${order.id}`)
+  }
+}
+
 const orderStatus = (status: number) => statusLabels[status] || '未知'
 </script>
 
@@ -118,6 +124,11 @@ const orderStatus = (status: number) => statusLabels[status] || '未知'
                 class="order-list__action order-list__action--primary"
                 @click="handleConfirm(order.id)"
               >确认收货</span>
+              <span
+                v-if="order.status === 3"
+                class="order-list__action order-list__action--primary"
+                @click="goToComment(order)"
+              >去评价</span>
             </div>
           </div>
         </div>

@@ -10,13 +10,20 @@ import com.mall.product.service.FavoriteService;
 import com.mall.product.entity.Comment;
 import com.mall.product.mapper.ProductSpecMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/product")
@@ -27,6 +34,9 @@ public class ProductController {
     private final ProductSpecMapper productSpecMapper;
     private final CommentService commentService;
     private final FavoriteService favoriteService;
+
+    @Value("${upload.path:./static/images/products}")
+    private String uploadPath;
 
     @GetMapping("/list")
     public Result<IPage<Product>> list(
@@ -94,5 +104,37 @@ public class ProductController {
     public Result<Void> adminDelete(@PathVariable Long id) {
         productService.delete(id);
         return Result.success(null);
+    }
+
+    @PostMapping("/admin/upload-image")
+    public Result<String> uploadImage(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return Result.error(400, "文件不能为空");
+        }
+        String originalName = file.getOriginalFilename();
+        if (originalName == null || originalName.isEmpty()) {
+            return Result.error(400, "文件名无效");
+        }
+        String ext = "";
+        int dotIdx = originalName.lastIndexOf('.');
+        if (dotIdx > 0) {
+            ext = originalName.substring(dotIdx).toLowerCase();
+        }
+        if (!ext.equals(".png") && !ext.equals(".jpg") && !ext.equals(".jpeg") && !ext.equals(".webp") && !ext.equals(".svg")) {
+            return Result.error(400, "仅支持 PNG、JPG、WebP、SVG 格式");
+        }
+        String filename = UUID.randomUUID().toString().replace("-", "") + ext;
+        try {
+            Path dir = Paths.get(uploadPath);
+            if (!Files.exists(dir)) {
+                Files.createDirectories(dir);
+            }
+            Path dest = dir.resolve(filename);
+            file.transferTo(dest.toFile());
+            String url = "/images/products/" + filename;
+            return Result.success(url);
+        } catch (IOException e) {
+            return Result.error(500, "文件上传失败: " + e.getMessage());
+        }
     }
 }

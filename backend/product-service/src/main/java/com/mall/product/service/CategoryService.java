@@ -65,6 +65,23 @@ public class CategoryService {
         return children;
     }
 
+    public List<Long> getRecursiveCategoryIds(Long parentId) {
+        List<Category> all = listAll();
+        List<Long> ids = new ArrayList<>();
+        ids.add(parentId);
+        collectChildIds(parentId, all, ids);
+        return ids;
+    }
+
+    private void collectChildIds(Long parentId, List<Category> all, List<Long> ids) {
+        for (Category c : all) {
+            if (parentId.equals(c.getParentId())) {
+                ids.add(c.getId());
+                collectChildIds(c.getId(), all, ids);
+            }
+        }
+    }
+
     public void clearCache() {
         redisTemplate.delete("product:category:list");
     }

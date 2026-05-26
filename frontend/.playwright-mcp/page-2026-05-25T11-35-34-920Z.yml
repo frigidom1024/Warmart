@@ -1,0 +1,1028 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5] [cursor=pointer]:
+          - generic [ref=e6]: 暖
+          - generic [ref=e7]: Warmart
+        - generic [ref=e9]:
+          - button "全部分类" [ref=e11] [cursor=pointer]:
+            - generic [ref=e12]: 全部分类
+            - img [ref=e13]
+          - textbox "搜搜你喜欢的商品…" [ref=e16]
+          - button [ref=e17] [cursor=pointer]:
+            - img [ref=e18]
+        - generic [ref=e21]:
+          - button [ref=e22] [cursor=pointer]:
+            - img [ref=e23]
+          - button "登录" [ref=e28] [cursor=pointer]
+          - button "注册" [ref=e29] [cursor=pointer]
+    - main [ref=e30]:
+      - generic [ref=e31]:
+        - generic [ref=e32]:
+          - generic [ref=e33]:
+            - generic [ref=e38]:
+              - generic [ref=e39]: 严选好物 · 品质生活
+              - heading "精选全球好物 一站式轻松购齐" [level=1] [ref=e40]:
+                - text: 精选全球好物
+                - text: 一站式轻松购齐
+              - paragraph [ref=e41]: 正品直供极速发货，严选轻奢穿搭、家居日用、美妆护肤、数码潮品全品类覆盖
+              - generic [ref=e42]:
+                - button "即刻选购" [ref=e43] [cursor=pointer]
+                - button "查看爆款" [ref=e44] [cursor=pointer]
+              - generic [ref=e45]:
+                - generic [ref=e46]:
+                  - paragraph [ref=e47]: 100W+
+                  - paragraph [ref=e48]: 忠实用户
+                - generic [ref=e49]:
+                  - paragraph [ref=e50]: 5000+
+                  - paragraph [ref=e51]: 入驻品牌
+                - generic [ref=e52]:
+                  - paragraph [ref=e53]: 99%
+                  - paragraph [ref=e54]: 好评率
+            - generic [ref=e59]:
+              - generic [ref=e60]: 新品首发 · 限时特惠
+              - heading "夏季新品全面上架 低至 5 折起" [level=1] [ref=e61]:
+                - text: 夏季新品全面上架
+                - text: 低至 5 折起
+              - paragraph [ref=e62]: 每周上新数百款爆品，限时秒杀专区全场包邮，潮流尖货抢先入手
+              - generic [ref=e63]:
+                - button "抢购新品" [ref=e64] [cursor=pointer]
+                - button "查看活动" [ref=e65] [cursor=pointer]
+            - generic [ref=e70]:
+              - generic [ref=e71]: 数码狂欢 · 潮品直降
+              - heading "数码家电超级品类日 大牌爆款直降千元" [level=1] [ref=e72]:
+                - text: 数码家电超级品类日
+                - text: 大牌爆款直降千元
+              - paragraph [ref=e73]: Apple、华为、小米等大牌齐聚，以旧换新增值补贴，最高享 24 期免息
+              - generic [ref=e74]:
+                - button "立即抢购" [ref=e75] [cursor=pointer]
+                - button "查看活动" [ref=e76] [cursor=pointer]
+            - generic [ref=e81]:
+              - generic [ref=e82]: 会员专享 · 积分加倍
+              - heading "开通年度会员 立享双倍积分" [level=1] [ref=e83]:
+                - text: 开通年度会员
+                - text: 立享双倍积分
+              - paragraph [ref=e84]: 会员专属价、生日礼包、免邮特权、专属客服四大权益，一年省回本
+              - generic [ref=e85]:
+                - button "开通会员" [ref=e86] [cursor=pointer]
+                - button "了解更多" [ref=e87] [cursor=pointer]
+          - button [ref=e88] [cursor=pointer]:
+            - img [ref=e89]
+          - button [ref=e91] [cursor=pointer]:
+            - img [ref=e92]
+          - generic [ref=e94]:
+            - button [ref=e95] [cursor=pointer]
+            - button [ref=e96] [cursor=pointer]
+            - button [ref=e97] [cursor=pointer]
+            - button [ref=e98] [cursor=pointer]
+        - generic [ref=e99]:
+          - generic [ref=e104]: 每一件好物，都值得被认真挑选
+          - generic [ref=e106]:
+            - generic [ref=e108]:
+              - button "服饰鞋包 服饰鞋包" [ref=e109] [cursor=pointer]:
+                - img "服饰鞋包" [ref=e111]
+                - generic [ref=e112]: 服饰鞋包
+              - button "数码家电 数码家电" [ref=e113] [cursor=pointer]:
+                - img "数码家电" [ref=e115]
+                - generic [ref=e116]: 数码家电
+              - button "家居生活 家居生活" [ref=e117] [cursor=pointer]:
+                - img "家居生活" [ref=e119]
+                - generic [ref=e120]: 家居生活
+              - button "美妆个护 美妆个护" [ref=e121] [cursor=pointer]:
+                - img "美妆个护" [ref=e123]
+                - generic [ref=e124]: 美妆个护
+              - button "运动户外 运动户外" [ref=e125] [cursor=pointer]:
+                - img "运动户外" [ref=e127]
+                - generic [ref=e128]: 运动户外
+              - button "食品饮料 食品饮料" [ref=e129] [cursor=pointer]:
+                - img "食品饮料" [ref=e131]
+                - generic [ref=e132]: 食品饮料
+              - button "母婴用品 母婴用品" [ref=e133] [cursor=pointer]:
+                - img "母婴用品" [ref=e135]
+                - generic [ref=e136]: 母婴用品
+              - button "图书文具 图书文具" [ref=e137] [cursor=pointer]:
+                - img "图书文具" [ref=e139]
+                - generic [ref=e140]: 图书文具
+              - button "宠物生活 宠物生活" [ref=e141] [cursor=pointer]:
+                - img "宠物生活" [ref=e143]
+                - generic [ref=e144]: 宠物生活
+              - button "汽车用品 汽车用品" [ref=e145] [cursor=pointer]:
+                - img "汽车用品" [ref=e147]
+                - generic [ref=e148]: 汽车用品
+              - button "医药健康 医药健康" [ref=e149] [cursor=pointer]:
+                - img "医药健康" [ref=e151]
+                - generic [ref=e152]: 医药健康
+              - button "珠宝配饰 珠宝配饰" [ref=e153] [cursor=pointer]:
+                - img "珠宝配饰" [ref=e155]
+                - generic [ref=e156]: 珠宝配饰
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - button "服饰鞋包 服饰鞋包":
+                      - generic:
+                        - img "服饰鞋包"
+                      - generic: 服饰鞋包
+                      - img
+                    - button "数码家电 数码家电":
+                      - generic:
+                        - img "数码家电"
+                      - generic: 数码家电
+                      - img
+                    - button "家居生活 家居生活":
+                      - generic:
+                        - img "家居生活"
+                      - generic: 家居生活
+                      - img
+                    - button "美妆个护 美妆个护":
+                      - generic:
+                        - img "美妆个护"
+                      - generic: 美妆个护
+                      - img
+                    - button "运动户外 运动户外":
+                      - generic:
+                        - img "运动户外"
+                      - generic: 运动户外
+                      - img
+                    - button "食品饮料 食品饮料":
+                      - generic:
+                        - img "食品饮料"
+                      - generic: 食品饮料
+                      - img
+                    - button "母婴用品 母婴用品":
+                      - generic:
+                        - img "母婴用品"
+                      - generic: 母婴用品
+                      - img
+                    - button "图书文具 图书文具":
+                      - generic:
+                        - img "图书文具"
+                      - generic: 图书文具
+                      - img
+                    - button "宠物生活 宠物生活":
+                      - generic:
+                        - img "宠物生活"
+                      - generic: 宠物生活
+                      - img
+                    - button "汽车用品 汽车用品":
+                      - generic:
+                        - img "汽车用品"
+                      - generic: 汽车用品
+                      - img
+                    - button "医药健康 医药健康":
+                      - generic:
+                        - img "医药健康"
+                      - generic: 医药健康
+                      - img
+                    - button "珠宝配饰 珠宝配饰":
+                      - generic:
+                        - img "珠宝配饰"
+                      - generic: 珠宝配饰
+                      - img
+        - generic [ref=e159]:
+          - generic [ref=e161]:
+            - heading "热销爆款 ›" [level=3] [ref=e163] [cursor=pointer]
+            - generic [ref=e164]:
+              - generic [ref=e166] [cursor=pointer]:
+                - img "狗狗磨牙洁齿棒" [ref=e167]
+                - generic [ref=e168]: 新品
+                - button "收藏" [ref=e169]:
+                  - img [ref=e170]
+                - generic [ref=e172]:
+                  - paragraph [ref=e173]: 狗狗磨牙洁齿棒
+                  - generic [ref=e175]: ¥29
+              - generic [ref=e177] [cursor=pointer]:
+                - img "头戴式降噪耳机" [ref=e178]
+                - generic [ref=e179]: 爆款
+                - button "收藏" [ref=e180]:
+                  - img [ref=e181]
+                - generic [ref=e183]:
+                  - paragraph [ref=e184]: 头戴式降噪耳机
+                  - generic [ref=e185]:
+                    - generic [ref=e186]: ¥899
+                    - generic [ref=e187]: ¥1199
+              - generic [ref=e189] [cursor=pointer]:
+                - img "纯棉珠地POLO衫" [ref=e190]
+                - generic [ref=e191]: 新品
+                - button "收藏" [ref=e192]:
+                  - img [ref=e193]
+                - generic [ref=e195]:
+                  - paragraph [ref=e196]: 纯棉珠地POLO衫
+                  - generic [ref=e197]:
+                    - generic [ref=e198]: ¥159
+                    - generic [ref=e199]: ¥229
+              - generic [ref=e201] [cursor=pointer]:
+                - img "S925纯银锁骨链" [ref=e202]
+                - generic [ref=e203]: 热卖
+                - button "收藏" [ref=e204]:
+                  - img [ref=e205]
+                - generic [ref=e207]:
+                  - paragraph [ref=e208]: S925纯银锁骨链
+                  - generic [ref=e209]:
+                    - generic [ref=e210]: ¥199
+                    - generic [ref=e211]: ¥299
+              - generic [ref=e213] [cursor=pointer]:
+                - img "速干运动T恤" [ref=e214]
+                - generic [ref=e215]: 爆款
+                - button "收藏" [ref=e216]:
+                  - img [ref=e217]
+                - generic [ref=e219]:
+                  - paragraph [ref=e220]: 速干运动T恤
+                  - generic [ref=e221]:
+                    - generic [ref=e222]: ¥149
+                    - generic [ref=e223]: ¥199
+              - generic [ref=e225] [cursor=pointer]:
+                - img "轻奢钢带防水手表" [ref=e226]
+                - generic [ref=e227]: 新品
+                - button "收藏" [ref=e228]:
+                  - img [ref=e229]
+                - generic [ref=e231]:
+                  - paragraph [ref=e232]: 轻奢钢带防水手表
+                  - generic [ref=e234]: ¥599
+              - generic [ref=e236] [cursor=pointer]:
+                - img "超清影像旗舰手机" [ref=e237]
+                - generic [ref=e238]: 爆款
+                - button "收藏" [ref=e239]:
+                  - img [ref=e240]
+                - generic [ref=e242]:
+                  - paragraph [ref=e243]: 超清影像旗舰手机
+                  - generic [ref=e244]:
+                    - generic [ref=e245]: ¥3999
+                    - generic [ref=e246]: ¥4699
+              - generic [ref=e248] [cursor=pointer]:
+                - img "防晒霜SPF50+" [ref=e249]
+                - button "收藏" [ref=e250]:
+                  - img [ref=e251]
+                - generic [ref=e253]:
+                  - paragraph [ref=e254]: 防晒霜SPF50+
+                  - generic [ref=e256]: ¥99
+          - generic [ref=e258]:
+            - heading "服饰鞋包 ›" [level=3] [ref=e260] [cursor=pointer]
+            - generic [ref=e261]:
+              - generic [ref=e263] [cursor=pointer]:
+                - img "厚底板鞋小白鞋" [ref=e264]
+                - generic [ref=e265]: 爆款
+                - button "收藏" [ref=e266]:
+                  - img [ref=e267]
+                - generic [ref=e269]:
+                  - paragraph [ref=e270]: 厚底板鞋小白鞋
+                  - generic [ref=e271]:
+                    - generic [ref=e272]: ¥269
+                    - generic [ref=e273]: ¥359
+              - generic [ref=e275] [cursor=pointer]:
+                - img "潮流帆布双肩包" [ref=e276]
+                - generic [ref=e277]: 热卖
+                - button "收藏" [ref=e278]:
+                  - img [ref=e279]
+                - generic [ref=e281]:
+                  - paragraph [ref=e282]: 潮流帆布双肩包
+                  - generic [ref=e284]: ¥259
+              - generic [ref=e286] [cursor=pointer]:
+                - img "头层牛皮斜挎包" [ref=e287]
+                - generic [ref=e288]: 新品
+                - button "收藏" [ref=e289]:
+                  - img [ref=e290]
+                - generic [ref=e292]:
+                  - paragraph [ref=e293]: 头层牛皮斜挎包
+                  - generic [ref=e294]:
+                    - generic [ref=e295]: ¥459
+                    - generic [ref=e296]: ¥659
+              - generic [ref=e298] [cursor=pointer]:
+                - img "法式碎花雪纺衫" [ref=e299]
+                - generic [ref=e300]: 热卖
+                - button "收藏" [ref=e301]:
+                  - img [ref=e302]
+                - generic [ref=e304]:
+                  - paragraph [ref=e305]: 法式碎花雪纺衫
+                  - generic [ref=e306]:
+                    - generic [ref=e307]: ¥239
+                    - generic [ref=e308]: ¥329
+              - generic [ref=e310] [cursor=pointer]:
+                - img "韩版宽松连衣裙" [ref=e311]
+                - generic [ref=e312]: 新品
+                - button "收藏" [ref=e313]:
+                  - img [ref=e314]
+                - generic [ref=e316]:
+                  - paragraph [ref=e317]: 韩版宽松连衣裙
+                  - generic [ref=e318]:
+                    - generic [ref=e319]: ¥359
+                    - generic [ref=e320]: ¥459
+              - generic [ref=e322] [cursor=pointer]:
+                - img "纯棉珠地POLO衫" [ref=e323]
+                - generic [ref=e324]: 新品
+                - button "收藏" [ref=e325]:
+                  - img [ref=e326]
+                - generic [ref=e328]:
+                  - paragraph [ref=e329]: 纯棉珠地POLO衫
+                  - generic [ref=e330]:
+                    - generic [ref=e331]: ¥159
+                    - generic [ref=e332]: ¥229
+              - generic [ref=e334] [cursor=pointer]:
+                - img "简约休闲西装外套" [ref=e335]
+                - generic [ref=e336]: 新品
+                - button "收藏" [ref=e337]:
+                  - img [ref=e338]
+                - generic [ref=e340]:
+                  - paragraph [ref=e341]: 简约休闲西装外套
+                  - generic [ref=e342]:
+                    - generic [ref=e343]: ¥699
+                    - generic [ref=e344]: ¥899
+              - generic [ref=e346] [cursor=pointer]:
+                - img "商务休闲皮鞋" [ref=e347]
+                - generic [ref=e348]: 爆款
+                - button "收藏" [ref=e349]:
+                  - img [ref=e350]
+                - generic [ref=e352]:
+                  - paragraph [ref=e353]: 商务休闲皮鞋
+                  - generic [ref=e354]:
+                    - generic [ref=e355]: ¥499
+                    - generic [ref=e356]: ¥699
+          - generic [ref=e358]:
+            - heading "数码家电 ›" [level=3] [ref=e360] [cursor=pointer]
+            - generic [ref=e361]:
+              - generic [ref=e363] [cursor=pointer]:
+                - img "头戴式降噪耳机" [ref=e364]
+                - generic [ref=e365]: 爆款
+                - button "收藏" [ref=e366]:
+                  - img [ref=e367]
+                - generic [ref=e369]:
+                  - paragraph [ref=e370]: 头戴式降噪耳机
+                  - generic [ref=e371]:
+                    - generic [ref=e372]: ¥899
+                    - generic [ref=e373]: ¥1199
+              - generic [ref=e375] [cursor=pointer]:
+                - img "高性能游戏笔记本" [ref=e376]
+                - generic [ref=e377]: 热卖
+                - button "收藏" [ref=e378]:
+                  - img [ref=e379]
+                - generic [ref=e381]:
+                  - paragraph [ref=e382]: 高性能游戏笔记本
+                  - generic [ref=e383]:
+                    - generic [ref=e384]: ¥7499
+                    - generic [ref=e385]: ¥8999
+              - generic [ref=e387] [cursor=pointer]:
+                - img "14英寸轻薄笔记本" [ref=e388]
+                - generic [ref=e389]: 热卖
+                - button "收藏" [ref=e390]:
+                  - img [ref=e391]
+                - generic [ref=e393]:
+                  - paragraph [ref=e394]: 14英寸轻薄笔记本
+                  - generic [ref=e395]:
+                    - generic [ref=e396]: ¥5299
+                    - generic [ref=e397]: ¥5999
+              - generic [ref=e399] [cursor=pointer]:
+                - img "智能运动手表 Pro" [ref=e400]
+                - generic [ref=e401]: 新品
+                - button "收藏" [ref=e402]:
+                  - img [ref=e403]
+                - generic [ref=e405]:
+                  - paragraph [ref=e406]: 智能运动手表 Pro
+                  - generic [ref=e408]: ¥1299
+              - generic [ref=e410] [cursor=pointer]:
+                - img "便携蓝牙音箱" [ref=e411]
+                - generic [ref=e412]: 爆款
+                - button "收藏" [ref=e413]:
+                  - img [ref=e414]
+                - generic [ref=e416]:
+                  - paragraph [ref=e417]: 便携蓝牙音箱
+                  - generic [ref=e418]:
+                    - generic [ref=e419]: ¥299
+                    - generic [ref=e420]: ¥399
+              - generic [ref=e422] [cursor=pointer]:
+                - img "机械键盘 87键" [ref=e423]
+                - generic [ref=e424]: 热卖
+                - button "收藏" [ref=e425]:
+                  - img [ref=e426]
+                - generic [ref=e428]:
+                  - paragraph [ref=e429]: 机械键盘 87键
+                  - generic [ref=e431]: ¥449
+              - generic [ref=e433] [cursor=pointer]:
+                - img "主动降噪蓝牙耳机" [ref=e434]
+                - generic [ref=e435]: 新品
+                - button "收藏" [ref=e436]:
+                  - img [ref=e437]
+                - generic [ref=e439]:
+                  - paragraph [ref=e440]: 主动降噪蓝牙耳机
+                  - generic [ref=e441]:
+                    - generic [ref=e442]: ¥799
+                    - generic [ref=e443]: ¥999
+              - generic [ref=e445] [cursor=pointer]:
+                - img "AI影像折叠屏手机" [ref=e446]
+                - generic [ref=e447]: 新品
+                - button "收藏" [ref=e448]:
+                  - img [ref=e449]
+                - generic [ref=e451]:
+                  - paragraph [ref=e452]: AI影像折叠屏手机
+                  - generic [ref=e453]:
+                    - generic [ref=e454]: ¥6999
+                    - generic [ref=e455]: ¥7999
+          - generic [ref=e460] [cursor=pointer]:
+            - generic [ref=e461]: 每日精选 低至 5 折
+            - heading "限时秒杀" [level=3] [ref=e462]
+            - paragraph [ref=e463]: 全场满99包邮 · 正品保障 · 闪电发货
+            - button "立即抢购" [ref=e464]
+          - generic [ref=e465]:
+            - generic [ref=e466]:
+              - heading "家居生活 ›" [level=3] [ref=e468] [cursor=pointer]
+              - generic [ref=e469]:
+                - generic [ref=e471] [cursor=pointer]:
+                  - img "加厚全遮光窗帘" [ref=e472]
+                  - generic [ref=e473]: 新品
+                  - button "收藏" [ref=e474]:
+                    - img [ref=e475]
+                  - generic [ref=e477]:
+                    - paragraph [ref=e478]: 加厚全遮光窗帘
+                    - generic [ref=e479]:
+                      - generic [ref=e480]: ¥189
+                      - generic [ref=e481]: ¥269
+                - generic [ref=e483] [cursor=pointer]:
+                  - img "麦饭石不粘锅三件套" [ref=e484]
+                  - generic [ref=e485]: 热卖
+                  - button "收藏" [ref=e486]:
+                    - img [ref=e487]
+                  - generic [ref=e489]:
+                    - paragraph [ref=e490]: 麦饭石不粘锅三件套
+                    - generic [ref=e491]:
+                      - generic [ref=e492]: ¥299
+                      - generic [ref=e493]: ¥399
+                - generic [ref=e495] [cursor=pointer]:
+                  - img "智能感应垃圾桶" [ref=e496]
+                  - generic [ref=e497]: 新品
+                  - button "收藏" [ref=e498]:
+                    - img [ref=e499]
+                  - generic [ref=e501]:
+                    - paragraph [ref=e502]: 智能感应垃圾桶
+                    - generic [ref=e503]:
+                      - generic [ref=e504]: ¥129
+                      - generic [ref=e505]: ¥199
+                - generic [ref=e507] [cursor=pointer]:
+                  - img "日式陶瓷餐具套装" [ref=e508]
+                  - generic [ref=e509]: 热卖
+                  - button "收藏" [ref=e510]:
+                    - img [ref=e511]
+                  - generic [ref=e513]:
+                    - paragraph [ref=e514]: 日式陶瓷餐具套装
+                    - generic [ref=e515]:
+                      - generic [ref=e516]: ¥168
+                      - generic [ref=e517]: ¥228
+            - generic [ref=e518]:
+              - heading "美妆个护 ›" [level=3] [ref=e520] [cursor=pointer]
+              - generic [ref=e521]:
+                - generic [ref=e523] [cursor=pointer]:
+                  - img "胶原蛋白紧致面霜" [ref=e524]
+                  - generic [ref=e525]: 新品
+                  - button "收藏" [ref=e526]:
+                    - img [ref=e527]
+                  - generic [ref=e529]:
+                    - paragraph [ref=e530]: 胶原蛋白紧致面霜
+                    - generic [ref=e531]:
+                      - generic [ref=e532]: ¥299
+                      - generic [ref=e533]: ¥399
+                - generic [ref=e535] [cursor=pointer]:
+                  - img "氨基酸洗发水" [ref=e536]
+                  - generic [ref=e537]: 爆款
+                  - button "收藏" [ref=e538]:
+                    - img [ref=e539]
+                  - generic [ref=e541]:
+                    - paragraph [ref=e542]: 氨基酸洗发水
+                    - generic [ref=e543]:
+                      - generic [ref=e544]: ¥89
+                      - generic [ref=e545]: ¥129
+                - generic [ref=e547] [cursor=pointer]:
+                  - img "防晒霜SPF50+" [ref=e548]
+                  - button "收藏" [ref=e549]:
+                    - img [ref=e550]
+                  - generic [ref=e552]:
+                    - paragraph [ref=e553]: 防晒霜SPF50+
+                    - generic [ref=e555]: ¥99
+                - generic [ref=e557] [cursor=pointer]:
+                  - img "烟酰胺美白面膜" [ref=e558]
+                  - generic [ref=e559]: 热卖
+                  - button "收藏" [ref=e560]:
+                    - img [ref=e561]
+                  - generic [ref=e563]:
+                    - paragraph [ref=e564]: 烟酰胺美白面膜
+                    - generic [ref=e566]: ¥109
+          - generic [ref=e571] [cursor=pointer]:
+            - generic [ref=e572]: Warmart 精选全球好物
+            - heading "品质生活 温暖相伴" [level=3] [ref=e573]
+            - paragraph [ref=e574]: 每一件商品都经过严格筛选，只为给你最好的
+            - button "探索更多" [ref=e575]
+          - generic [ref=e576]:
+            - generic [ref=e577]:
+              - heading "运动户外 ›" [level=3] [ref=e579] [cursor=pointer]
+              - generic [ref=e580]:
+                - generic [ref=e582] [cursor=pointer]:
+                  - img "专业跳绳计数跳绳" [ref=e583]
+                  - generic [ref=e584]: 热卖
+                  - button "收藏" [ref=e585]:
+                    - img [ref=e586]
+                  - generic [ref=e588]:
+                    - paragraph [ref=e589]: 专业跳绳计数跳绳
+                    - generic [ref=e590]:
+                      - generic [ref=e591]: ¥39
+                      - generic [ref=e592]: ¥69
+                - generic [ref=e594] [cursor=pointer]:
+                  - img "户外登山双肩包" [ref=e595]
+                  - generic [ref=e596]: 热卖
+                  - button "收藏" [ref=e597]:
+                    - img [ref=e598]
+                  - generic [ref=e600]:
+                    - paragraph [ref=e601]: 户外登山双肩包
+                    - generic [ref=e603]: ¥329
+                - generic [ref=e605] [cursor=pointer]:
+                  - img "轻便缓震跑鞋" [ref=e606]
+                  - generic [ref=e607]: 热卖
+                  - button "收藏" [ref=e608]:
+                    - img [ref=e609]
+                  - generic [ref=e611]:
+                    - paragraph [ref=e612]: 轻便缓震跑鞋
+                    - generic [ref=e613]:
+                      - generic [ref=e614]: ¥459
+                      - generic [ref=e615]: ¥599
+                - generic [ref=e617] [cursor=pointer]:
+                  - img "双层防暴风自动帐篷" [ref=e618]
+                  - generic [ref=e619]: 热卖
+                  - button "收藏" [ref=e620]:
+                    - img [ref=e621]
+                  - generic [ref=e623]:
+                    - paragraph [ref=e624]: 双层防暴风自动帐篷
+                    - generic [ref=e625]:
+                      - generic [ref=e626]: ¥399
+                      - generic [ref=e627]: ¥599
+            - generic [ref=e628]:
+              - heading "食品饮料 ›" [level=3] [ref=e630] [cursor=pointer]
+              - generic [ref=e631]:
+                - generic [ref=e633] [cursor=pointer]:
+                  - img "每日坚果礼盒" [ref=e634]
+                  - generic [ref=e635]: 热卖
+                  - button "收藏" [ref=e636]:
+                    - img [ref=e637]
+                  - generic [ref=e639]:
+                    - paragraph [ref=e640]: 每日坚果礼盒
+                    - generic [ref=e641]:
+                      - generic [ref=e642]: ¥89
+                      - generic [ref=e643]: ¥129
+                - generic [ref=e645] [cursor=pointer]:
+                  - img "海苔肉松蛋卷酥" [ref=e646]
+                  - generic [ref=e647]: 新品
+                  - button "收藏" [ref=e648]:
+                    - img [ref=e649]
+                  - generic [ref=e651]:
+                    - paragraph [ref=e652]: 海苔肉松蛋卷酥
+                    - generic [ref=e653]:
+                      - generic [ref=e654]: ¥29.9
+                      - generic [ref=e655]: ¥39.9
+                - generic [ref=e657] [cursor=pointer]:
+                  - img "精品阿拉比卡咖啡豆" [ref=e658]
+                  - button "收藏" [ref=e659]:
+                    - img [ref=e660]
+                  - generic [ref=e662]:
+                    - paragraph [ref=e663]: 精品阿拉比卡咖啡豆
+                    - generic [ref=e665]: ¥79
+                - generic [ref=e667] [cursor=pointer]:
+                  - img "明前龙井绿茶" [ref=e668]
+                  - generic [ref=e669]: 新品
+                  - button "收藏" [ref=e670]:
+                    - img [ref=e671]
+                  - generic [ref=e673]:
+                    - paragraph [ref=e674]: 明前龙井绿茶
+                    - generic [ref=e676]: ¥69
+          - generic [ref=e677]:
+            - generic [ref=e678]:
+              - heading "母婴用品 ›" [level=3] [ref=e680] [cursor=pointer]
+              - generic [ref=e681]:
+                - generic [ref=e683] [cursor=pointer]:
+                  - img "婴儿连体衣春秋款" [ref=e684]
+                  - generic [ref=e685]: 新品
+                  - button "收藏" [ref=e686]:
+                    - img [ref=e687]
+                  - generic [ref=e689]:
+                    - paragraph [ref=e690]: 婴儿连体衣春秋款
+                    - generic [ref=e692]: ¥79
+                - generic [ref=e694] [cursor=pointer]:
+                  - img "婴儿奶瓶PPSU" [ref=e695]
+                  - generic [ref=e696]: 热卖
+                  - button "收藏" [ref=e697]:
+                    - img [ref=e698]
+                  - generic [ref=e700]:
+                    - paragraph [ref=e701]: 婴儿奶瓶PPSU
+                    - generic [ref=e702]:
+                      - generic [ref=e703]: ¥89
+                      - generic [ref=e704]: ¥129
+                - generic [ref=e706] [cursor=pointer]:
+                  - img "儿童拼装积木桌" [ref=e707]
+                  - generic [ref=e708]: 热卖
+                  - button "收藏" [ref=e709]:
+                    - img [ref=e710]
+                  - generic [ref=e712]:
+                    - paragraph [ref=e713]: 儿童拼装积木桌
+                    - generic [ref=e714]:
+                      - generic [ref=e715]: ¥169
+                      - generic [ref=e716]: ¥239
+                - generic [ref=e718] [cursor=pointer]:
+                  - img "有机高铁米粉礼盒" [ref=e719]
+                  - generic [ref=e720]: 热卖
+                  - button "收藏" [ref=e721]:
+                    - img [ref=e722]
+                  - generic [ref=e724]:
+                    - paragraph [ref=e725]: 有机高铁米粉礼盒
+                    - generic [ref=e726]:
+                      - generic [ref=e727]: ¥69
+                      - generic [ref=e728]: ¥99
+            - generic [ref=e729]:
+              - heading "图书文具 ›" [level=3] [ref=e731] [cursor=pointer]
+              - generic [ref=e732]:
+                - generic [ref=e734] [cursor=pointer]:
+                  - img "人间值得散文精选集" [ref=e735]
+                  - generic [ref=e736]: 热卖
+                  - button "收藏" [ref=e737]:
+                    - img [ref=e738]
+                  - generic [ref=e740]:
+                    - paragraph [ref=e741]: 人间值得散文精选集
+                    - generic [ref=e742]:
+                      - generic [ref=e743]: ¥49
+                      - generic [ref=e744]: ¥69
+                - generic [ref=e746] [cursor=pointer]:
+                  - img "商务活页皮面笔记本" [ref=e747]
+                  - generic [ref=e748]: 新品
+                  - button "收藏" [ref=e749]:
+                    - img [ref=e750]
+                  - generic [ref=e752]:
+                    - paragraph [ref=e753]: 商务活页皮面笔记本
+                    - generic [ref=e755]: ¥35
+                - generic [ref=e757] [cursor=pointer]:
+                  - img "手账笔记本套装" [ref=e758]
+                  - generic [ref=e759]: 热卖
+                  - button "收藏" [ref=e760]:
+                    - img [ref=e761]
+                  - generic [ref=e763]:
+                    - paragraph [ref=e764]: 手账笔记本套装
+                    - generic [ref=e766]: ¥39
+                - generic [ref=e768] [cursor=pointer]:
+                  - img "精装钢笔礼盒" [ref=e769]
+                  - generic [ref=e770]: 新品
+                  - button "收藏" [ref=e771]:
+                    - img [ref=e772]
+                  - generic [ref=e774]:
+                    - paragraph [ref=e775]: 精装钢笔礼盒
+                    - generic [ref=e776]:
+                      - generic [ref=e777]: ¥199
+                      - generic [ref=e778]: ¥299
+          - generic [ref=e779]:
+            - generic [ref=e780]:
+              - heading "宠物生活 ›" [level=3] [ref=e782] [cursor=pointer]
+              - generic [ref=e783]:
+                - generic [ref=e785] [cursor=pointer]:
+                  - img "宠物除臭消毒喷雾" [ref=e786]
+                  - generic [ref=e787]: 新品
+                  - button "收藏" [ref=e788]:
+                    - img [ref=e789]
+                  - generic [ref=e791]:
+                    - paragraph [ref=e792]: 宠物除臭消毒喷雾
+                    - generic [ref=e794]: ¥49
+                - generic [ref=e796] [cursor=pointer]:
+                  - img "猫咪零食冻干桶" [ref=e797]
+                  - generic [ref=e798]: 爆款
+                  - button "收藏" [ref=e799]:
+                    - img [ref=e800]
+                  - generic [ref=e802]:
+                    - paragraph [ref=e803]: 猫咪零食冻干桶
+                    - generic [ref=e804]:
+                      - generic [ref=e805]: ¥69
+                      - generic [ref=e806]: ¥99
+                - generic [ref=e808] [cursor=pointer]:
+                  - img "猫抓板猫窝一体" [ref=e809]
+                  - generic [ref=e810]: 热卖
+                  - button "收藏" [ref=e811]:
+                    - img [ref=e812]
+                  - generic [ref=e814]:
+                    - paragraph [ref=e815]: 猫抓板猫窝一体
+                    - generic [ref=e816]:
+                      - generic [ref=e817]: ¥39
+                      - generic [ref=e818]: ¥69
+                - generic [ref=e820] [cursor=pointer]:
+                  - img "智能宠物饮水机" [ref=e821]
+                  - generic [ref=e822]: 新品
+                  - button "收藏" [ref=e823]:
+                    - img [ref=e824]
+                  - generic [ref=e826]:
+                    - paragraph [ref=e827]: 智能宠物饮水机
+                    - generic [ref=e828]:
+                      - generic [ref=e829]: ¥189
+                      - generic [ref=e830]: ¥259
+            - generic [ref=e831]:
+              - heading "汽车用品 ›" [level=3] [ref=e833] [cursor=pointer]
+              - generic [ref=e834]:
+                - generic [ref=e836] [cursor=pointer]:
+                  - img "无线车载吸尘器" [ref=e837]
+                  - button "收藏" [ref=e838]:
+                    - img [ref=e839]
+                  - generic [ref=e841]:
+                    - paragraph [ref=e842]: 无线车载吸尘器
+                    - generic [ref=e844]: ¥199
+                - generic [ref=e846] [cursor=pointer]:
+                  - img "车载手机支架" [ref=e847]
+                  - generic [ref=e848]: 热卖
+                  - button "收藏" [ref=e849]:
+                    - img [ref=e850]
+                  - generic [ref=e852]:
+                    - paragraph [ref=e853]: 车载手机支架
+                    - generic [ref=e854]:
+                      - generic [ref=e855]: ¥39
+                      - generic [ref=e856]: ¥69
+                - generic [ref=e858] [cursor=pointer]:
+                  - img "车载香薰精油套装" [ref=e859]
+                  - generic [ref=e860]: 新品
+                  - button "收藏" [ref=e861]:
+                    - img [ref=e862]
+                  - generic [ref=e864]:
+                    - paragraph [ref=e865]: 车载香薰精油套装
+                    - generic [ref=e867]: ¥69
+                - generic [ref=e869] [cursor=pointer]:
+                  - img "汽车遮阳挡前挡" [ref=e870]
+                  - generic [ref=e871]: 热卖
+                  - button "收藏" [ref=e872]:
+                    - img [ref=e873]
+                  - generic [ref=e875]:
+                    - paragraph [ref=e876]: 汽车遮阳挡前挡
+                    - generic [ref=e877]:
+                      - generic [ref=e878]: ¥39
+                      - generic [ref=e879]: ¥69
+          - generic [ref=e880]:
+            - generic [ref=e881]:
+              - heading "医药健康 ›" [level=3] [ref=e883] [cursor=pointer]
+              - generic [ref=e884]:
+                - generic [ref=e886] [cursor=pointer]:
+                  - img "膝盖护具保暖护膝" [ref=e887]
+                  - generic [ref=e888]: 新品
+                  - button "收藏" [ref=e889]:
+                    - img [ref=e890]
+                  - generic [ref=e892]:
+                    - paragraph [ref=e893]: 膝盖护具保暖护膝
+                    - generic [ref=e894]:
+                      - generic [ref=e895]: ¥49
+                      - generic [ref=e896]: ¥79
+                - generic [ref=e898] [cursor=pointer]:
+                  - img "乳清蛋白粉增肌粉" [ref=e899]
+                  - generic [ref=e900]: 新品
+                  - button "收藏" [ref=e901]:
+                    - img [ref=e902]
+                  - generic [ref=e904]:
+                    - paragraph [ref=e905]: 乳清蛋白粉增肌粉
+                    - generic [ref=e907]: ¥259
+                - generic [ref=e909] [cursor=pointer]:
+                  - img "复合维生素B族片" [ref=e910]
+                  - generic [ref=e911]: 热卖
+                  - button "收藏" [ref=e912]:
+                    - img [ref=e913]
+                  - generic [ref=e915]:
+                    - paragraph [ref=e916]: 复合维生素B族片
+                    - generic [ref=e918]: ¥59
+                - generic [ref=e920] [cursor=pointer]:
+                  - img "颈椎按摩仪" [ref=e921]
+                  - generic [ref=e922]: 爆款
+                  - button "收藏" [ref=e923]:
+                    - img [ref=e924]
+                  - generic [ref=e926]:
+                    - paragraph [ref=e927]: 颈椎按摩仪
+                    - generic [ref=e928]:
+                      - generic [ref=e929]: ¥299
+                      - generic [ref=e930]: ¥399
+            - generic [ref=e931]:
+              - heading "珠宝配饰 ›" [level=3] [ref=e933] [cursor=pointer]
+              - generic [ref=e934]:
+                - generic [ref=e936] [cursor=pointer]:
+                  - img "偏光太阳镜" [ref=e937]
+                  - button "收藏" [ref=e938]:
+                    - img [ref=e939]
+                  - generic [ref=e941]:
+                    - paragraph [ref=e942]: 偏光太阳镜
+                    - generic [ref=e944]: ¥199
+                - generic [ref=e946] [cursor=pointer]:
+                  - img "轻奢钢带防水手表" [ref=e947]
+                  - generic [ref=e948]: 新品
+                  - button "收藏" [ref=e949]:
+                    - img [ref=e950]
+                  - generic [ref=e952]:
+                    - paragraph [ref=e953]: 轻奢钢带防水手表
+                    - generic [ref=e955]: ¥599
+                - generic [ref=e957] [cursor=pointer]:
+                  - img "真丝丝巾女围巾" [ref=e958]
+                  - generic [ref=e959]: 热卖
+                  - button "收藏" [ref=e960]:
+                    - img [ref=e961]
+                  - generic [ref=e963]:
+                    - paragraph [ref=e964]: 真丝丝巾女围巾
+                    - generic [ref=e966]: ¥199
+                - generic [ref=e968] [cursor=pointer]:
+                  - img "简约石英手表" [ref=e969]
+                  - generic [ref=e970]: 热卖
+                  - button "收藏" [ref=e971]:
+                    - img [ref=e972]
+                  - generic [ref=e974]:
+                    - paragraph [ref=e975]: 简约石英手表
+                    - generic [ref=e976]:
+                      - generic [ref=e977]: ¥299
+                      - generic [ref=e978]: ¥499
+        - generic [ref=e980]:
+          - generic [ref=e981]:
+            - heading "为你推荐" [level=3] [ref=e982]
+            - text: 发现更多好物
+          - generic [ref=e983]:
+            - generic [ref=e984] [cursor=pointer]:
+              - generic [ref=e985]:
+                - img "冰丝防晒袖套" [ref=e986]
+                - generic [ref=e987]: 新品
+                - button "收藏" [ref=e988]:
+                  - img [ref=e989]
+              - generic [ref=e991]:
+                - paragraph [ref=e992]: 冰丝防晒袖套
+                - generic [ref=e993]:
+                  - generic [ref=e994]: ¥29
+                  - generic [ref=e995]: ¥49
+            - generic [ref=e996] [cursor=pointer]:
+              - generic [ref=e997]:
+                - img "英语四六级真题试卷" [ref=e998]
+                - generic [ref=e999]: 热卖
+                - button "收藏" [ref=e1000]:
+                  - img [ref=e1001]
+              - generic [ref=e1003]:
+                - paragraph [ref=e1004]: 英语四六级真题试卷
+                - generic [ref=e1005]:
+                  - generic [ref=e1006]: ¥49
+                  - generic [ref=e1007]: ¥79
+            - generic [ref=e1008] [cursor=pointer]:
+              - generic [ref=e1009]:
+                - img "三体全集科幻小说" [ref=e1010]
+                - generic [ref=e1011]: 爆款
+                - button "收藏" [ref=e1012]:
+                  - img [ref=e1013]
+              - generic [ref=e1015]:
+                - paragraph [ref=e1016]: 三体全集科幻小说
+                - generic [ref=e1017]:
+                  - generic [ref=e1018]: ¥89
+                  - generic [ref=e1019]: ¥129
+            - generic [ref=e1020] [cursor=pointer]:
+              - generic [ref=e1021]:
+                - img "儿童早教故事机" [ref=e1022]
+                - generic [ref=e1023]: 热卖
+                - button "收藏" [ref=e1024]:
+                  - img [ref=e1025]
+              - generic [ref=e1027]:
+                - paragraph [ref=e1028]: 儿童早教故事机
+                - generic [ref=e1029]:
+                  - generic [ref=e1030]: ¥169
+                  - generic [ref=e1031]: ¥239
+            - generic [ref=e1032] [cursor=pointer]:
+              - generic [ref=e1033]:
+                - img "婴儿连体衣春秋款" [ref=e1034]
+                - generic [ref=e1035]: 新品
+                - button "收藏" [ref=e1036]:
+                  - img [ref=e1037]
+              - generic [ref=e1039]:
+                - paragraph [ref=e1040]: 婴儿连体衣春秋款
+                - generic [ref=e1042]: ¥79
+            - generic [ref=e1043] [cursor=pointer]:
+              - generic [ref=e1044]:
+                - img "婴儿奶瓶PPSU" [ref=e1045]
+                - generic [ref=e1046]: 热卖
+                - button "收藏" [ref=e1047]:
+                  - img [ref=e1048]
+              - generic [ref=e1050]:
+                - paragraph [ref=e1051]: 婴儿奶瓶PPSU
+                - generic [ref=e1052]:
+                  - generic [ref=e1053]: ¥89
+                  - generic [ref=e1054]: ¥129
+            - generic [ref=e1055] [cursor=pointer]:
+              - generic [ref=e1056]:
+                - img "三只松鼠坚果大礼包" [ref=e1057]
+                - generic [ref=e1058]: 爆款
+                - button "收藏" [ref=e1059]:
+                  - img [ref=e1060]
+              - generic [ref=e1062]:
+                - paragraph [ref=e1063]: 三只松鼠坚果大礼包
+                - generic [ref=e1064]:
+                  - generic [ref=e1065]: ¥99
+                  - generic [ref=e1066]: ¥159
+            - generic [ref=e1067] [cursor=pointer]:
+              - generic [ref=e1068]:
+                - img "护发精油免洗发膜" [ref=e1069]
+                - generic [ref=e1070]: 热卖
+                - button "收藏" [ref=e1071]:
+                  - img [ref=e1072]
+              - generic [ref=e1074]:
+                - paragraph [ref=e1075]: 护发精油免洗发膜
+                - generic [ref=e1076]:
+                  - generic [ref=e1077]: ¥79
+                  - generic [ref=e1078]: ¥129
+            - generic [ref=e1079] [cursor=pointer]:
+              - generic [ref=e1080]:
+                - img "智能感应垃圾桶" [ref=e1081]
+                - generic [ref=e1082]: 新品
+                - button "收藏" [ref=e1083]:
+                  - img [ref=e1084]
+              - generic [ref=e1086]:
+                - paragraph [ref=e1087]: 智能感应垃圾桶
+                - generic [ref=e1088]:
+                  - generic [ref=e1089]: ¥129
+                  - generic [ref=e1090]: ¥199
+            - generic [ref=e1091] [cursor=pointer]:
+              - generic [ref=e1092]:
+                - img "家用梯子折叠人字梯" [ref=e1093]
+                - generic [ref=e1094]: 热卖
+                - button "收藏" [ref=e1095]:
+                  - img [ref=e1096]
+              - generic [ref=e1098]:
+                - paragraph [ref=e1099]: 家用梯子折叠人字梯
+                - generic [ref=e1100]:
+                  - generic [ref=e1101]: ¥259
+                  - generic [ref=e1102]: ¥359
+            - generic [ref=e1103] [cursor=pointer]:
+              - generic [ref=e1104]:
+                - img "潮流墨镜防晒太阳镜" [ref=e1105]
+                - generic [ref=e1106]: 新品
+                - button "收藏" [ref=e1107]:
+                  - img [ref=e1108]
+              - generic [ref=e1110]:
+                - paragraph [ref=e1111]: 潮流墨镜防晒太阳镜
+                - generic [ref=e1112]:
+                  - generic [ref=e1113]: ¥99
+                  - generic [ref=e1114]: ¥169
+            - generic [ref=e1115] [cursor=pointer]:
+              - generic [ref=e1116]:
+                - img "眼唇卸妆液温和不刺激" [ref=e1117]
+                - generic [ref=e1118]: 爆款
+                - button "收藏" [ref=e1119]:
+                  - img [ref=e1120]
+              - generic [ref=e1122]:
+                - paragraph [ref=e1123]: 眼唇卸妆液温和不刺激
+                - generic [ref=e1124]:
+                  - generic [ref=e1125]: ¥59
+                  - generic [ref=e1126]: ¥89
+        - generic [ref=e1129]:
+          - generic [ref=e1130]:
+            - generic [ref=e1131]:
+              - heading "暖 Warmart" [level=3] [ref=e1132]:
+                - generic [ref=e1133]: 暖
+                - text: Warmart
+              - paragraph [ref=e1134]: 专注品质好物，打造轻松便捷高品质网购平台
+              - generic [ref=e1135]:
+                - link "" [ref=e1136] [cursor=pointer]:
+                  - /url: "#"
+                  - generic [ref=e1137]: 
+                - link "" [ref=e1138] [cursor=pointer]:
+                  - /url: "#"
+                  - generic [ref=e1139]: 
+                - link "" [ref=e1140] [cursor=pointer]:
+                  - /url: "#"
+                  - generic [ref=e1141]: 
+            - generic [ref=e1142]:
+              - heading "购物指南" [level=4] [ref=e1143]
+              - list [ref=e1144]:
+                - listitem [ref=e1145]:
+                  - link "注册登录" [ref=e1146] [cursor=pointer]:
+                    - /url: "#"
+                - listitem [ref=e1147]:
+                  - link "下单流程" [ref=e1148] [cursor=pointer]:
+                    - /url: "#"
+                - listitem [ref=e1149]:
+                  - link "支付方式" [ref=e1150] [cursor=pointer]:
+                    - /url: "#"
+                - listitem [ref=e1151]:
+                  - link "常见问题" [ref=e1152] [cursor=pointer]:
+                    - /url: "#"
+            - generic [ref=e1153]:
+              - heading "售后服务" [level=4] [ref=e1154]
+              - list [ref=e1155]:
+                - listitem [ref=e1156]:
+                  - link "退换货政策" [ref=e1157] [cursor=pointer]:
+                    - /url: "#"
+                - listitem [ref=e1158]:
+                  - link "物流查询" [ref=e1159] [cursor=pointer]:
+                    - /url: "#"
+                - listitem [ref=e1160]:
+                  - link "售后投诉" [ref=e1161] [cursor=pointer]:
+                    - /url: "#"
+                - listitem [ref=e1162]:
+                  - link "正品保障" [ref=e1163] [cursor=pointer]:
+                    - /url: "#"
+            - generic [ref=e1164]:
+              - heading "联系我们" [level=4] [ref=e1165]
+              - list [ref=e1166]:
+                - listitem [ref=e1167]:
+                  - generic [ref=e1168]: 
+                  - text: 400-888-9999
+                - listitem [ref=e1169]:
+                  - generic [ref=e1170]: 
+                  - text: service@warmart.com
+                - listitem [ref=e1171]:
+                  - generic [ref=e1172]: 
+                  - text: 杭州市电商产业园
+          - paragraph [ref=e1174]: © 2026 暖 Warmart 版权所有 浙ICP备12345678号
+  - generic [ref=e1175]:
+    - generic "Toggle devtools panel" [ref=e1176] [cursor=pointer]:
+      - img [ref=e1177]
+    - generic "Toggle Component Inspector" [ref=e1182] [cursor=pointer]:
+      - img [ref=e1183]

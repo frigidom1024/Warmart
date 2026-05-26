@@ -16,6 +16,7 @@ const LOW_PRI_LIMIT = 4  // product limit for lower-priority zones
 // ─── Data ───
 const categoryTree = ref<ApiCategory[]>([])
 const loading = ref(true)
+const loadError = ref(false)
 const zones = ref<Zone[]>([])
 
 interface ZoneProduct {
@@ -54,6 +55,19 @@ function onCatEnter(i: number) {
   if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
 }
 
+function onCatClick(i: number) {
+  // On touch: first tap shows flyout, second tap navigates
+  if (hoveredCat.value === i) {
+    goProductList()
+  } else {
+    hoveredCat.value = i
+  }
+}
+
+function closeFlyout() {
+  hoveredCat.value = -1
+}
+
 function onBrowseLeave() {
   hideTimer = setTimeout(() => { hoveredCat.value = -1 }, 300)
 }
@@ -71,15 +85,6 @@ const hoveredCatProducts = computed(() => {
 })
 
 // ─── Build zones from API data ───
-function shuffleArray<T>(arr: T[]): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
-
 onMounted(async () => {
   try {
     const [catRes, productRes] = await Promise.all([
@@ -89,6 +94,7 @@ onMounted(async () => {
     categoryTree.value = catRes as ApiCategory[]
 
     const products = (productRes as any).records || (productRes as Product[]) || []
+    const allZoneProducts: ZoneProduct[] = []
 
     // Build category id → first-level parent id (for routing products to zones)
     const parentMap = new Map<number, ApiCategory>()
@@ -118,10 +124,12 @@ onMounted(async () => {
       const catId = parent?.id
       if (catId === undefined) continue
       if (!catProducts.has(catId)) catProducts.set(catId, [])
-      catProducts.get(catId)!.push({
+      const zp: ZoneProduct = {
         id: pi.id, title: pi.name, price: pi.price,
         old: pi.originalPrice, tag: pi.tag, img: pi.mainImage
-      })
+      }
+      catProducts.get(catId)!.push(zp)
+      allZoneProducts.push(zp)
     }
 
     // Build zones — only categories that have products
@@ -141,38 +149,37 @@ onMounted(async () => {
         id: cat.id,
         title: cat.name,
         size,
-        products: shuffleArray(zpList).slice(0, limit)
+        // stable sort: newest first
+        products: [...zpList].sort((a, b) => b.id - a.id).slice(0, limit)
       })
 
       priCount++
     }
 
     zones.value = result
+
+    // Derive hotsale products from the same fetch, no duplicate request
+    hotsaleProducts.value = [...allZoneProducts]
+      .sort((a, b) => b.id - a.id)
+      .slice(0, HOT_ZONE_LIMIT)
   } catch {
-    // keep empty
+      loadError.value = true
+      showToast('加载失败，请检查网络后重试', 'error')
   } finally {
     loading.value = false
   }
 })
 onUnmounted(() => {
   if (hideTimer) clearTimeout(hideTimer)
+  stopAutoplay()
+  if (feedObserver.value) {
+    feedObserver.value.disconnect()
+    feedObserver.value = null
+  }
 })
 
 // ─── Hotsale zone (always first) ───
 const hotsaleProducts = ref<ZoneProduct[]>([])
-
-onMounted(async () => {
-  try {
-    const res = await getProductList({ size: 200 })
-    const products = (res as any).records || (res as Product[]) || []
-    hotsaleProducts.value = shuffleArray(
-      products.map((pi: Product) => ({
-        id: pi.id, title: pi.name, price: pi.price,
-        old: pi.originalPrice, tag: pi.tag, img: pi.mainImage
-      }))
-    ).slice(0, HOT_ZONE_LIMIT)
-  } catch { /* ignore */ }
-})
 
 // ─── Sections: insert banners after zone 2 and 4 ───
 const banners = [
@@ -262,7 +269,9 @@ async function loadMore() {
       old: pi.originalPrice, tag: pi.tag, img: pi.mainImage
     })))
     feedPage.value++
-  } catch { /* ignore */ } finally {
+  } catch {
+      showToast('加载更多失败', 'error')
+  } finally {
     feedLoading.value = false
   }
 }
@@ -303,6 +312,17 @@ async function handleFavorite(id: number) {
 const router = useRouter()
 function goProductList() { router.push('/product/list') }
 function goProductDetail(id: number) { window.open('/product/detail/' + id, '_blank') }
+
+function retryLoad() {
+  window.location.reload()
+}
+
+function onImgError(e: Event) {
+  const img = e.target as HTMLImageElement
+  if (img.dataset.fallback) return
+  img.dataset.fallback = '1'
+  img.style.display = 'none'
+}
 
 // ─── Hero carousel ───
 const slides = [
@@ -358,7 +378,7 @@ const stats = [
       <div class="hero__track" :style="{ transform: `translateX(-${currentSlide * 100}%)` }">
         <div v-for="(slide, i) in slides" :key="i" class="hero__slide" :class="[`hero__slide--${slide.align}`]">
           <div class="hero__bg">
-            <img :src="slide.img" alt="" class="hero__bg-img">
+            <img :src="slide.img" alt="" class="hero__bg-img" @error="onImgError">
             <div class="hero__bg-overlay" />
           </div>
           <div class="hero__container">
@@ -391,14 +411,54 @@ const stats = [
       </div>
     </section>
 
+    <!-- ============ LOADING SKELETON ============ -->
+    <template v-if="loading">
+      <section class="skeleton-section">
+        <div class="section__inner">
+          <div class="skeleton-header">
+            <div class="shimmer skeleton-header__ornament" />
+            <div class="shimmer skeleton-header__slogan" />
+            <div class="shimmer skeleton-header__ornament" />
+          </div>
+          <div class="skeleton-cat-grid">
+            <div v-for="i in 12" :key="i" class="shimmer skeleton-cat-tile" />
+          </div>
+          <div class="skeleton-zone">
+            <div class="shimmer skeleton-zone-title" />
+            <div class="skeleton-zone-prods">
+              <div v-for="i in 4" :key="i" class="shimmer skeleton-zone-prod" />
+            </div>
+          </div>
+          <div class="skeleton-zone">
+            <div class="shimmer skeleton-zone-title" />
+            <div class="skeleton-zone-prods skeleton-zone-prods--half">
+              <div v-for="i in 4" :key="i" class="shimmer skeleton-zone-prod" />
+            </div>
+          </div>
+        </div>
+      </section>
+    </template>
+
+    <!-- ============ ERROR STATE ============ -->
+    <template v-else-if="loadError">
+      <section class="error-section">
+        <div class="section__inner">
+          <div class="error-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--wz-orange)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <h3 class="error-state__title">加载失败</h3>
+            <p class="error-state__desc">网络开小差了，请检查后重试</p>
+            <button class="error-state__btn" @click="retryLoad">重新加载</button>
+          </div>
+        </div>
+      </section>
+    </template>
+
     <!-- ============ CATEGORY BROWSE ============ -->
-    <section class="cat-browse">
+    <section v-else class="cat-browse">
       <div class="cat-browse__header">
         <div class="section__inner">
           <div class="cat-browse__header-inner">
-            <span class="cat-browse__ornament"></span>
             <span class="cat-browse__slogan">每一件好物，都值得被认真挑选</span>
-            <span class="cat-browse__ornament"></span>
           </div>
         </div>
       </div>
@@ -412,7 +472,7 @@ const stats = [
               class="cat-browse__tile"
               :class="{ 'cat-browse__tile--active': hoveredCat === i }"
               @mouseenter="onCatEnter(i)"
-              @click="goProductList"
+              @click="onCatClick(i)"
             >
               <span class="cat-browse__tile-icon">
                 <img v-if="cat.imageUrl" :src="cat.imageUrl" :alt="cat.label" width="22" height="22">
@@ -428,6 +488,7 @@ const stats = [
           class="cat-trigger__panel"
           :class="{ 'cat-trigger__panel--visible': hoveredCat >= 0 }"
           @mouseenter="cancelHide"
+          @click.self="closeFlyout"
         >
           <div class="section__inner">
             <div class="cat-trigger__panel-inner">
@@ -470,7 +531,7 @@ const stats = [
     </section>
 
     <!-- ============ ZONE GRID (hotsale first, then category zones) ============ -->
-    <section class="section">
+    <section v-if="!loading && !loadError" class="section">
       <div class="section__inner">
         <div class="zone-rows">
           <div
@@ -482,7 +543,7 @@ const stats = [
             <template v-for="item in row.cols" :key="item._type === 'banner' ? item.id : item.id">
               <div v-if="item._type === 'banner'" class="zone-banner" :class="`zone-banner--${item.align}`">
                 <div class="zone-banner__bg">
-                  <img :src="item.img" alt="" class="zone-banner__bg-img">
+                  <img :src="item.img" alt="" class="zone-banner__bg-img" @error="onImgError">
                   <div class="zone-banner__overlay" />
                 </div>
                 <div class="zone-banner__content">
@@ -499,7 +560,7 @@ const stats = [
                 <div class="zone__products">
                   <div v-for="p in item.products" :key="p.id" class="zone__product" @click="goProductDetail(p.id)">
                     <div class="zone__product-img">
-                      <img :src="p.img" :alt="p.title">
+                      <img :src="p.img" :alt="p.title" @error="onImgError">
                       <span v-if="p.tag" class="zone__product-badge">{{ p.tag }}</span>
                       <button
                         class="zone__product-fav"
@@ -530,7 +591,7 @@ const stats = [
     </section>
 
     <!-- ============ INFINITE SCROLL PRODUCT FEED ============ -->
-    <section class="section section--feed">
+    <section v-if="!loading && !loadError" class="section section--feed">
       <div class="section__inner">
         <div class="feed__header">
           <h3 class="feed__title">为你推荐</h3>
@@ -539,7 +600,7 @@ const stats = [
         <div class="feed__grid">
           <div v-for="p in feedProducts" :key="p.id" class="feed__card" @click="goProductDetail(p.id)">
             <div class="feed__card-img">
-              <img :src="p.img" :alt="p.title" loading="lazy">
+              <img :src="p.img" :alt="p.title" loading="lazy" @error="onImgError">
               <span v-if="p.tag" class="feed__card-badge">{{ p.tag }}</span>
               <button
                 class="feed__card-fav"
@@ -564,7 +625,7 @@ const stats = [
         </div>
 
         <!-- Sentinel for IntersectionObserver -->
-        <div ref="onFeedSentinel" class="feed__sentinel">
+        <div :ref="onFeedSentinel" class="feed__sentinel">
           <div v-if="feedLoading" class="feed__loading">
             <span class="feed__spinner"></span>
             <span>加载中...</span>
@@ -632,7 +693,12 @@ const stats = [
 .hero__slide { position: relative; min-width: 100%; display: flex; align-items: center; overflow: hidden; }
 .hero__bg { position: absolute; inset: 0; }
 .hero__bg-img { width: 100%; height: 100%; object-fit: cover; }
-.hero__bg-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(15,15,17,0.92) 0%, rgba(15,15,17,0.60) 40%, rgba(15,15,17,0.30) 100%); }
+.hero__bg-overlay { position: absolute; inset: 0; }
+.hero__slide:nth-child(1) .hero__bg { background: linear-gradient(135deg, #1a0e06 0%, #2d1a0a 40%, #1a0e06 100%); }
+.hero__slide:nth-child(2) .hero__bg { background: linear-gradient(135deg, #1a0808 0%, #2d1010 40%, #1a0808 100%); }
+.hero__slide:nth-child(3) .hero__bg { background: linear-gradient(135deg, #080e1a 0%, #0a1a2d 40%, #080e1a 100%); }
+.hero__slide:nth-child(4) .hero__bg { background: linear-gradient(135deg, #12081a 0%, #1a0a2d 40%, #12081a 100%); }
+.hero__bg-overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(15,15,17,0.70) 0%, rgba(15,15,17,0.30) 50%, rgba(15,15,17,0.10) 100%); }
 .hero__container { position: relative; z-index: 2; width: 100%; max-width: 1400px; margin: 0 auto; padding: 0 48px; }
 .hero__content { max-width: 560px; }
 .hero__slide--center .hero__container { text-align: center; }
@@ -644,13 +710,13 @@ const stats = [
 .hero__label { display: inline-block; font-size: 12px; font-weight: 500; color: var(--wz-orange); letter-spacing: 0.18em; text-transform: uppercase; background: rgba(255,107,53,0.12); padding: 4px 16px; border-radius: 999px; margin-bottom: 16px; }
 .hero__title { font-family: var(--wz-font-display); font-size: 44px; font-weight: 700; line-height: 1.2; color: var(--wz-text); margin: 0 0 16px; }
 @media (max-width: 768px) { .hero__title { font-size: 30px; } }
-.hero__desc { font-size: 16px; color: var(--wz-text-soft); line-height: 1.7; max-width: 460px; margin-bottom: 28px; }
+.hero__desc { font-size: 16px; color: var(--wz-text-soft); line-height: 1.7; max-width: 460px; margin-bottom: var(--wz-space-lg); }
 .hero__btns { display: flex; gap: 12px; flex-wrap: wrap; }
 .hero__btn-primary { padding: 14px 34px; background: var(--wz-orange); border: none; border-radius: 10px; color: #fff; font-family: var(--wz-font-body); font-size: 15px; font-weight: 600; cursor: pointer; transition: box-shadow var(--wz-duration-normal) var(--wz-ease-out), transform var(--wz-duration-normal) var(--wz-ease-out); }
 .hero__btn-primary:hover { box-shadow: 0 8px 28px rgba(255,107,53,0.35); transform: translateY(-2px); }
 .hero__btn-ghost { padding: 14px 34px; background: transparent; border: 1px solid rgba(255,255,255,0.5); border-radius: 10px; color: #fff; font-family: var(--wz-font-body); font-size: 15px; font-weight: 500; cursor: pointer; transition: border-color var(--wz-duration-fast) var(--wz-ease-out), color var(--wz-duration-fast) var(--wz-ease-out); }
 .hero__btn-ghost:hover { border-color: var(--wz-orange); color: var(--wz-orange); }
-.hero__stats { display: flex; gap: 40px; margin-top: 40px; }
+.hero__stats { display: flex; gap: var(--wz-space-xl); margin-top: var(--wz-space-2xl); }
 .hero__stat-value { font-size: 26px; font-weight: 700; color: var(--wz-text); line-height: 1.2; }
 .hero__stat-label { font-size: 13px; color: var(--wz-text-muted); margin-top: 4px; }
 .hero__arrow { position: absolute; top: 50%; z-index: 5; width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.06); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.08); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; transition: opacity var(--wz-duration-normal) var(--wz-ease-out), background var(--wz-duration-fast) var(--wz-ease-out), transform var(--wz-duration-fast) var(--wz-ease-out); transform: translateY(-50%) scale(0.9); }
@@ -665,9 +731,8 @@ const stats = [
 
 /* ---- Category Browse ---- */
 .cat-browse { background: var(--wz-bg-elevated); }
-.cat-browse__header { padding: 40px 16px; background: var(--wz-orange); }
-.cat-browse__header-inner { display: flex; align-items: center; justify-content: center; gap: 24px; }
-.cat-browse__ornament { width: 60px; height: 1px; background: rgba(255,255,255,0.5); }
+.cat-browse__header { padding: var(--wz-space-2xl) var(--wz-space-md); background: var(--wz-orange); }
+.cat-browse__header-inner { display: flex; align-items: center; justify-content: center; }
 .cat-browse__slogan { font-family: var(--wz-font-display); font-size: 20px; font-weight: 600; color: #fff; letter-spacing: 0.3em; white-space: nowrap; }
 .cat-browse__body { position: relative; }
 .cat-browse__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; padding: 20px 0; }
@@ -684,7 +749,6 @@ const stats = [
 @media (max-width: 640px) {
   .cat-browse__header { padding: 24px 16px; }
   .cat-browse__slogan { font-size: 16px; letter-spacing: 0.15em; }
-  .cat-browse__ornament { width: 32px; }
   .cat-browse__grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 6px; padding: 12px 0; }
   .cat-browse__tile { padding: 12px 6px; }
 }
@@ -726,28 +790,27 @@ const stats = [
 }
 
 /* ---- Section ---- */
-.section { padding: 40px 16px 80px; }
+.section { padding: var(--wz-space-xl) var(--wz-space-md) var(--wz-space-2xl); }
 .section__inner { max-width: 1400px; margin: 0 auto; }
 
 /* ---- Zone Rows (flex layout ensures paired zones match height) ---- */
-.zone-rows { display: flex; flex-direction: column; gap: 36px; }
+.zone-rows { display: flex; flex-direction: column; gap: var(--wz-space-xl); }
 .zone-row { width: 100%; }
-.zone-row--paired { display: flex; gap: 36px; }
+.zone-row--paired { display: flex; gap: var(--wz-space-xl); }
 .zone--full { width: 100%; }
 .zone--half { width: calc(50% - 18px); }
 .zone-row--paired .zone--half { flex: 1; min-width: 0; }
-.zone__header { padding: 0 0 12px; cursor: pointer; }
-.zone__title { transition: transform 0.3s var(--wz-ease-out); transform-origin: left; font-family: var(--wz-font-display); font-size: 20px; font-weight: 700; color: var(--wz-text); line-height: 1.3; position: relative; padding-left: 14px; }
-.zone__title::before { content: ''; position: absolute; left: 0; top: 4px; bottom: 4px; width: 3px; border-radius: 2px; background: var(--wz-orange); transition: width 0.3s var(--wz-ease-out), box-shadow 0.3s var(--wz-ease-out); }
+.zone__title { transition: transform 0.3s var(--wz-ease-out); transform-origin: left; font-family: var(--wz-font-display); font-size: 20px; font-weight: 700; color: var(--wz-text); line-height: 1.3; position: relative; display: inline-block; }
+.zone__title::after { content: ''; position: absolute; left: 0; right: 0; bottom: -4px; height: 3px; border-radius: 2px; background: var(--wz-orange); transition: width 0.3s var(--wz-ease-out), box-shadow 0.3s var(--wz-ease-out), right 0.3s var(--wz-ease-out); }
 .zone__header:hover .zone__title { transform: translateX(4px) scale(1.04); }
-.zone__header:hover .zone__title::before { width: 4px; top: 2px; bottom: 2px; background: var(--wz-orange); box-shadow: 0 0 14px rgba(255,107,53,0.6); }
-.zone__title::after { content: '›'; display: inline-block; margin-left: 4px; font-family: var(--wz-font-body); font-size: 22px; font-weight: 400; color: var(--wz-text-muted); transition: transform 0.3s var(--wz-ease-out), color 0.3s var(--wz-ease-out); line-height: 1; }
-.zone__header:hover .zone__title::after { transform: translateX(4px); color: var(--wz-orange); }
+.zone__header:hover .zone__title::after { box-shadow: 0 0 14px rgba(255,107,53,0.6); }
+.zone__header { padding: 0 0 16px; cursor: pointer; }
 .zone__products { padding: 0; }
-.zone--full .zone__products { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-.zone--half .zone__products { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.zone--full .zone__products { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--wz-space-md); }
+.zone--half .zone__products { display: grid; grid-template-columns: 1fr 1fr; gap: var(--wz-space-md); }
 .zone__product { cursor: pointer; }
 .zone__product-img { position: relative; overflow: hidden; aspect-ratio: 1; border-radius: 8px; background: var(--wz-bg-card); }
+.zone__product-img:has(img[data-fallback]) { background: linear-gradient(135deg, var(--wz-bg-card) 0%, var(--wz-bg-elevated) 100%); }
 .zone__product-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s var(--wz-ease-out); }
 .zone__product:hover .zone__product-img img { transform: scale(1.06); }
 .zone__product-info { position: absolute; left: 0; right: 0; bottom: 0; padding: 32px 10px 10px; background: linear-gradient(transparent 20%, rgba(0,0,0,0.8) 60%, rgba(0,0,0,0.92)); border-radius: 0 0 8px 8px; }
@@ -773,6 +836,93 @@ const stats = [
 .zone[data-zone-id="hotsale"] .zone__product-badge { background: var(--wz-danger); animation: badge-pulse 2s ease-in-out infinite; }
 @keyframes badge-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
+/* ---- Skeleton Loading ---- */
+.skeleton-section { padding: var(--wz-space-xl) var(--wz-space-md) var(--wz-space-2xl); }
+.skeleton-header { display: flex; align-items: center; justify-content: center; gap: var(--wz-space-lg); margin-bottom: var(--wz-space-lg); }
+.skeleton-header__ornament { width: 60px; height: 1px; border-radius: 2px; }
+.skeleton-header__slogan { width: 240px; height: 24px; border-radius: 4px; }
+.skeleton-cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: var(--wz-space-sm); margin-bottom: var(--wz-space-2xl); }
+.skeleton-cat-tile { height: 72px; border-radius: 10px; }
+.skeleton-zone { margin-bottom: var(--wz-space-2xl); }
+.skeleton-zone-title { width: 120px; height: 24px; border-radius: 4px; margin-bottom: 16px; }
+.skeleton-zone-prods { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--wz-space-md); }
+.skeleton-zone-prods--half { grid-template-columns: repeat(2, 1fr); }
+.skeleton-zone-prod { aspect-ratio: 1; border-radius: 8px; }
+
+@media (max-width: 768px) {
+  .skeleton-zone-prods { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+}
+
+/* ---- Error State ---- */
+.error-section { padding: 100px 16px; }
+.error-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px; }
+.error-state__title { font-family: var(--wz-font-display); font-size: 22px; font-weight: 700; color: var(--wz-text); }
+.error-state__desc { font-size: 14px; color: var(--wz-text-muted); }
+.error-state__btn { padding: 12px 32px; background: var(--wz-orange); border: none; border-radius: 10px; color: #fff; font-family: var(--wz-font-body); font-size: 15px; font-weight: 600; cursor: pointer; transition: box-shadow var(--wz-duration-normal) var(--wz-ease-out), transform var(--wz-duration-normal) var(--wz-ease-out); }
+.error-state__btn:hover { box-shadow: 0 8px 28px rgba(255,107,53,0.35); transform: translateY(-2px); }
+
+/* ---- Reduced Motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .hero__track { transition: none; }
+  .zone__product-img img,
+  .feed__card-img img,
+  .cat-trigger__product-img img,
+  .zone-banner__bg-img,
+  .cat-browse__tile,
+  .feed__card,
+  .hero__btn-primary,
+  .hero__btn-ghost,
+  .zone__product-fav,
+  .feed__card-fav { transition: none; }
+  .hero:hover .hero__arrow { opacity: 0; }
+  .zone__product:hover .zone__product-img img { transform: none; }
+  .feed__card:hover .feed__card-img img { transform: none; }
+  .shimmer { animation: none; background: var(--wz-bg-card); }
+  .zone__product-fav { opacity: 0.6; }
+  .feed__card-fav { opacity: 0.6; }
+  .hero__dot--active { width: 8px; border-radius: 50%; }
+}
+
+/* ---- Touch devices: no hover, show controls always ---- */
+@media (hover: none) and (pointer: coarse) {
+  .hero__arrow { opacity: 1; transform: translateY(-50%) scale(1); }
+  .zone__product-fav,
+  .feed__card-fav { opacity: 0.6; }
+  .zone__product-fav:hover,
+  .feed__card-fav:hover,
+  .cat-browse__tile:hover { transform: none; }
+  .cat-trigger__panel { display: none; }
+  .cat-trigger__panel--visible { display: block; }
+  .hero__btn-primary:hover,
+  .hero__btn-ghost:hover,
+  .error-state__btn:hover { transform: none; box-shadow: none; }
+  .zone-banner__btn:hover { transform: none; box-shadow: none; }
+  .cat-trigger__subcat-tag:hover { transform: none; }
+  .hero__btn-primary:active,
+  .error-state__btn:active { opacity: 0.8; }
+}
+
+/* ---- Touch-friendly sizing ---- */
+@media (max-width: 480px) {
+  .hero { height: 380px; }
+  .hero__container { padding: 0 20px; }
+  .hero__title { font-size: 24px; }
+  .hero__desc { font-size: 14px; max-width: none; }
+  .hero__btn-primary,
+  .hero__btn-ghost { padding: 12px 24px; font-size: 14px; min-height: 44px; }
+  .cat-browse__tile { min-height: 44px; }
+  .cat-browse__tile-label { font-size: 11px; }
+  .zone-banner { height: 150px; }
+  .zone-banner__content { padding: 0 16px; max-width: none; }
+  .zone-banner__title { font-size: 18px; }
+  .zone-banner__btn { min-height: 44px; }
+  .cat-trigger__subcat-tag { padding: 8px 16px; min-height: 36px; }
+  .feed__card-fav { width: 36px; height: 36px; }
+  .zone__product-fav { width: 36px; height: 36px; }
+}
+
+@keyframes badge-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
 /* ---- Zone Banners ---- */
 .zone-banner { position: relative; grid-column: span 4; border-radius: 10px; overflow: hidden; height: 220px; cursor: pointer; }
 .zone-banner__bg { position: absolute; inset: 0; }
@@ -780,6 +930,8 @@ const stats = [
 .zone-banner:hover .zone-banner__bg-img { transform: scale(1.05); }
 .zone-banner__overlay { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(15,15,17,0.88) 0%, rgba(15,15,17,0.45) 50%, rgba(15,15,17,0.20) 100%); }
 .zone-banner--right .zone-banner__overlay { background: linear-gradient(225deg, rgba(15,15,17,0.88) 0%, rgba(15,15,17,0.45) 50%, rgba(15,15,17,0.20) 100%); }
+.zone-banner:first-of-type .zone-banner__bg { background: linear-gradient(135deg, #1a0e06 0%, #2d1a0a 100%); }
+.zone-banner:last-of-type .zone-banner__bg { background: linear-gradient(135deg, #0e0e1a 0%, #1a0a2d 100%); }
 .zone-banner__content { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 0 48px; max-width: 420px; }
 .zone-banner--right .zone-banner__content { margin-left: auto; text-align: right; align-items: flex-end; }
 .zone-banner__label { display: inline-block; font-size: 11px; font-weight: 500; color: var(--wz-orange); letter-spacing: 0.15em; background: rgba(255,107,53,0.15); padding: 3px 14px; border-radius: 999px; margin-bottom: 12px; align-self: flex-start; }
@@ -791,13 +943,13 @@ const stats = [
 .zone-banner__btn:hover { box-shadow: 0 6px 20px rgba(255,107,53,0.35); transform: translateY(-1px); }
 
 /* ---- Infinite Scroll Product Feed ---- */
-.section--feed { padding-top: 20px; }
+.section--feed { padding-top: var(--wz-space-lg); }
 
-.feed__header { text-align: center; margin-bottom: 32px; }
+.feed__header { text-align: center; margin-bottom: var(--wz-space-xl); }
 .feed__title { font-family: var(--wz-font-display); font-size: 22px; font-weight: 700; color: var(--wz-text); margin-bottom: 6px; }
 .feed__subtitle { font-size: 13px; color: var(--wz-text-muted); letter-spacing: 0.05em; }
 
-.feed__grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+.feed__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--wz-space-md); }
 
 .feed__card { background: var(--wz-bg-card); border-radius: 10px; overflow: hidden; cursor: pointer; transition: transform 0.3s var(--wz-ease-out), box-shadow 0.3s var(--wz-ease-out); }
 .feed__card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.3); }
@@ -821,20 +973,18 @@ const stats = [
 .feed__card-price { font-size: 14px; font-weight: 700; color: var(--wz-orange); line-height: 1; }
 .feed__card-old { font-size: 11px; color: var(--wz-text-muted); text-decoration: line-through; line-height: 1; }
 
-.feed__sentinel { grid-column: 1 / -1; padding: 32px 0; text-align: center; }
+.feed__sentinel { grid-column: 1 / -1; padding: var(--wz-space-xl) 0; text-align: center; }
 .feed__loading { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--wz-text-muted); }
 .feed__spinner { width: 18px; height: 18px; border: 2px solid var(--wz-border); border-top-color: var(--wz-orange); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .feed__finished { font-size: 13px; color: var(--wz-text-muted); letter-spacing: 0.08em; }
 
-@media (max-width: 1200px) { .feed__grid { grid-template-columns: repeat(5, 1fr); } }
-@media (max-width: 900px) { .feed__grid { grid-template-columns: repeat(4, 1fr); } }
-@media (max-width: 640px) { .feed__grid { grid-template-columns: repeat(3, 1fr); gap: 10px; } }
-@media (max-width: 400px) { .feed__grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 900px) { .feed__grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px) { .feed__grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
 
 @media (max-width: 768px) {
-  .zone-rows { gap: 16px; }
-  .zone-row--paired { flex-direction: column; gap: 16px; }
+  .zone-rows { gap: var(--wz-space-md); }
+  .zone-row--paired { flex-direction: column; gap: var(--wz-space-md); }
   .zone--half { width: 100%; }
   .zone--full .zone__products { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .zone--half .zone__products { gap: 10px; }
@@ -847,8 +997,8 @@ const stats = [
 }
 
 /* ---- Footer ---- */
-.footer { padding: 64px 16px 32px; border-top: 1px solid var(--wz-border); }
-.footer__grid { display: grid; grid-template-columns: 1fr; gap: 40px; padding-bottom: 40px; border-bottom: 1px solid var(--wz-border); }
+.footer { padding: var(--wz-space-3xl) var(--wz-space-md) var(--wz-space-xl); border-top: 1px solid var(--wz-border); }
+.footer__grid { display: grid; grid-template-columns: 1fr; gap: var(--wz-space-xl); padding-bottom: var(--wz-space-xl); border-bottom: 1px solid var(--wz-border); }
 @media (min-width: 768px) { .footer__grid { grid-template-columns: 2fr 1fr 1fr 1fr; } }
 .footer__logo { font-family: 'Noto Serif SC', serif; font-size: 22px; font-weight: 700; color: var(--wz-orange); }
 .footer__brand h3 { font-size: 20px; font-weight: 700; color: var(--wz-text); display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }

@@ -7,7 +7,19 @@ const request = axios.create({
   timeout: 15000
 })
 
+const publicApis = [
+  '/product/list', '/product/detail/', '/product/search',
+  '/product/category/', '/product/banner/', '/product/spec/',
+  '/product/comment/list/', '/product/consultation/list/', '/product/inner/',
+  '/auth/'
+]
+
+function isPublicApi(url: string = '') {
+  return publicApis.some(prefix => url.startsWith(prefix))
+}
+
 request.interceptors.request.use((config) => {
+  if (isPublicApi(config.url)) return config
   const userStore = useUserStore()
   if (userStore.token) {
     config.headers.Authorization = `Bearer ${userStore.token}`

@@ -31,7 +31,10 @@ public class Product {
     private LocalDateTime updatedTime;
 
     @TableField(exist = false)
-    private List<ProductSpec> specList;
+    private List<SpecGroup> specGroups;
+
+    @TableField(exist = false)
+    private List<ProductSku> skuList;
 
     @TableField(exist = false)
     private List<ProductImage> imageList;

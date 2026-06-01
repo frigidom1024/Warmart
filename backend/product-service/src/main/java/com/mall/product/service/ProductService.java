@@ -24,6 +24,9 @@ public class ProductService {
 
     private final ProductMapper productMapper;
     private final ProductSpecMapper productSpecMapper;
+    private final SpecGroupMapper specGroupMapper;
+    private final SpecValueMapper specValueMapper;
+    private final ProductSkuMapper productSkuMapper;
     private final ProductImageMapper productImageMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final CategoryService categoryService;
@@ -71,11 +74,27 @@ public class ProductService {
         // Query DB
         Product product = productMapper.selectById(id);
         if (product != null) {
-            List<ProductSpec> specs = productSpecMapper.selectList(
-                    new LambdaQueryWrapper<ProductSpec>()
-                            .eq(ProductSpec::getProductId, id)
-                            .orderByAsc(ProductSpec::getSort));
-            product.setSpecList(specs);
+            // Load spec groups with values
+            List<SpecGroup> specGroups = specGroupMapper.selectList(
+                    new LambdaQueryWrapper<SpecGroup>()
+                            .eq(SpecGroup::getProductId, id)
+                            .orderByAsc(SpecGroup::getSort));
+            for (SpecGroup g : specGroups) {
+                List<SpecValue> values = specValueMapper.selectList(
+                        new LambdaQueryWrapper<SpecValue>()
+                                .eq(SpecValue::getGroupId, g.getId())
+                                .orderByAsc(SpecValue::getSort));
+                g.setValues(values);
+            }
+            product.setSpecGroups(specGroups);
+
+            // Load SKUs
+            List<ProductSku> skus = productSkuMapper.selectList(
+                    new LambdaQueryWrapper<ProductSku>()
+                            .eq(ProductSku::getProductId, id)
+                            .orderByAsc(ProductSku::getSort));
+            skus.forEach(ProductSku::parseSpecValueIds);
+            product.setSkuList(skus);
 
             List<ProductImage> images = productImageMapper.selectList(
                     new LambdaQueryWrapper<ProductImage>()
@@ -127,11 +146,24 @@ public class ProductService {
         product.setUpdatedTime(LocalDateTime.now());
         productMapper.insert(product);
 
-        // Insert specs
-        if (product.getSpecList() != null) {
-            for (ProductSpec spec : product.getSpecList()) {
-                spec.setProductId(product.getId());
-                productSpecMapper.insert(spec);
+        // Insert spec groups and values
+        if (product.getSpecGroups() != null) {
+            for (SpecGroup g : product.getSpecGroups()) {
+                g.setProductId(product.getId());
+                specGroupMapper.insert(g);
+                if (g.getValues() != null) {
+                    for (SpecValue v : g.getValues()) {
+                        v.setGroupId(g.getId());
+                        specValueMapper.insert(v);
+                    }
+                }
+            }
+        }
+        // Insert SKUs
+        if (product.getSkuList() != null) {
+            for (ProductSku s : product.getSkuList()) {
+                s.setProductId(product.getId());
+                productSkuMapper.insert(s);
             }
         }
         // Insert images
@@ -150,16 +182,6 @@ public class ProductService {
         // Evict cache so next detail fetch gets fresh data
         try { redisTemplate.delete("product:detail:" + product.getId()); } catch (Exception ignored) {}
 
-        // Cascade update specs: delete old, insert new
-        if (product.getSpecList() != null) {
-            productSpecMapper.delete(new LambdaQueryWrapper<ProductSpec>()
-                    .eq(ProductSpec::getProductId, product.getId()));
-            for (ProductSpec spec : product.getSpecList()) {
-                spec.setId(null);
-                spec.setProductId(product.getId());
-                productSpecMapper.insert(spec);
-            }
-        }
         // Cascade update images: delete old, insert new
         if (product.getImageList() != null) {
             productImageMapper.delete(new LambdaQueryWrapper<ProductImage>()
@@ -174,6 +196,14 @@ public class ProductService {
 
     @Transactional
     public void delete(Long id) {
+        productSkuMapper.delete(new LambdaQueryWrapper<ProductSku>().eq(ProductSku::getProductId, id));
+        // Delete spec values then groups
+        List<SpecGroup> groups = specGroupMapper.selectList(
+                new LambdaQueryWrapper<SpecGroup>().eq(SpecGroup::getProductId, id));
+        for (SpecGroup g : groups) {
+            specValueMapper.delete(new LambdaQueryWrapper<SpecValue>().eq(SpecValue::getGroupId, g.getId()));
+        }
+        specGroupMapper.delete(new LambdaQueryWrapper<SpecGroup>().eq(SpecGroup::getProductId, id));
         productSpecMapper.delete(new LambdaQueryWrapper<ProductSpec>().eq(ProductSpec::getProductId, id));
         productImageMapper.delete(new LambdaQueryWrapper<ProductImage>().eq(ProductImage::getProductId, id));
         productMapper.deleteById(id);

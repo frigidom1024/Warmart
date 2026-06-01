@@ -44,6 +44,8 @@ export interface Product {
   updatedTime: string
   specList: ProductSpec[] | null
   imageList: ProductImage[] | null
+  specGroups?: any[]
+  skuList?: any[]
 }
 
 export function getAdminProductList(params: {
@@ -69,4 +71,8 @@ export function deleteProduct(id: number) {
 
 export function getProductDetail(id: number) {
   return request.get<any, Product>('/product/detail/' + id)
+}
+
+export function saveSpecGroups(productId: number, groups: any[], skus: any[]) {
+  return request.put<void>('/product/admin/spec-groups', { productId, groups, skus })
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getAdminProductList, addProduct, updateProduct, deleteProduct, getProductDetail } from '@/api/product'
+import { getAdminProductList, addProduct, updateProduct, deleteProduct, getProductDetail, saveSpecGroups } from '@/api/product'
 import { getCategoryList } from '@/api/category'
 import type { Product, ProductSpec, ProductImage } from '@/api/product'
 import type { Category } from '@/api/category'
@@ -49,6 +49,8 @@ function openAddDialog() {
   form.value = { name: '', categoryId: 0, price: 0, originalPrice: 0, stock: 0, tag: '', description: '', mainImage: '', status: 1, isRecommend: 0, sales: 0, specList: [], imageList: [] }
   dialogMounted.value++
   dialogVisible.value = true
+  specGroupsInput.value = []
+  skuGrid.value = []
 }
 
 async function openEditDialog(item: Product) {
@@ -58,6 +60,39 @@ async function openEditDialog(item: Product) {
   // Load full detail with specs and images
   try {
     const detail = await getProductDetail(item.id)
+    // 加载规格数据
+    if ((detail as any).specGroups?.length) {
+      const groups = (detail as any).specGroups as any[]
+      specGroupsInput.value = groups.map((g: any) => ({
+        name: g.name,
+        values: g.values.map((v: any) => v.value)
+      }))
+      regenerateSkuGrid()
+      // 回填已有 SKU
+      const skus = (detail as any).skuList || []
+      if (skus.length) {
+        const allGroups = groups
+        for (const sku of skus) {
+          const refs: string[] = []
+          for (const g of allGroups) {
+            const val = g.values.find((v: any) => sku.specValueIdList?.includes(v.id))
+            if (val) refs.push(`${g.name}:${val.value}`)
+          }
+          const existing = skuGrid.value.find(s =>
+            JSON.stringify(s.specValueRefs) === JSON.stringify(refs)
+          )
+          if (existing) {
+            existing.price = sku.price
+            existing.stock = sku.stock
+            existing.image = sku.image || ''
+            existing.enabled = sku.enabled !== false
+          }
+        }
+      }
+    } else {
+      specGroupsInput.value = []
+      skuGrid.value = []
+    }
     form.value = { ...detail, specList: detail.specList || [], imageList: detail.imageList || [] }
   } catch {
     form.value = { ...item, specList: item.specList || [], imageList: item.imageList || [] }
@@ -67,8 +102,24 @@ async function openEditDialog(item: Product) {
 async function submitForm() {
   if (!form.value.name) { ElMessage.warning('请输入商品名称'); return }
   try {
-    if (isEdit.value) { await updateProduct(form.value); ElMessage.success('更新成功') }
-    else { await addProduct(form.value); ElMessage.success('添加成功') }
+    let productId = form.value.id || 0
+    if (isEdit.value) { await updateProduct(form.value); productId = form.value.id!; ElMessage.success('更新成功') }
+    else { const res = await addProduct(form.value); productId = (res as any)?.data || productId; ElMessage.success('添加成功') }
+    // 保存规格数据
+    if (specGroupsInput.value.length > 0 && specGroupsInput.value.some(d => d.name)) {
+      const groups = specGroupsInput.value.map(g => ({
+        name: g.name,
+        values: g.values.map(v => ({ value: v }))
+      }))
+      const skus = skuGrid.value.map(s => ({
+        specValueRefs: s.specValueRefs,
+        price: s.price,
+        stock: s.stock,
+        image: s.image || null,
+        enabled: s.enabled
+      }))
+      await saveSpecGroups(productId, groups, skus)
+    }
     dialogVisible.value = false; await loadProducts()
   } catch {}
 }
@@ -140,15 +191,65 @@ function beforeUpload(file: File) {
   return true
 }
 
-// ─── Spec handlers ───
+// ─── Spec group editor ───
+const specGroupsInput = ref<{ name: string; values: string[] }[]>([])
+const skuGrid = ref<{ specValueRefs: string[]; price: number | null; stock: number; image: string; enabled: boolean }[]>([])
+const batchPrice = ref<number | null>(null)
+const batchStock = ref<number>(0)
+const specPresets = ['颜色', '尺寸', '材质', '规格', '口味', '容量']
 
-function addSpec() {
-  if (!form.value.specList) form.value.specList = []
-  form.value.specList.push({ specName: '', specValue: '', extraPrice: 0, stock: 0, sort: form.value.specList.length })
+function addDimension() {
+  specGroupsInput.value.push({ name: '', values: [] })
 }
 
-function removeSpec(idx: number) {
-  form.value.specList?.splice(idx, 1)
+function removeDimension(idx: number) {
+  specGroupsInput.value.splice(idx, 1)
+  regenerateSkuGrid()
+}
+
+function addValue(groupIdx: number, value: string) {
+  if (!value.trim()) return
+  const v = value.trim()
+  if (specGroupsInput.value[groupIdx].values.includes(v)) return
+  specGroupsInput.value[groupIdx].values.push(v)
+  regenerateSkuGrid()
+}
+
+function removeValue(groupIdx: number, valIdx: number) {
+  specGroupsInput.value[groupIdx].values.splice(valIdx, 1)
+  regenerateSkuGrid()
+}
+
+function regenerateSkuGrid() {
+  const dims = specGroupsInput.value.filter(d => d.name && d.values.length > 0)
+  if (dims.length === 0) { skuGrid.value = []; return }
+
+  const combinations = cartesian(dims.map(d => d.values.map(v => `${d.name}:${v}`)))
+  skuGrid.value = combinations.map(refs => {
+    const existing = skuGrid.value.find(s =>
+      JSON.stringify(s.specValueRefs) === JSON.stringify(refs)
+    )
+    return existing || { specValueRefs: refs, price: null, stock: 0, image: '', enabled: true }
+  })
+}
+
+function cartesian<T>(arrays: T[][]): T[][] {
+  if (arrays.length === 0) return [[]]
+  const [first, ...rest] = arrays
+  const restProduct = cartesian(rest)
+  return first.flatMap(f => restProduct.map(r => [f, ...r]))
+}
+
+function setAllPrice(price: number | null) {
+  skuGrid.value.forEach(s => { if (s.enabled) s.price = price })
+}
+
+function setAllStock(stock: number) {
+  skuGrid.value.forEach(s => { if (s.enabled) s.stock = stock })
+}
+
+function enableAll() {
+  skuGrid.value.forEach(s => { s.enabled = true })
 }
 
 onMounted(() => { loadCategories(); loadProducts() })
@@ -321,39 +422,48 @@ onMounted(() => { loadCategories(); loadProducts() })
           <!-- Section: Specs -->
           <div class="form-section">
             <div class="form-section-head">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
               <span>规格参数</span>
-              <span class="label-optional" style="margin-left:4px">(选填)</span>
             </div>
             <div class="form-section-body">
-              <div v-if="form.specList && form.specList.length > 0" class="spec-table">
-                <div class="spec-table-head">
-                  <span style="flex:0 0 100px">规格名</span>
-                  <span style="flex:0 0 130px">规格值</span>
-                  <span style="flex:0 0 110px">加价</span>
-                  <span style="flex:0 0 100px">库存</span>
-                  <span style="flex:0 0 36px" />
+              <!-- Dimensions -->
+              <div v-for="(dim, di) in specGroupsInput" :key="di" style="margin-bottom:10px">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                  <el-input v-model="dim.name" placeholder="维度名称" size="small" style="width:100px" @input="regenerateSkuGrid" />
+                  <el-tag v-for="(val, vi) in dim.values" :key="vi" closable size="small" @close="removeValue(di, vi)">{{ val }}</el-tag>
+                  <el-input size="small" style="width:120px" placeholder="输入值后回车" @keyup.enter="(e: any) => { addValue(di, e.target.value); e.target.value = '' }" />
+                  <button style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:16px;padding:0 4px" @click="removeDimension(di)" title="删除维度">×</button>
                 </div>
-                <div v-for="(spec, idx) in form.specList" :key="idx" class="spec-table-row">
-                  <div style="flex:0 0 100px"><el-input v-model="spec.specName" placeholder="如: 颜色" size="small" /></div>
-                  <div style="flex:0 0 130px"><el-input v-model="spec.specValue" placeholder="如: 红色" size="small" /></div>
-                  <div style="flex:0 0 110px"><el-input-number v-model="spec.extraPrice" :min="0" :precision="2" size="small" style="width:100%" placeholder="0.00" /></div>
-                  <div style="flex:0 0 100px"><el-input-number v-model="spec.stock" :min="0" size="small" style="width:100%" placeholder="0" /></div>
-                  <div style="flex:0 0 36px;display:flex;justify-content:center">
-                    <button class="spec-remove-btn" @click="removeSpec(idx)">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
+              </div>
+              <el-button size="small" @click="addDimension">+ 添加维度</el-button>
+
+              <!-- SKU Grid -->
+              <div v-if="skuGrid.length > 0" style="margin-top:12px;border:1px solid #eef0f2;border-radius:8px;overflow:hidden">
+                <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#f8f9fb;border-bottom:1px solid #eef0f2;flex-wrap:wrap">
+                  <span style="font-size:12px;color:#64748b;margin-right:8px">共 {{ skuGrid.filter(s => s.enabled).length }} 个组合</span>
+                  <el-button size="small" @click="enableAll">全部启用</el-button>
+                  <span style="margin-left:8px;font-size:12px;color:#909399">统一加价:</span>
+                  <el-input-number v-model="batchPrice" :min="0" :precision="2" size="small" style="width:120px" />
+                  <el-button size="small" @click="setAllPrice(batchPrice)">应用</el-button>
+                  <span style="margin-left:8px;font-size:12px;color:#909399">统一库存:</span>
+                  <el-input-number v-model="batchStock" :min="0" size="small" style="width:100px" />
+                  <el-button size="small" @click="setAllStock(batchStock)">应用</el-button>
+                </div>
+                <div style="display:flex;flex-direction:column">
+                  <div style="display:flex;align-items:center;padding:6px 12px;background:#f1f3f5;font-size:12px;font-weight:600;color:#64748b;border-bottom:1px solid #eef0f2">
+                    <span style="flex:2;padding:2px 4px">组合</span>
+                    <span style="flex:1;padding:2px 4px">加价(¥)</span>
+                    <span style="flex:1;padding:2px 4px">库存</span>
+                    <span style="flex:1;padding:2px 4px">启用</span>
+                  </div>
+                  <div v-for="(sku, si) in skuGrid" :key="si" style="display:flex;align-items:center;padding:6px 12px;border-bottom:1px solid #f8f9fb;transition:background 0.15s" :style="{ opacity: sku.enabled ? 1 : 0.5, background: sku.enabled ? '' : '#f8f9fb' }">
+                    <span style="flex:2;padding:2px 4px;font-size:13px;font-weight:500;color:#334155">{{ sku.specValueRefs.join(' / ') }}</span>
+                    <span style="flex:1;padding:2px 4px"><el-input-number v-model="sku.price" :min="0" :precision="2" size="small" style="width:100px" placeholder="基准价" /></span>
+                    <span style="flex:1;padding:2px 4px"><el-input-number v-model="sku.stock" :min="0" size="small" style="width:80px" /></span>
+                    <span style="flex:1;padding:2px 4px"><el-switch v-model="sku.enabled" size="small" /></span>
                   </div>
                 </div>
               </div>
-              <div v-else class="spec-empty">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="color:#d0d5dd"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
-                <span>暂无规格，点击下方按钮添加</span>
-              </div>
-              <el-button size="small" class="spec-add-btn" @click="addSpec">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                添加规格
-              </el-button>
             </div>
           </div>
 

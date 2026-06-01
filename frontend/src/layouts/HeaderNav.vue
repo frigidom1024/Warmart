@@ -157,7 +157,9 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
             <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
             <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
           </svg>
-          <span v-if="cartCount > 0" class="header-nav__cart-badge">{{ cartCount }}</span>
+          <Transition name="badge">
+            <span v-if="cartCount > 0" class="header-nav__cart-badge">{{ cartCount }}</span>
+          </Transition>
         </button>
 
         <span class="header-nav__divider" />
@@ -241,6 +243,11 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
   font-weight: 700;
   color: var(--wz-orange);
   line-height: 1;
+  transition: text-shadow var(--wz-duration-normal) var(--wz-ease-out);
+}
+.header-nav__brand:hover .header-nav__logo {
+  text-shadow: 0 0 20px rgba(255,107,53,0.35),
+               0 0 60px rgba(255,107,53,0.12);
 }
 
 .header-nav__name {
@@ -465,6 +472,13 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
   line-height: 16px;
   text-align: center;
   border-radius: 8px;
+}
+.badge-enter-active { animation: badge-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.badge-leave-active { animation: badge-bounce 0.2s var(--wz-ease-out) reverse; }
+@keyframes badge-bounce {
+  0% { transform: scale(0); }
+  55% { transform: scale(1.25); }
+  100% { transform: scale(1); }
 }
 
 .header-nav__divider {

@@ -66,3 +66,7 @@ export function updateProduct(data: Partial<Product>) {
 export function deleteProduct(id: number) {
   return request.delete<void>('/product/admin/delete/' + id)
 }
+
+export function getProductDetail(id: number) {
+  return request.get<any, Product>('/product/detail/' + id)
+}

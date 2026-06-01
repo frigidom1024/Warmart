@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getAdminProductList, addProduct, updateProduct, deleteProduct } from '@/api/product'
+import { getAdminProductList, addProduct, updateProduct, deleteProduct, getProductDetail } from '@/api/product'
 import { getCategoryList } from '@/api/category'
 import type { Product, ProductSpec, ProductImage } from '@/api/product'
 import type { Category } from '@/api/category'
@@ -51,11 +51,17 @@ function openAddDialog() {
   dialogVisible.value = true
 }
 
-function openEditDialog(item: Product) {
+async function openEditDialog(item: Product) {
   isEdit.value = true
-  form.value = { ...item, specList: item.specList ? JSON.parse(JSON.stringify(item.specList)) : [], imageList: item.imageList ? JSON.parse(JSON.stringify(item.imageList)) : [] }
   dialogMounted.value++
   dialogVisible.value = true
+  // Load full detail with specs and images
+  try {
+    const detail = await getProductDetail(item.id)
+    form.value = { ...detail, specList: detail.specList || [], imageList: detail.imageList || [] }
+  } catch {
+    form.value = { ...item, specList: item.specList || [], imageList: item.imageList || [] }
+  }
 }
 
 async function submitForm() {

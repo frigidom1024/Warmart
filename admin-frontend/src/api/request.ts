@@ -9,12 +9,14 @@ const request = axios.create({
 
 const publicApis = [
   '/product/list', '/product/detail/', '/product/search',
-  '/product/category/', '/product/banner/', '/product/spec/',
+  '/product/banner/', '/product/spec/',
   '/product/comment/list/', '/product/consultation/list/', '/product/inner/',
   '/auth/'
 ]
 
-function isPublicApi(url: string = '') {
+// Category public list is also public; admin category endpoints need auth
+const isPublicApi = (url: string = '') => {
+  if (url.startsWith('/product/category/') && !url.includes('/admin/')) return true
   return publicApis.some(prefix => url.startsWith(prefix))
 }
 

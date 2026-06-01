@@ -59,14 +59,16 @@ const displayPrice = computed(() => {
 const displayStock = computed(() => {
   if (!product.value) return 0
   if (!specGroups.value.length) return product.value.stock
-  let minStock = Infinity
-  for (const group of specGroups.value) {
+  // Single spec group: use the selected spec value's stock
+  if (specGroups.value.length === 1) {
+    const group = specGroups.value[0]
     const selectedValue = selectedSpecs.value[group.name]
     if (!selectedValue) return 0
     const spec = group.values.find(v => v.specValue === selectedValue)
-    if (spec && spec.stock < minStock) minStock = spec.stock
+    return spec?.stock ?? 0
   }
-  return minStock === Infinity ? 0 : minStock
+  // Multiple spec groups: no per-combination tracking, show base stock
+  return product.value.stock
 })
 
 const allSpecsSelected = computed(() => {

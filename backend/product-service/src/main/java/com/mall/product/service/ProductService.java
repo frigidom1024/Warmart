@@ -31,7 +31,7 @@ public class ProductService {
     public IPage<Product> list(Long categoryId, String sortBy, int page, int size) {
         Page<Product> p = new Page<>(page, size);
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
-                .eq(Product::getStatus, 0);
+                .eq(Product::getStatus, 1);
 
         if (categoryId != null) {
             List<Long> ids = categoryService.getRecursiveCategoryIds(categoryId);
@@ -93,7 +93,7 @@ public class ProductService {
                                   BigDecimal maxPrice, String sortBy, int page, int size) {
         Page<Product> p = new Page<>(page, size);
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
-                .eq(Product::getStatus, 0);
+                .eq(Product::getStatus, 1);
 
         if (keyword != null && !keyword.isEmpty()) {
             wrapper.and(w -> w.like(Product::getName, keyword)
@@ -147,6 +147,8 @@ public class ProductService {
     public void update(Product product) {
         product.setUpdatedTime(LocalDateTime.now());
         productMapper.updateById(product);
+        // Evict cache so next detail fetch gets fresh data
+        try { redisTemplate.delete("product:detail:" + product.getId()); } catch (Exception ignored) {}
 
         // Cascade update specs: delete old, insert new
         if (product.getSpecList() != null) {
@@ -180,7 +182,7 @@ public class ProductService {
     public List<Product> listRecommended() {
         return productMapper.selectList(
                 new LambdaQueryWrapper<Product>()
-                        .eq(Product::getStatus, 0)
+                        .eq(Product::getStatus, 1)
                         .eq(Product::getIsRecommend, 1)
                         .orderByDesc(Product::getSales)
                         .last("LIMIT 10"));
@@ -191,7 +193,7 @@ public class ProductService {
         return productMapper.selectList(
                 new LambdaQueryWrapper<Product>()
                         .in(Product::getCategoryId, ids)
-                        .eq(Product::getStatus, 0)
+                        .eq(Product::getStatus, 1)
                         .orderByDesc(Product::getCreatedTime));
     }
 

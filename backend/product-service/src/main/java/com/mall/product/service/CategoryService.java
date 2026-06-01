@@ -26,21 +26,31 @@ public class CategoryService {
     public List<Category> listAll() {
         String cacheKey = "product:category:list";
 
-        // Try cache first
-        Object cached = redisTemplate.opsForValue().get(cacheKey);
-        if (cached != null) {
-            return objectMapper.convertValue(cached, new TypeReference<List<Category>>() {});
-        }
+        // Try cache first (gracefully handle Redis down)
+        try {
+            Object cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                return objectMapper.convertValue(cached, new TypeReference<List<Category>>() {});
+            }
+        } catch (Exception ignored) {}
 
         // Query DB
         List<Category> categories = categoryMapper.selectList(
                 new LambdaQueryWrapper<Category>()
                         .orderByAsc(Category::getSort));
 
-        // Cache for 1 hour
-        redisTemplate.opsForValue().set(cacheKey, categories, Duration.ofHours(1));
+        // Cache for 1 hour (gracefully handle Redis down)
+        try {
+            redisTemplate.opsForValue().set(cacheKey, categories, Duration.ofHours(1));
+        } catch (Exception ignored) {}
 
         return categories;
+    }
+
+    public void clearCache() {
+        try {
+            redisTemplate.delete("product:category:list");
+        } catch (Exception ignored) {}
     }
 
     public List<Category> listTree() {
@@ -82,12 +92,10 @@ public class CategoryService {
         }
     }
 
-    public void clearCache() {
-        redisTemplate.delete("product:category:list");
-    }
-
     public void add(Category category) {
-        category.setCreatedTime(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        category.setCreatedTime(now);
+        category.setUpdatedTime(now);
         if (category.getParentId() == null) category.setParentId(0L);
         if (category.getSort() == null) category.setSort(0);
         if (category.getStatus() == null) category.setStatus(0);

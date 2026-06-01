@@ -82,7 +82,7 @@ public class CartService {
     }
 
     @Transactional
-    public void add(Long userId, Long productId, Integer quantity, String specInfo) {
+    public void add(Long userId, Long productId, Integer quantity, String specInfo, Long skuId) {
         // Check if product already in cart (same product + same spec)
         LambdaQueryWrapper<Cart> wrapper = new LambdaQueryWrapper<Cart>()
                 .eq(Cart::getUserId, userId)
@@ -99,6 +99,7 @@ public class CartService {
             checkAll(userId, 0);
             existing.setQuantity(existing.getQuantity() + quantity);
             existing.setChecked(1);
+            if (skuId != null) existing.setSkuId(skuId);
             existing.setUpdatedTime(LocalDateTime.now());
             cartMapper.updateById(existing);
         } else {
@@ -110,6 +111,7 @@ public class CartService {
             cart.setProductId(productId);
             cart.setQuantity(quantity);
             cart.setSpecInfo(specInfo);
+            cart.setSkuId(skuId);
             cart.setChecked(1);
             cart.setCreatedTime(LocalDateTime.now());
             cart.setUpdatedTime(LocalDateTime.now());

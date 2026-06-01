@@ -31,7 +31,7 @@ public class CartController {
     @PostMapping("/add")
     public Result<Void> add(@Valid @RequestBody AddRequest request, @AuthenticationPrincipal Jwt jwt) {
         Long userId = Long.valueOf(jwt.getSubject());
-        cartService.add(userId, request.getProductId(), request.getQuantity(), request.getSpecInfo());
+        cartService.add(userId, request.getProductId(), request.getQuantity(), request.getSpecInfo(), request.getSkuId());
         return Result.success(null);
     }
 
@@ -70,6 +70,7 @@ public class CartController {
         @NotNull
         private Integer quantity;
         private String specInfo;
+        private Long skuId;
     }
 
     @Data

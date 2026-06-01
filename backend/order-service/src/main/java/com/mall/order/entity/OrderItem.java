@@ -14,6 +14,7 @@ public class OrderItem {
     private String productName;
     private String productImage;
     private String specInfo;
+    private Long skuId;
     private BigDecimal price;
     private Integer quantity;
     private BigDecimal subtotal;

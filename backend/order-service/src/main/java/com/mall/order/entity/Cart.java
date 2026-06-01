@@ -14,6 +14,7 @@ public class Cart {
     private Integer quantity;
     private Integer checked;
     private String specInfo;
+    private Long skuId;
     private LocalDateTime createdTime;
     private LocalDateTime updatedTime;
 }

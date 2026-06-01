@@ -7,7 +7,20 @@ const request = axios.create({
   timeout: 15000
 })
 
+const publicApis = [
+  '/product/list', '/product/detail/', '/product/search',
+  '/product/banner/', '/product/spec/',
+  '/product/comment/list/', '/product/consultation/list/', '/product/inner/',
+  '/auth/'
+]
+
+const isPublicApi = (url: string = '') => {
+  if (url.startsWith('/product/category/') && !url.includes('/admin/')) return true
+  return publicApis.some(prefix => url.startsWith(prefix))
+}
+
 request.interceptors.request.use((config) => {
+  if (isPublicApi(config.url)) return config
   const userStore = useUserStore()
   if (userStore.token) {
     config.headers.Authorization = `Bearer ${userStore.token}`
@@ -25,7 +38,8 @@ request.interceptors.response.use(
     return Promise.reject(new Error(res.msg || '请求失败'))
   },
   (error) => {
-    if (error.response?.status === 401) {
+    const url = error.config?.url || ''
+    if (error.response?.status === 401 && !isPublicApi(url)) {
       const userStore = useUserStore()
       userStore.logout()
       window.location.href = '/login'

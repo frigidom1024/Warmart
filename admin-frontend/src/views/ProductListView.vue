@@ -431,7 +431,8 @@ onMounted(() => { loadCategories(); loadProducts() })
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
                   <el-input v-model="dim.name" placeholder="维度名称" size="small" style="width:100px" @input="regenerateSkuGrid" />
                   <el-tag v-for="(val, vi) in dim.values" :key="vi" closable size="small" @close="removeValue(di, vi)">{{ val }}</el-tag>
-                  <el-input size="small" style="width:120px" placeholder="输入值后回车" @keyup.enter="(e: any) => { addValue(di, e.target.value); e.target.value = '' }" />
+                  <input type="text" size="small" class="spec-value-input" placeholder="输入值后回车"
+                    @keyup.enter="(e: any) => { if (e.target.value) { addValue(di, e.target.value); e.target.value = '' } }" />
                   <button style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:16px;padding:0 4px" @click="removeDimension(di)" title="删除维度">×</button>
                 </div>
               </div>
@@ -716,6 +717,19 @@ onMounted(() => { loadCategories(); loadProducts() })
 .spec-remove-btn:hover { background: #fef2f2; color: #ef4444; }
 
 .spec-add-btn { margin-top: 8px; display: inline-flex; align-items: center; gap: 4px; }
+
+.spec-value-input {
+  width: 120px;
+  height: 24px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  padding: 0 8px;
+  font-size: 12px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+.spec-value-input:focus { border-color: #409eff; }
 
 /* Status radio */
 .status-radio-group :deep(.el-radio-button__inner) { padding: 8px 20px; font-size: 13px; }

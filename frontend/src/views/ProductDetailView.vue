@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getProductDetail, addComment, getCommentList } from '@/api/product'
 import { addToCart } from '@/api/cart'
 import { checkAllCart } from '@/api/cart'
-import type { Product, ProductSpec, CommentItem, CommentPageResult } from '@/api/product'
+import type { Product, CommentItem, CommentPageResult } from '@/api/product'
 import { showToast } from '@/utils/toast'
 import { useUserStore } from '@/stores/user'
 import { useIntersectionObserver } from '@vueuse/core'
@@ -17,8 +17,28 @@ const loading = ref(true)
 const activeTab = ref('detail')
 
 // Spec selection state
-const specGroups = ref<{ name: string; values: ProductSpec[] }[]>([])
 const selectedSpecs = ref<Record<string, string>>({})
+
+const matchedSku = computed(() => {
+  if (!product.value?.skuList?.length || !product.value?.specGroups?.length) return null
+  const allSelected = product.value.specGroups.every(g => selectedSpecs.value[g.name])
+  if (!allSelected) return null
+  const selectedIds = product.value.specGroups.map(g => {
+    const val = g.values.find(v => v.value === selectedSpecs.value[g.name])
+    return val?.id
+  }).filter((id): id is number => id != null)
+  return product.value.skuList.find(sku =>
+    sku.enabled &&
+    selectedIds.length > 0 &&
+    selectedIds.every(id => sku.specValueIdList?.includes(id))
+  ) || null
+})
+
+const allSpecsSelected = computed(() => {
+  if (!product.value?.specGroups?.length) return true
+  return product.value.specGroups.every(g => selectedSpecs.value[g.name])
+})
+
 const quantity = ref(1)
 
 // Gallery
@@ -45,34 +65,16 @@ const infoVisible = ref(false)
 // Computed price
 const displayPrice = computed(() => {
   if (!product.value) return 0
-  let extra = 0
-  for (const group of specGroups.value) {
-    const selectedValue = selectedSpecs.value[group.name]
-    if (selectedValue) {
-      const spec = group.values.find(v => v.specValue === selectedValue)
-      if (spec) extra += spec.extraPrice
-    }
-  }
-  return product.value.price + extra
+  if (matchedSku.value?.price != null) return matchedSku.value.price
+  return product.value.price
 })
 
 const displayStock = computed(() => {
   if (!product.value) return 0
-  if (!specGroups.value.length) return product.value.stock
-  // Single spec group: use the selected spec value's stock
-  if (specGroups.value.length === 1) {
-    const group = specGroups.value[0]
-    const selectedValue = selectedSpecs.value[group.name]
-    if (!selectedValue) return 0
-    const spec = group.values.find(v => v.specValue === selectedValue)
-    return spec?.stock ?? 0
-  }
-  // Multiple spec groups: no per-combination tracking, show base stock
-  return product.value.stock
-})
-
-const allSpecsSelected = computed(() => {
-  return specGroups.value.every(g => selectedSpecs.value[g.name])
+  if (matchedSku.value) return matchedSku.value.stock
+  if (!product.value.specGroups?.length && product.value.specList?.length) return 0
+  if (!product.value.specGroups?.length) return product.value.stock
+  return 0
 })
 
 const averageRating = computed(() => {
@@ -113,15 +115,9 @@ onMounted(async () => {
 })
 
 function buildSpecGroups() {
-  if (!product.value?.specList) return
-  const groups: Record<string, ProductSpec[]> = {}
-  for (const spec of product.value.specList) {
-    if (!groups[spec.specName]) groups[spec.specName] = []
-    groups[spec.specName].push(spec)
-  }
-  specGroups.value = Object.entries(groups).map(([name, values]) => ({ name, values }))
-  for (const group of specGroups.value) {
-    selectedSpecs.value[group.name] = group.values[0].specValue
+  if (!product.value?.specGroups) return
+  for (const group of product.value.specGroups) {
+    selectedSpecs.value[group.name] = group.values[0]?.value ?? ''
   }
   quantity.value = 1
 }
@@ -140,16 +136,26 @@ function buildThumbList() {
 function selectSpec(groupName: string, specValue: string) {
   selectedSpecs.value[groupName] = specValue
   quantity.value = 1
+  if (matchedSku.value?.image) {
+    const idx = thumbList.value.findIndex(t => t === matchedSku.value!.image)
+    if (idx >= 0) activeImageIndex.value = idx
+  }
 }
 
 function getSpecInfo(): string {
-  return specGroups.value.map(g => `${g.name}: ${selectedSpecs.value[g.name] || ''}`).join('; ')
+  if (!product.value?.specGroups) return ''
+  return product.value.specGroups.map(g => `${g.name}: ${selectedSpecs.value[g.name] || ''}`).join('; ')
 }
 
 async function handleAddToCart() {
   if (!product.value || !allSpecsSelected.value) return
   try {
-    await addToCart({ productId: product.value.id, quantity: quantity.value, specInfo: getSpecInfo() })
+    await addToCart({
+      productId: product.value.id,
+      quantity: quantity.value,
+      specInfo: getSpecInfo(),
+      skuId: matchedSku.value?.id
+    })
     showToast('已加入购物车', 'success')
   } catch { /* handled */ }
 }
@@ -282,19 +288,18 @@ function renderStars(rating: number) {
             <p class="pdp__desc">{{ product.description }}</p>
 
             <!-- Specs -->
-            <div v-if="specGroups.length" class="pdp__specs">
-              <div v-for="group in specGroups" :key="group.name" class="pdp__spec-row">
+            <div v-if="product?.specGroups?.length" class="pdp__specs">
+              <div v-for="group in product.specGroups" :key="group.name" class="pdp__spec-row">
                 <span class="pdp__spec-label">{{ group.name }}</span>
                 <div class="pdp__spec-options">
                   <button
-                    v-for="spec in group.values"
-                    :key="spec.id"
+                    v-for="val in group.values"
+                    :key="val.id"
                     class="pdp__spec-option"
-                    :class="{ 'pdp__spec-option--active': selectedSpecs[group.name] === spec.specValue }"
-                    @click="selectSpec(group.name, spec.specValue)"
+                    :class="{ 'pdp__spec-option--active': selectedSpecs[group.name] === val.value }"
+                    @click="selectSpec(group.name, val.value)"
                   >
-                    {{ spec.specValue }}
-                    <span v-if="spec.extraPrice > 0" class="pdp__spec-extra">+¥{{ spec.extraPrice }}</span>
+                    {{ val.value }}
                   </button>
                 </div>
               </div>

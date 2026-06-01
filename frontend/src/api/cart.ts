@@ -20,6 +20,7 @@ export interface AddCartRequest {
   productId: number
   quantity: number
   specInfo?: string
+  skuId?: number
 }
 
 export interface UpdateQuantityRequest {

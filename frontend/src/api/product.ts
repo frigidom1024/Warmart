@@ -16,7 +16,9 @@ export interface Product {
   hasSpec: number | null
   createdTime: string
   updatedTime: string
-  specList: ProductSpec[] | null
+  specList: ProductSpec[] | null  // 保留兼容旧数据
+  specGroups?: SpecGroup[]
+  skuList?: ProductSku[]
   imageList: string[] | null
 }
 
@@ -137,4 +139,31 @@ export function addComment(data: {
   imageUrls?: string
 }) {
   return request.post<void>('/product/comment/add', data)
+}
+
+export interface SpecGroup {
+  id: number
+  productId: number
+  name: string
+  sort: number
+  values: SpecValue[]
+}
+
+export interface SpecValue {
+  id: number
+  groupId: number
+  value: string
+  sort: number
+}
+
+export interface ProductSku {
+  id: number
+  productId: number
+  specValueIds: string | null
+  specValueIdList: number[]
+  price: number | null
+  stock: number
+  image: string | null
+  enabled: boolean
+  sort: number
 }

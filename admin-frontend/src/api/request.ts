@@ -7,21 +7,7 @@ const request = axios.create({
   timeout: 15000
 })
 
-const publicApis = [
-  '/product/list', '/product/detail/', '/product/search',
-  '/product/banner/', '/product/spec/',
-  '/product/comment/list/', '/product/consultation/list/', '/product/inner/',
-  '/auth/'
-]
-
-// Category public list is also public; admin category endpoints need auth
-const isPublicApi = (url: string = '') => {
-  if (url.startsWith('/product/category/') && !url.includes('/admin/')) return true
-  return publicApis.some(prefix => url.startsWith(prefix))
-}
-
 request.interceptors.request.use((config) => {
-  if (isPublicApi(config.url)) return config
   const userStore = useUserStore()
   if (userStore.token) {
     config.headers.Authorization = `Bearer ${userStore.token}`

@@ -3,6 +3,7 @@ package com.mall.order.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.mall.order.common.Result;
 import com.mall.order.entity.Order;
+import com.mall.order.entity.RefundApplication;
 import com.mall.order.service.OrderService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;

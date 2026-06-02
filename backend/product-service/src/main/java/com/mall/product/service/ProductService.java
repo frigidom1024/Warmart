@@ -17,10 +17,16 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ProductService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     private final ProductMapper productMapper;
     private final ProductSpecMapper productSpecMapper;
@@ -65,26 +71,30 @@ public class ProductService {
         // Try cache first
         Object cached = redisTemplate.opsForValue().get(cacheKey);
         if (cached != null) {
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.registerModule(new JavaTimeModule());
-            mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-            return mapper.convertValue(cached, Product.class);
+            return OBJECT_MAPPER.convertValue(cached, Product.class);
         }
 
         // Query DB
         Product product = productMapper.selectById(id);
         if (product != null) {
-            // Load spec groups with values
+            // Load spec groups
             List<SpecGroup> specGroups = specGroupMapper.selectList(
                     new LambdaQueryWrapper<SpecGroup>()
                             .eq(SpecGroup::getProductId, id)
                             .orderByAsc(SpecGroup::getSort));
-            for (SpecGroup g : specGroups) {
-                List<SpecValue> values = specValueMapper.selectList(
+
+            // Batch load spec values (N+1 fix)
+            if (!specGroups.isEmpty()) {
+                List<Long> groupIds = specGroups.stream().map(SpecGroup::getId).collect(Collectors.toList());
+                List<SpecValue> allValues = specValueMapper.selectList(
                         new LambdaQueryWrapper<SpecValue>()
-                                .eq(SpecValue::getGroupId, g.getId())
+                                .in(SpecValue::getGroupId, groupIds)
                                 .orderByAsc(SpecValue::getSort));
-                g.setValues(values);
+                Map<Long, List<SpecValue>> valueMap = allValues.stream()
+                        .collect(Collectors.groupingBy(SpecValue::getGroupId));
+                for (SpecGroup g : specGroups) {
+                    g.setValues(valueMap.getOrDefault(g.getId(), List.of()));
+                }
             }
             product.setSpecGroups(specGroups);
 
@@ -96,6 +106,7 @@ public class ProductService {
             skus.forEach(ProductSku::parseSpecValueIds);
             product.setSkuList(skus);
 
+            // Load images
             List<ProductImage> images = productImageMapper.selectList(
                     new LambdaQueryWrapper<ProductImage>()
                             .eq(ProductImage::getProductId, id)

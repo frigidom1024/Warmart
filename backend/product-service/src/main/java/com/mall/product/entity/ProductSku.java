@@ -25,10 +25,12 @@ public class ProductSku {
     private Boolean enabled;
     private Integer sort;
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     public void parseSpecValueIds() {
         if (specValueIds != null && specValueIdList == null) {
             try {
-                specValueIdList = new ObjectMapper().readValue(specValueIds,
+                specValueIdList = OBJECT_MAPPER.readValue(specValueIds,
                         new TypeReference<List<Long>>() {});
             } catch (JsonProcessingException e) {
                 specValueIdList = List.of();

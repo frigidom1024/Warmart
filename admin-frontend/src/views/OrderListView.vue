@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { ElTable } from 'element-plus'
 import { Van } from '@element-plus/icons-vue'
 import { getAdminOrderList, updateOrderStatus, shipOrder } from '@/api/order'
 import type { Order } from '@/api/order'
 
+const tableRef = ref<InstanceType<typeof ElTable>>()
 const orders = ref<Order[]>([])
 const total = ref(0)
 const loading = ref(false)
 const query = ref({ status: undefined as number | undefined, page: 1, size: 10 })
-const expandedRows = ref<number[]>([])
 const shipDialogVisible = ref(false)
 const shipTarget = ref<Order | null>(null)
 const shipForm = ref({ logisticsCompany: '', logisticsNo: '' })
@@ -64,8 +65,7 @@ async function handleShip() {
 
 function handlePageChange(page: number) { query.value.page = page; loadData() }
 function toggleExpand(row: Order) {
-  const idx = expandedRows.value.indexOf(row.id)
-  if (idx >= 0) expandedRows.value.splice(idx, 1); else expandedRows.value.push(row.id)
+  tableRef.value?.toggleRowExpansion(row)
 }
 
 onMounted(loadData)
@@ -82,7 +82,7 @@ onMounted(loadData)
         <el-button type="primary" @click="handleSearch">搜索</el-button>
         <el-button @click="handleReset">重置</el-button>
       </div>
-      <el-table :data="orders" v-loading="loading" stripe style="width:100%" @expand-change="toggleExpand">
+      <el-table ref="tableRef" :data="orders" v-loading="loading" stripe style="width:100%" row-key="id">
         <el-table-column type="expand" width="40">
           <template #default="{ row }">
             <div class="order-items">

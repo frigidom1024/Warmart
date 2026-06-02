@@ -506,7 +506,7 @@ function renderStars(rating: number) {
               <div class="pdp__comments-form-actions">
                 <span class="pdp__comments-form-count">{{ newComment.length }}/500</span>
                 <div class="pdp__comments-form-btns">
-                  <button class="pdp__comments-form-cancel" @click="showCommentForm = false">取消</button>
+                  <button class="pdp__comments-form-cancel" @click="showCommentForm = false; commentImages = []">取消</button>
                   <button class="pdp__comments-form-submit" :disabled="submittingComment || uploadingImage || !newComment.trim()" @click="handleSubmitComment">
                     {{ submittingComment ? '提交中...' : '提交评价' }}
                   </button>

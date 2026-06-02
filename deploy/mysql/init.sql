@@ -287,3 +287,19 @@ CREATE TABLE IF NOT EXISTS payment (
     pay_time DATETIME,
     INDEX idx_order_id (order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS refund_application (
+    id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id     BIGINT NOT NULL,
+    user_id      BIGINT NOT NULL,
+    reason       VARCHAR(500) NOT NULL,
+    amount       DECIMAL(10,2) NOT NULL,
+    status       VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    admin_reply  VARCHAR(500),
+    handled_time DATETIME,
+    created_time DATETIME NOT NULL,
+    updated_time DATETIME NOT NULL,
+    INDEX idx_order_id (order_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

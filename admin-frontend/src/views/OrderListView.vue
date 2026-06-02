@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Truck } from '@element-plus/icons-vue'
+import { Van } from '@element-plus/icons-vue'
 import { getAdminOrderList, updateOrderStatus, shipOrder } from '@/api/order'
 import type { Order } from '@/api/order'
 
@@ -92,7 +92,7 @@ onMounted(loadData)
                 <div class="item-price">¥{{ item.price }}</div><div class="item-qty">x{{ item.quantity }}</div><div class="item-subtotal">¥{{ item.subtotal }}</div>
               </div>
               <div v-if="row.logisticsCompany" class="order-logistics">
-                <el-icon><Truck /></el-icon>
+                <el-icon><Van /></el-icon>
                 物流：{{ row.logisticsCompany }} · {{ row.logisticsNo }}
               </div>
             </div>

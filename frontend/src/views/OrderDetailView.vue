@@ -122,10 +122,11 @@ function stepStatus(stepIndex: number) {
   const s = order.value.status
   if (s === 4) return '' // cancelled
   if (s === 5) {
-    // 退款中：显示到"已发货"，最后一步显示"退款处理中"
+    // 退款中：根据实际发货情况显示步骤
     if (stepIndex === 0) return 'completed'
     if (stepIndex === 1) return 'completed'
-    if (stepIndex === 2) return 'completed'
+    // 只有实际已发货才显示"已发货"已完成
+    if (stepIndex === 2) return order.value?.deliveryTime ? 'completed' : ''
     if (stepIndex === 3) return 'active'
     return ''
   }
@@ -149,17 +150,18 @@ function stepStatus(stepIndex: number) {
       <section v-if="order.status !== 4" class="order-detail__section">
         <div class="order-detail__steps">
           <template v-for="(step, i) in stepConfig" :key="step.key">
-            <div v-if="order.status !== 5 || i <= 3"
+            <div
+              v-if="order.status !== 5 || i <= 3"
               class="order-detail__step"
               :class="[`order-detail__step--${stepStatus(i)}`]"
             >
               <div class="order-detail__step-dot"></div>
               <div class="order-detail__step-info">
                 <p class="order-detail__step-label">{{ order.status === 5 && i === 3 ? '退款处理中' : step.label }}</p>
-                <p class="order-detail__step-time">{{ step.timeField && (order as any)[step.timeField] || '——' }}</p>
+                <p class="order-detail__step-time" v-if="stepStatus(i)">{{ step.timeField && (order as any)[step.timeField] || '——' }}</p>
               </div>
             </div>
-            <div v-if="i < stepConfig.length - 1 && (order.status !== 5 || i < 3)" class="order-detail__step-connector"></div>
+            <div v-if="i < stepConfig.length - 1 && (order.status !== 5 || (i < 3 && stepStatus(i) === 'completed'))" class="order-detail__step-connector"></div>
           </template>
         </div>
         <!-- Refund info banner -->

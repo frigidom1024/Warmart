@@ -248,7 +248,7 @@ function stepStatus(stepIndex: number) {
             @click="goToComment"
           >去评价</span>
           <span
-            v-if="order.status === 2 || order.status === 3"
+            v-if="order.status === 1 || order.status === 2 || order.status === 3"
             class="order-detail__action order-detail__action--danger"
             @click="handleRefund"
           >申请退款</span>

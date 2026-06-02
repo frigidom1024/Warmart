@@ -26,7 +26,7 @@ public class RefundService {
         if (order == null) {
             throw new RuntimeException("Order not found");
         }
-        if (order.getStatus() != 2 && order.getStatus() != 3) {
+        if (order.getStatus() != 1 && order.getStatus() != 2 && order.getStatus() != 3) {
             throw new RuntimeException("Order cannot be refunded");
         }
 

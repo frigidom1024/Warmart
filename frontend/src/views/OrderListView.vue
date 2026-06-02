@@ -137,6 +137,11 @@ const orderStatus = (status: number) => statusLabels[status] || '未知'
                 @click="handleCancel(order.id)"
               >取消订单</span>
               <span
+                v-if="order.status === 1 || order.status === 2 || order.status === 3"
+                class="order-list__action order-list__action--danger"
+                @click="handleRefund(order.id)"
+              >申请退款</span>
+              <span
                 v-if="order.status === 2"
                 class="order-list__action order-list__action--primary"
                 @click="handleConfirm(order.id)"
@@ -147,10 +152,10 @@ const orderStatus = (status: number) => statusLabels[status] || '未知'
                 @click="goToComment(order)"
               >去评价</span>
               <span
-                v-if="order.status === 2 || order.status === 3"
-                class="order-list__action order-list__action--danger"
-                @click="handleRefund(order.id)"
-              >申请退款</span>
+                v-if="order.status === 5"
+                class="order-list__action order-list__action--secondary"
+                @click="router.push('/order/detail/' + order.id)"
+              >查看进度</span>
               <span
                 v-if="order.logisticsCompany"
                 class="order-list__action order-list__action--secondary"

@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getProductDetail, addComment, getCommentList } from '@/api/product'
+import { uploadCommentImage } from '@/api/comment'
 import { addToCart } from '@/api/cart'
 import { checkAllCart } from '@/api/cart'
 import type { Product, CommentItem, CommentPageResult } from '@/api/product'
@@ -60,6 +61,32 @@ const showCommentForm = ref(false)
 const newComment = ref('')
 const newRating = ref(5)
 const submittingComment = ref(false)
+
+// Review image upload
+const commentImages = ref<string[]>([])
+const uploadingImage = ref(false)
+
+async function handleUploadImage(file: File): Promise<boolean> {
+  if (commentImages.value.length >= 3) {
+    showToast('最多上传 3 张图片', 'warning')
+    return false
+  }
+  uploadingImage.value = true
+  try {
+    const url = await uploadCommentImage(file) as unknown as string
+    commentImages.value.push(url)
+    return true
+  } catch {
+    showToast('图片上传失败，请重试', 'error')
+    return false
+  } finally {
+    uploadingImage.value = false
+  }
+}
+
+function handleRemoveImage(index: number) {
+  commentImages.value.splice(index, 1)
+}
 
 // Intersection for scroll animations
 const infoRef = ref<HTMLElement | null>(null)
@@ -223,9 +250,15 @@ async function handleSubmitComment() {
   if (!productId) return
   submittingComment.value = true
   try {
-    await addComment({ productId, content: newComment.value.trim(), rating: newRating.value })
+    await addComment({
+      productId,
+      content: newComment.value.trim(),
+      rating: newRating.value,
+      imageUrls: commentImages.value.length > 0 ? commentImages.value.join(',') : undefined
+    })
     showToast('评论成功', 'success')
     newComment.value = ''
+    commentImages.value = []
     newRating.value = 5
     showCommentForm.value = false
     await loadComments(true)
@@ -434,6 +467,34 @@ function renderStars(rating: number) {
                 </div>
               </div>
               <textarea v-model="newComment" class="pdp__comments-textarea" placeholder="分享使用体验..." rows="4" maxlength="500"></textarea>
+              <!-- Image Upload -->
+              <div class="pdp__comments-form-images">
+                <div class="pdp__comments-form-image-list">
+                  <div v-for="(url, i) in commentImages" :key="i" class="pdp__comments-form-image-item">
+                    <img :src="url" class="pdp__comments-form-image-preview">
+                    <button class="pdp__comments-form-image-remove" @click="handleRemoveImage(i)">×</button>
+                  </div>
+                  <label v-if="commentImages.length < 3" class="pdp__comments-form-image-upload"
+                         :class="{ 'pdp__comments-form-image-upload--disabled': uploadingImage }">
+                    <input type="file" accept="image/png,image/jpeg,image/webp"
+                           :disabled="uploadingImage"
+                           @change="async (e) => {
+                             const file = (e.target as HTMLInputElement).files?.[0]
+                             if (file) {
+                               await handleUploadImage(file)
+                               ;(e.target as HTMLInputElement).value = ''
+                             }
+                           }">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    <span>{{ uploadingImage ? '上传中...' : '上传图片' }}</span>
+                  </label>
+                </div>
+                <span class="pdp__comments-form-image-hint">{{ commentImages.length }}/3 张</span>
+              </div>
               <div class="pdp__comments-form-actions">
                 <span class="pdp__comments-form-count">{{ newComment.length }}/500</span>
                 <div class="pdp__comments-form-btns">
@@ -463,7 +524,15 @@ function renderStars(rating: number) {
               </div>
               <p class="pdp__comment-content">{{ comment.content }}</p>
               <div v-if="comment.imageUrls" class="pdp__comment-images">
-                <img v-for="(url, i) in comment.imageUrls.split(',')" :key="i" :src="url" @click="activeImageIndex = i">
+                <el-image
+                  v-for="(url, i) in comment.imageUrls.split(',')"
+                  :key="i"
+                  :src="url"
+                  :preview-src-list="comment.imageUrls!.split(',')"
+                  :initial-index="i"
+                  class="pdp__comment-image-el"
+                  fit="cover"
+                />
               </div>
               <span class="pdp__comment-time">{{ comment.createdTime?.slice(0, 10) }}</span>
             </div>
@@ -1223,6 +1292,78 @@ function renderStars(rating: number) {
   cursor: not-allowed;
 }
 
+/* Image Upload */
+.pdp__comments-form-images {
+  margin-top: 12px;
+}
+.pdp__comments-form-image-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.pdp__comments-form-image-item {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--wz-border);
+}
+.pdp__comments-form-image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pdp__comments-form-image-remove {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+.pdp__comments-form-image-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border: 1px dashed var(--wz-border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--wz-text-muted);
+  font-size: 11px;
+  gap: 4px;
+  transition: all 0.2s;
+}
+.pdp__comments-form-image-upload:hover {
+  border-color: var(--wz-orange);
+  color: var(--wz-orange);
+}
+.pdp__comments-form-image-upload--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pdp__comments-form-image-upload input {
+  display: none;
+}
+.pdp__comments-form-image-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--wz-text-muted);
+  margin-top: 6px;
+}
+
 /* Comment List */
 .pdp__comments-list {
   display: flex;
@@ -1291,15 +1432,12 @@ function renderStars(rating: number) {
   gap: 8px;
   margin-bottom: 10px;
 }
-.pdp__comment-images img {
+.pdp__comment-image-el {
   width: 72px;
   height: 72px;
   border-radius: 8px;
-  object-fit: cover;
   cursor: pointer;
-  transition: transform 0.2s;
 }
-.pdp__comment-images img:hover { transform: scale(1.05); }
 .pdp__comment-time {
   font-size: 12px;
   color: var(--wz-text-muted);

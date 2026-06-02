@@ -18,12 +18,17 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @RestController
 @RequestMapping("/api/product")
 @RequiredArgsConstructor
 public class CommentController {
 
     private final CommentService commentService;
+
+    private static final Logger log = LoggerFactory.getLogger(CommentController.class);
 
     @GetMapping("/comment/list/{productId}")
     public Result<IPage<CommentVO>> list(@PathVariable Long productId,
@@ -75,6 +80,7 @@ public class CommentController {
             String url = "/images/comments/" + filename;
             return Result.success(url);
         } catch (IOException e) {
+            log.error("评价图片上传失败: path={}, filename={}", commentUploadPath, filename, e);
             return Result.error(500, "文件上传失败");
         }
     }

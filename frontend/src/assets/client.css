@@ -16,8 +16,8 @@
   --wz-bg-hover:    rgba(255, 255, 255, 0.04); /* Hover overlay */
 
   --wz-text:        #ffffff;   /* Primary text */
-  --wz-text-soft:   #b0b1b6;   /* Secondary text */
-  --wz-text-muted:  #6b6c72;   /* Placeholder / disabled */
+  --wz-text-soft:   #b8babe;   /* Secondary text — lightened for dark bg */
+  --wz-text-muted:  #7f8187;   /* Placeholder / disabled — lifted from #6b6c72 for WCAG contrast */
 
   --wz-border:      #2a2b30;   /* Subtle border */
   --wz-border-light:#1e1f23;   /* Lighter border */

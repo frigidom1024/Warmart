@@ -42,8 +42,8 @@ const statusLabels: Record<number, string> = {
 }
 
 const logisticsStatusMap: Record<string, { label: string; color: string }> = {
-  ORDERED: { label: '已下单', color: '#6b6c72' },
-  WAREHOUSE: { label: '仓库处理中', color: '#6b6c72' },
+  ORDERED: { label: '已下单', color: '#7f8187' },
+  WAREHOUSE: { label: '仓库处理中', color: '#7f8187' },
   IN_TRANSIT: { label: '运输中', color: '#409eff' },
   PICKUP: { label: '待取件', color: '#ff9f0a' },
   DELIVERED: { label: '已签收', color: '#34c759' }
@@ -368,9 +368,9 @@ function stepStatus(stepIndex: number) {
 .od-header__status-badge--1 { background: rgba(64,158,255,0.15); color: #409eff; }
 .od-header__status-badge--2 { background: rgba(255,255,255,0.08); color: var(--wz-text-soft); }
 .od-header__status-badge--3 { background: rgba(52,199,89,0.15); color: var(--wz-success); }
-.od-header__status-badge--4 { background: rgba(107,108,114,0.2); color: var(--wz-text-muted); }
+.od-header__status-badge--4 { background: rgba(255,255,255,0.06); color: var(--wz-text-soft); }
 .od-header__status-badge--5 { background: rgba(255,69,58,0.15); color: var(--wz-danger); }
-.od-header__order-no { font-size: 13px; color: var(--wz-text-muted); font-family: var(--wz-font-mono,monospace); }
+.od-header__order-no { font-size: 13px; color: var(--wz-text-soft); font-family: var(--wz-font-mono,monospace); }
 .od-steps { display: flex; align-items: flex-start; padding: 20px; background: var(--wz-bg-card); border: 1px solid var(--wz-border); border-radius: 12px; margin-bottom: 20px; overflow-x: auto; }
 .od-step { display: flex; align-items: flex-start; gap: 8px; flex-shrink: 0; }
 .od-step__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--wz-text-muted); margin-top: 4px; flex-shrink: 0; transition: background .3s, box-shadow .3s; }
@@ -378,7 +378,7 @@ function stepStatus(stepIndex: number) {
 .od-step--active .od-step__dot { background: var(--wz-orange); box-shadow: 0 0 0 5px rgba(255,107,53,0.2); }
 .od-step__label { font-size: 12px; font-weight: 500; color: var(--wz-text); line-height: 1.3; white-space: nowrap; }
 .od-step--active .od-step__label { color: var(--wz-orange); }
-.od-step__time { font-size: 10px; color: var(--wz-text-muted); margin-top: 1px; line-height: 1.2; }
+.od-step__time { font-size: 10px; color: var(--wz-text-soft); margin-top: 1px; line-height: 1.2; }
 .od-step__connector { width: 32px; height: 1px; background: var(--wz-border); margin: 7px 6px 0; flex-shrink: 0; }
 .od-step--completed + .od-step__connector { background: rgba(255,107,53,0.3); height: 2px; }
 .od-refund { margin-bottom: 20px; padding: 12px 16px; border-radius: 10px; font-size: 13px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.5; }
@@ -393,7 +393,7 @@ function stepStatus(stepIndex: number) {
 .od-shipment__receiver { display: flex; flex-direction: column; gap: 4px; }
 .od-shipment__name { font-size: 15px; font-weight: 600; color: var(--wz-text); margin: 0; }
 .od-shipment__phone { font-size: 12px; color: var(--wz-text-soft); margin: 0; }
-.od-shipment__address { font-size: 12px; color: var(--wz-text-muted); margin: 0; line-height: 1.5; }
+.od-shipment__address { font-size: 12px; color: var(--wz-text-soft); margin: 0; line-height: 1.5; }
 .od-shipment__divider { height: 1px; background: var(--wz-border-light); margin: 14px 0; }
 .od-shipment__courier { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--wz-text-soft); margin-bottom: 4px; cursor: pointer; padding: 4px 0; border-radius: 6px; transition: background .2s; }
 .od-shipment__courier:hover { background: var(--wz-bg-hover); }
@@ -403,11 +403,11 @@ function stepStatus(stepIndex: number) {
 .od-shipment__courier:hover .od-shipment__arrow { color: var(--wz-orange); transform: translateX(2px); }
 .od-shipment__copy { display: inline-block; padding: 0 8px; font-size: 11px; color: var(--wz-orange); background: none; border: 1px solid var(--wz-orange); border-radius: 4px; cursor: pointer; line-height: 20px; font-family: inherit; transition: background .2s, color .2s; }
 .od-shipment__copy:hover { background: var(--wz-orange); color: #fff; }
-.od-shipment__delivery-time { font-size: 11px; color: var(--wz-text-muted); margin: 2px 0 12px; }
+.od-shipment__delivery-time { font-size: 11px; color: var(--wz-text-soft); margin: 2px 0 12px; }
 .od-shipment__tracks { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px solid var(--wz-border-light); }
 .od-shipment__track { display: flex; align-items: center; gap: 8px; font-size: 12px; }
 .od-shipment__track-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--wz-border); flex-shrink: 0; }
-.od-shipment__track-label { color: var(--wz-text-muted); flex: 1; }
+.od-shipment__track-label { color: var(--wz-text-soft); flex: 1; }
 .od-shipment__track-time { color: var(--wz-text-muted); font-size: 11px; flex-shrink: 0; }
 .od-shipment__view-all { display: inline-flex; align-items: center; gap: 4px; background: none; border: none; color: var(--wz-orange); font-size: 12px; cursor: pointer; padding: 4px 0; font-family: inherit; margin-top: 2px; }
 .od-shipment__view-all:hover { color: var(--wz-orange-dark); }
@@ -418,14 +418,14 @@ function stepStatus(stepIndex: number) {
 .od-item__image--empty { background: var(--wz-bg-elevated); }
 .od-item__body { flex: 1; min-width: 0; }
 .od-item__name { font-size: 14px; font-weight: 500; color: var(--wz-text); margin: 0 0 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.od-item__spec { font-size: 12px; color: var(--wz-text-muted); margin: 0; }
+.od-item__spec { font-size: 12px; color: var(--wz-text-soft); margin: 0; }
 .od-item__pricing { text-align: right; flex-shrink: 0; }
 .od-item__price { font-size: 14px; font-weight: 600; color: var(--wz-text); margin: 0; }
 .od-item__qty { font-size: 12px; color: var(--wz-text-muted); margin: 2px 0; }
 .od-item__subtotal { font-size: 13px; font-weight: 500; color: var(--wz-text-soft); margin: 0; }
 .od-summary { background: var(--wz-bg-card); border: 1px solid var(--wz-border); border-radius: 12px; margin-bottom: 20px; padding: 20px; }
 .od-summary__rows { display: flex; flex-direction: column; gap: 6px; }
-.od-summary__row { display: flex; justify-content: space-between; font-size: 13px; color: var(--wz-text-muted); line-height: 1.5; }
+.od-summary__row { display: flex; justify-content: space-between; font-size: 13px; color: var(--wz-text-soft); line-height: 1.5; }
 .od-summary__total { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--wz-border); font-size: 14px; color: var(--wz-text); font-weight: 500; }
 .od-summary__amount { font-size: 20px; font-weight: 700; color: var(--wz-orange); letter-spacing: -0.3px; }
 .od-actions { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -433,7 +433,7 @@ function stepStatus(stepIndex: number) {
 .od-btn--primary { background: var(--wz-orange); color: #fff; }
 .od-btn--primary:hover { background: var(--wz-orange-dark); box-shadow: 0 0 20px rgba(255,107,53,0.25); }
 .od-btn--ghost { background: transparent; color: var(--wz-text-soft); border: 1px solid var(--wz-border); }
-.od-btn--ghost:hover { border-color: var(--wz-text-muted); color: var(--wz-text); }
+.od-btn--ghost:hover { border-color: var(--wz-text-soft); color: var(--wz-text); }
 .od-btn--danger { background: transparent; color: var(--wz-danger); border: 1px solid var(--wz-danger); }
 .od-btn--danger:hover { background: rgba(255,69,58,0.08); }
 @media (max-width:640px) {

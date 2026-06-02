@@ -78,6 +78,13 @@ public class OrderController {
         return Result.success(null);
     }
 
+    @PostMapping("/refund/cancel/{id}")
+    public Result<Void> cancelRefund(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        Long userId = Long.valueOf(jwt.getSubject());
+        orderService.cancelRefund(id, userId);
+        return Result.success(null);
+    }
+
     // ─── Admin endpoints ───
 
     @GetMapping("/admin/list")

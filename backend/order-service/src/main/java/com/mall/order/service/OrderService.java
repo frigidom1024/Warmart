@@ -172,6 +172,10 @@ public class OrderService {
         refundService.create(orderId, userId, reason);
     }
 
+    public void cancelRefund(Long orderId, Long userId) {
+        refundService.cancelByOrderId(orderId, userId);
+    }
+
     public IPage<Order> adminList(Integer status, int page, int size) {
         LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<>();
         if (status != null) {

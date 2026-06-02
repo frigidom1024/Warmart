@@ -36,6 +36,7 @@ public class RefundService {
         app.setUserId(userId);
         app.setReason(reason);
         app.setAmount(order.getTotalAmount());
+        app.setPreviousStatus(order.getStatus());
         app.setStatus("PENDING");
         app.setCreatedTime(LocalDateTime.now());
         app.setUpdatedTime(LocalDateTime.now());
@@ -47,6 +48,32 @@ public class RefundService {
         orderMapper.updateById(order);
 
         return app;
+    }
+
+    @Transactional
+    public void cancelByOrderId(Long orderId, Long userId) {
+        RefundApplication app = refundApplicationMapper.selectOne(
+                new LambdaQueryWrapper<RefundApplication>()
+                        .eq(RefundApplication::getOrderId, orderId)
+                        .eq(RefundApplication::getUserId, userId)
+                        .eq(RefundApplication::getStatus, "PENDING"));
+        if (app == null) {
+            throw new RuntimeException("Refund application not found or already processed");
+        }
+
+        app.setStatus("CANCELLED");
+        app.setHandledTime(LocalDateTime.now());
+        app.setUpdatedTime(LocalDateTime.now());
+        refundApplicationMapper.updateById(app);
+
+        // Restore order to previous status
+        Order order = orderMapper.selectById(app.getOrderId());
+        if (order != null && order.getStatus() == 5) {
+            int restoreStatus = app.getPreviousStatus() != null ? app.getPreviousStatus() : 3;
+            order.setStatus(restoreStatus);
+            order.setUpdatedTime(LocalDateTime.now());
+            orderMapper.updateById(order);
+        }
     }
 
     public IPage<RefundApplication> list(String status, int page, int size) {

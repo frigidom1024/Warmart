@@ -14,7 +14,8 @@ public class RefundApplication {
     private Long userId;
     private String reason;
     private BigDecimal amount;
-    private String status; // PENDING, APPROVED, REJECTED
+    private Integer previousStatus;
+    private String status; // PENDING, APPROVED, REJECTED, CANCELLED
     private String adminReply;
     private LocalDateTime handledTime;
     private LocalDateTime createdTime;

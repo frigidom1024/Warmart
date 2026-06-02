@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getOrderList, cancelOrder, confirmOrder, applyRefund } from '@/api/order'
+import { getOrderList, cancelOrder, confirmOrder, applyRefund, cancelRefund } from '@/api/order'
 import type { Order, OrderItem } from '@/api/order'
 
 const router = useRouter()
@@ -71,6 +71,14 @@ async function handleCancel(id: number) {
 async function handleConfirm(id: number) {
   try {
     await confirmOrder(id)
+    loadOrders()
+  } catch { /* handled */ }
+}
+
+async function handleCancelRefund(id: number) {
+  try {
+    await cancelRefund(id)
+    ElMessage.success('退款申请已取消')
     loadOrders()
   } catch { /* handled */ }
 }
@@ -176,6 +184,11 @@ const orderStatus = (status: number) => statusLabels[status] || '未知'
                 class="order-list__action order-list__action--secondary"
                 @click="router.push('/order/detail/' + order.id)"
               >查看进度</span>
+              <span
+                v-if="order.status === 5"
+                class="order-list__action order-list__action--danger"
+                @click="handleCancelRefund(order.id)"
+              >取消退款</span>
               <span
                 v-if="order.logisticsCompany"
                 class="order-list__action order-list__action--secondary"

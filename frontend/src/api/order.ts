@@ -69,6 +69,10 @@ export function applyRefund(id: number, reason?: string) {
   return request.post<void>(url)
 }
 
+export function cancelRefund(id: number) {
+  return request.post<void>('/order/refund/cancel/' + id)
+}
+
 export function payOrder(data: { orderId: number; method: string }) {
   return request.post<void>('/order/payment/pay', data)
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getOrderDetail, cancelOrder, confirmOrder, payOrder, applyRefund } from '@/api/order'
+import { getOrderDetail, cancelOrder, confirmOrder, payOrder, applyRefund, cancelRefund } from '@/api/order'
 import type { Order } from '@/api/order'
 import { showToast } from '@/utils/toast'
 
@@ -72,6 +72,16 @@ async function handleRefund() {
   if (!order.value) return
   refundReason.value = ''
   refundDialogVisible.value = true
+}
+
+async function handleCancelRefund() {
+  if (!order.value) return
+  try {
+    await cancelRefund(order.value.id)
+    showToast('退款申请已取消', 'success')
+    const updated = await getOrderDetail(order.value.id)
+    order.value = updated
+  } catch { /* handled */ }
 }
 
 async function submitRefund() {
@@ -264,6 +274,11 @@ function stepStatus(stepIndex: number) {
             class="order-detail__action order-detail__action--danger"
             @click="handleRefund"
           >申请退款</span>
+          <span
+            v-if="order.status === 5"
+            class="order-detail__action order-detail__action--secondary"
+            @click="handleCancelRefund"
+          >取消退款</span>
           <span
             v-if="order.logisticsCompany"
             class="order-detail__action order-detail__action--secondary"

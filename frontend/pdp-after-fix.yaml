@@ -1,0 +1,28 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5] [cursor=pointer]:
+          - generic [ref=e6]: 暖
+          - generic [ref=e7]: Warmart
+        - generic [ref=e9]:
+          - button "全部分类" [ref=e11] [cursor=pointer]
+          - textbox "搜搜你喜欢的商品…" [ref=e16]
+          - button [ref=e17] [cursor=pointer]
+        - generic [ref=e21]:
+          - button [ref=e22] [cursor=pointer]
+          - button "登录" [ref=e28] [cursor=pointer]
+          - button "注册" [ref=e29] [cursor=pointer]
+    - main [ref=e30]:
+      - generic [ref=e31]:
+        - generic [ref=e33]:
+          - img "测试商品" [ref=e36]
+          - generic [ref=e37]
+        - generic [ref=e97]:
+          - generic [ref=e98]
+          - generic [ref=e102]: 测试商品
+  - generic [ref=e103]:
+    - generic "Toggle devtools panel" [ref=e104] [cursor=pointer]:
+      - img [ref=e105]
+    - generic "Toggle Component Inspector" [ref=e110] [cursor=pointer]:
+      - img [ref=e111]

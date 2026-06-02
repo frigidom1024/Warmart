@@ -5,6 +5,7 @@ import type { ElTable } from 'element-plus'
 import { Van } from '@element-plus/icons-vue'
 import { getAdminOrderList, updateOrderStatus, shipOrder } from '@/api/order'
 import type { Order } from '@/api/order'
+import { addLogisticsTrack } from '@/api/logistics'
 
 const tableRef = ref<InstanceType<typeof ElTable>>()
 const orders = ref<Order[]>([])
@@ -14,6 +15,7 @@ const query = ref({ status: undefined as number | undefined, page: 1, size: 10 }
 const shipDialogVisible = ref(false)
 const shipTarget = ref<Order | null>(null)
 const shipForm = ref({ logisticsCompany: '', logisticsNo: '' })
+const shipTrack = ref({ status: 'WAREHOUSE', message: '', location: '' })
 
 const statusMap: Record<number, { type: string; text: string }> = {
   0: { type: 'warning', text: '待付款' },
@@ -46,6 +48,7 @@ async function handleUpdateStatus(order: Order, newStatus: number, label: string
 function openShipDialog(order: Order) {
   shipTarget.value = order
   shipForm.value = { logisticsCompany: '', logisticsNo: '' }
+  shipTrack.value = { status: 'WAREHOUSE', message: '', location: '' }
   shipDialogVisible.value = true
 }
 
@@ -58,6 +61,12 @@ async function handleShip() {
   try {
     await shipOrder(shipTarget.value.id, shipForm.value.logisticsCompany, shipForm.value.logisticsNo)
     ElMessage.success('发货成功')
+    await addLogisticsTrack({
+      orderId: shipTarget.value.id,
+      status: shipTrack.value.status,
+      message: shipTrack.value.message || undefined,
+      location: shipTrack.value.location || undefined
+    }).catch(() => {})
     shipDialogVisible.value = false
     await loadData()
   } catch {}
@@ -139,6 +148,22 @@ onMounted(loadData)
         </el-form-item>
         <el-form-item label="运单编号" required>
           <el-input v-model="shipForm.logisticsNo" placeholder="请输入运单编号" />
+        </el-form-item>
+        <el-divider style="margin:12px 0" />
+        <p style="font-size:13px;font-weight:600;color:var(--wz-text);margin:0 0 12px">初始物流状态</p>
+        <el-form-item label="物流状态">
+          <el-select v-model="shipTrack.status" placeholder="选择物流状态" style="width:100%">
+            <el-option label="仓库处理中" value="WAREHOUSE" />
+            <el-option label="运输中" value="IN_TRANSIT" />
+            <el-option label="待取件" value="PICKUP" />
+            <el-option label="已签收" value="DELIVERED" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="备注信息">
+          <el-input v-model="shipTrack.message" placeholder="如: 快件已到达北京分拨中心" />
+        </el-form-item>
+        <el-form-item label="当前位置">
+          <el-input v-model="shipTrack.location" placeholder="如: 北京市通州区" />
         </el-form-item>
       </el-form>
       <template #footer>

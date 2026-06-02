@@ -601,37 +601,3 @@ const orderStatus = (status: number) => statusLabels[status] || '未知'
 }
 </style>
 
-<!-- Global overrides for teleported dialog -->
-<style>
-.refund-dialog .el-dialog {
-  background: var(--wz-bg-card) !important;
-  border: 1px solid var(--wz-border) !important;
-  border-radius: var(--wz-radius-md) !important;
-  box-shadow: var(--wz-shadow-xl) !important;
-}
-.refund-dialog .el-overlay {
-  background: rgba(0, 0, 0, 0.6) !important;
-}
-.refund-dialog .el-dialog__body {
-  padding: 0 !important;
-}
-.refund-dialog .el-dialog__header {
-  padding: 20px 24px 0 !important;
-  margin: 0 !important;
-  border-bottom: none !important;
-}
-.refund-dialog .el-dialog__headerbtn {
-  top: 20px !important;
-  right: 20px !important;
-}
-.refund-dialog .el-dialog__headerbtn .el-dialog__close {
-  color: var(--wz-text-muted) !important;
-}
-.refund-dialog .el-dialog__headerbtn .el-dialog__close:hover {
-  color: var(--wz-text) !important;
-}
-.refund-dialog .el-dialog__title {
-  font-size: 17px !important;
-  font-weight: 600 !important;
-  color: var(--wz-text) !important;
-}

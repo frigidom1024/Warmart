@@ -326,3 +326,37 @@ img {
     max-width: none;
   }
 }
+
+/* ── Refund Dialog Global Overrides ── */
+.refund-dialog .el-dialog {
+  background: var(--wz-bg-card);
+  border: 1px solid var(--wz-border);
+  border-radius: var(--wz-radius-md);
+  box-shadow: var(--wz-shadow-xl);
+}
+.refund-dialog .el-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+.refund-dialog .el-dialog__body {
+  padding: 0;
+}
+.refund-dialog .el-dialog__header {
+  padding: 20px 24px 0;
+  margin: 0;
+  border-bottom: none;
+}
+.refund-dialog .el-dialog__headerbtn {
+  top: 20px;
+  right: 20px;
+}
+.refund-dialog .el-dialog__headerbtn .el-dialog__close {
+  color: var(--wz-text-muted);
+}
+.refund-dialog .el-dialog__headerbtn .el-dialog__close:hover {
+  color: var(--wz-text);
+}
+.refund-dialog .el-dialog__title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--wz-text);
+}

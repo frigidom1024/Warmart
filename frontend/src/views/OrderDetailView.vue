@@ -823,7 +823,6 @@ function stepStatus(stepIndex: number) {
 }
 </style>
 
-<!-- Global overrides for teleported dialog -->
 <style>
 .refund-dialog .el-dialog {
   background: var(--wz-bg-card) !important;
@@ -858,3 +857,4 @@ function stepStatus(stepIndex: number) {
   color: var(--wz-text) !important;
 }
 </style>
+

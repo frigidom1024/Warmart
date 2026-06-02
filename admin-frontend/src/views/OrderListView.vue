@@ -103,11 +103,15 @@ onMounted(loadData)
         <el-table-column prop="totalAmount" label="金额" width="90"><template #default="{ row }">¥{{ row.totalAmount }}</template></el-table-column>
         <el-table-column prop="status" label="状态" width="90"><template #default="{ row }"><el-tag :type="statusMap[row.status]?.type" size="small">{{ statusMap[row.status]?.text || '未知' }}</el-tag></template></el-table-column>
         <el-table-column prop="createdTime" label="下单时间" width="170" />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="toggleExpand(row)">详情</el-button>
             <el-button v-if="row.status === 1" size="small" type="primary" @click="openShipDialog(row)">发货</el-button>
             <el-button v-if="row.status === 2" size="small" type="success" @click="handleUpdateStatus(row, 3, '已完成')">确认收货</el-button>
+            <template v-if="row.status === 5">
+              <el-button size="small" type="danger" @click="handleUpdateStatus(row, 4, '已退款')">同意退款</el-button>
+              <el-button size="small" @click="handleUpdateStatus(row, 3, '已完成')">拒绝退款</el-button>
+            </template>
             <el-tag v-if="row.logisticsCompany" size="small" type="info" style="margin-left:4px">已发货</el-tag>
           </template>
         </el-table-column>

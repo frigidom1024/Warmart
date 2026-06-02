@@ -5,11 +5,18 @@ import com.mall.product.common.Result;
 import com.mall.product.dto.CommentVO;
 import com.mall.product.service.CommentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/product")
@@ -35,5 +42,40 @@ public class CommentController {
         String imageUrls = (String) body.getOrDefault("imageUrls", "");
         commentService.add(productId, userId, content, rating, imageUrls);
         return Result.success(null);
+    }
+
+    @Value("${comment.upload.path:./static/images/comments}")
+    private String commentUploadPath;
+
+    @PostMapping("/comment/upload-image")
+    public Result<String> uploadImage(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return Result.error(400, "文件不能为空");
+        }
+        String originalName = file.getOriginalFilename();
+        if (originalName == null || originalName.isEmpty()) {
+            return Result.error(400, "文件名无效");
+        }
+        String ext = "";
+        int dotIdx = originalName.lastIndexOf('.');
+        if (dotIdx > 0) {
+            ext = originalName.substring(dotIdx).toLowerCase();
+        }
+        if (!ext.equals(".png") && !ext.equals(".jpg") && !ext.equals(".jpeg") && !ext.equals(".webp")) {
+            return Result.error(400, "仅支持 PNG、JPG、WebP 格式");
+        }
+        String filename = UUID.randomUUID().toString().replace("-", "") + ext;
+        try {
+            Path dir = Paths.get(commentUploadPath);
+            if (!Files.exists(dir)) {
+                Files.createDirectories(dir);
+            }
+            Path dest = dir.resolve(filename);
+            file.transferTo(dest.toFile());
+            String url = "/images/comments/" + filename;
+            return Result.success(url);
+        } catch (IOException e) {
+            return Result.error(500, "文件上传失败: " + e.getMessage());
+        }
     }
 }

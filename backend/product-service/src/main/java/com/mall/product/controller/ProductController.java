@@ -59,9 +59,10 @@ public class ProductController {
         BigDecimal minPrice = params.get("minPrice") != null ? new BigDecimal(params.get("minPrice").toString()) : null;
         BigDecimal maxPrice = params.get("maxPrice") != null ? new BigDecimal(params.get("maxPrice").toString()) : null;
         String sortBy = (String) params.getOrDefault("sortBy", "new");
+        boolean exactMatch = params.get("exactMatch") != null && Boolean.parseBoolean(params.get("exactMatch").toString());
         int page = params.get("page") != null ? Integer.parseInt(params.get("page").toString()) : 1;
         int size = params.get("size") != null ? Integer.parseInt(params.get("size").toString()) : 20;
-        return Result.success(productService.search(keyword, categoryId, minPrice, maxPrice, sortBy, page, size));
+        return Result.success(productService.search(keyword, categoryId, minPrice, maxPrice, exactMatch, sortBy, page, size));
     }
 
     @GetMapping("/spec/list/{productId}")

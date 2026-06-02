@@ -120,14 +120,18 @@ public class ProductService {
     }
 
     public IPage<Product> search(String keyword, Long categoryId, BigDecimal minPrice,
-                                  BigDecimal maxPrice, String sortBy, int page, int size) {
+                                  BigDecimal maxPrice, Boolean exactMatch, String sortBy, int page, int size) {
         Page<Product> p = new Page<>(page, size);
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<Product>()
                 .eq(Product::getStatus, 1);
 
         if (keyword != null && !keyword.isEmpty()) {
-            wrapper.and(w -> w.like(Product::getName, keyword)
-                    .or().like(Product::getDescription, keyword));
+            if (Boolean.TRUE.equals(exactMatch)) {
+                wrapper.eq(Product::getName, keyword);
+            } else {
+                wrapper.and(w -> w.like(Product::getName, keyword)
+                        .or().like(Product::getDescription, keyword));
+            }
         }
         if (categoryId != null) {
             List<Long> ids = categoryService.getRecursiveCategoryIds(categoryId);

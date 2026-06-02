@@ -20,10 +20,8 @@ export function addComment(data: { productId: number; content: string; rating: n
   return request.post<void>('/product/comment/add', data)
 }
 
-export function uploadCommentImage(file: File): Promise<string> {
+export function uploadCommentImage(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  return request.post<string>('/product/comment/upload-image', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }).then(res => res.data)
+  return request.post<string>('/product/comment/upload-image', formData)
 }

@@ -71,8 +71,8 @@ async function handleUploadImage(file: File): Promise<boolean> {
     showToast('最多上传 3 张图片', 'warning')
     return false
   }
-  if (file.size > 2 * 1024 * 1024) {
-    showToast('图片大小不能超过 2MB', 'warning')
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('图片大小不能超过 10MB', 'warning')
     return false
   }
   uploadingImage.value = true

@@ -117,6 +117,9 @@ services:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: http://auth-service:8081
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
+      # 文件上传大小限制（可覆盖）
+      MULTIPART_MAX_FILE_SIZE: ${MULTIPART_MAX_FILE_SIZE:-10MB}
+      MULTIPART_MAX_REQUEST_SIZE: ${MULTIPART_MAX_REQUEST_SIZE:-10MB}
     depends_on:
       - nacos
       - mysql

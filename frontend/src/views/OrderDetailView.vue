@@ -692,38 +692,6 @@ function stepStatus(stepIndex: number) {
 }
 
 /* ── Refund Dialog (Dark Theme) ── */
-.refund-dialog :deep(.el-dialog) {
-  background: var(--wz-bg-card);
-  border: 1px solid var(--wz-border);
-  border-radius: var(--wz-radius-md);
-  box-shadow: var(--wz-shadow-xl);
-}
-.refund-dialog :deep(.el-overlay) {
-  background: rgba(0, 0, 0, 0.6);
-}
-.refund-dialog :deep(.el-dialog__body) {
-  padding: 0;
-}
-.refund-dialog :deep(.el-dialog__header) {
-  padding: 20px 24px 0;
-  margin: 0;
-  border-bottom: none;
-}
-.refund-dialog :deep(.el-dialog__headerbtn) {
-  top: 20px;
-  right: 20px;
-}
-.refund-dialog :deep(.el-dialog__headerbtn .el-dialog__close) {
-  color: var(--wz-text-muted);
-}
-.refund-dialog :deep(.el-dialog__headerbtn .el-dialog__close:hover) {
-  color: var(--wz-text);
-}
-.refund-dialog :deep(.el-dialog__title) {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--wz-text);
-}
 .refund-dialog__body {
   padding: 20px 24px;
 }
@@ -852,5 +820,41 @@ function stepStatus(stepIndex: number) {
 .refund-dialog__btn--submit:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+</style>
+
+<!-- Global overrides for teleported dialog -->
+<style>
+.refund-dialog .el-dialog {
+  background: var(--wz-bg-card) !important;
+  border: 1px solid var(--wz-border) !important;
+  border-radius: var(--wz-radius-md) !important;
+  box-shadow: var(--wz-shadow-xl) !important;
+}
+.refund-dialog .el-overlay {
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+.refund-dialog .el-dialog__body {
+  padding: 0 !important;
+}
+.refund-dialog .el-dialog__header {
+  padding: 20px 24px 0 !important;
+  margin: 0 !important;
+  border-bottom: none !important;
+}
+.refund-dialog .el-dialog__headerbtn {
+  top: 20px !important;
+  right: 20px !important;
+}
+.refund-dialog .el-dialog__headerbtn .el-dialog__close {
+  color: var(--wz-text-muted) !important;
+}
+.refund-dialog .el-dialog__headerbtn .el-dialog__close:hover {
+  color: var(--wz-text) !important;
+}
+.refund-dialog .el-dialog__title {
+  font-size: 17px !important;
+  font-weight: 600 !important;
+  color: var(--wz-text) !important;
 }
 </style>

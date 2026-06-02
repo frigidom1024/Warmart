@@ -231,10 +231,11 @@ function stepStatus(stepIndex: number) {
           </div>
           <div class="od-shipment__divider"></div>
           <div class="od-shipment__logistics" v-if="order.logisticsCompany">
-            <div class="od-shipment__courier">
+            <div class="od-shipment__courier" @click="$router.push('/logistics/' + order.id)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-              <span>{{ order.logisticsCompany }} · {{ order.logisticsNo }}</span>
-              <button class="od-shipment__copy" @click="copyLogisticsNo">复制</button>
+              <span class="od-shipment__courier-text">{{ order.logisticsCompany }} · {{ order.logisticsNo }}</span>
+              <button class="od-shipment__copy" @click.stop="copyLogisticsNo">复制</button>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="od-shipment__arrow"><polyline points="9 18 15 12 9 6"/></svg>
             </div>
             <p class="od-shipment__delivery-time" v-if="order.deliveryTime">发货 {{ formatTime(order.deliveryTime) }}</p>
 
@@ -306,7 +307,6 @@ function stepStatus(stepIndex: number) {
         <button v-if="order.status === 3" class="od-btn od-btn--primary" @click="goToComment">去评价</button>
         <button v-if="order.status === 1 || order.status === 2 || order.status === 3" class="od-btn od-btn--danger" @click="handleRefund">申请退款</button>
         <button v-if="order.status === 5" class="od-btn od-btn--ghost" @click="handleCancelRefund">取消退款</button>
-        <button v-if="order.logisticsCompany" class="od-btn od-btn--ghost" @click="$router.push('/logistics/' + order.id)">查看物流</button>
       </div>
     </div>
 
@@ -395,9 +395,13 @@ function stepStatus(stepIndex: number) {
 .od-shipment__phone { font-size: 12px; color: var(--wz-text-soft); margin: 0; }
 .od-shipment__address { font-size: 12px; color: var(--wz-text-muted); margin: 0; line-height: 1.5; }
 .od-shipment__divider { height: 1px; background: var(--wz-border-light); margin: 14px 0; }
-.od-shipment__courier { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--wz-text-soft); margin-bottom: 4px; }
+.od-shipment__courier { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--wz-text-soft); margin-bottom: 4px; cursor: pointer; padding: 4px 0; border-radius: 6px; transition: background .2s; }
+.od-shipment__courier:hover { background: var(--wz-bg-hover); }
 .od-shipment__courier svg { flex-shrink: 0; color: var(--wz-text-muted); }
-.od-shipment__copy { display: inline-block; padding: 0 8px; font-size: 11px; color: var(--wz-orange); background: none; border: 1px solid var(--wz-orange); border-radius: 4px; cursor: pointer; line-height: 20px; font-family: inherit; margin-left: auto; transition: background .2s, color .2s; }
+.od-shipment__courier-text { flex: 1; }
+.od-shipment__arrow { color: var(--wz-text-muted); transition: transform .2s; }
+.od-shipment__courier:hover .od-shipment__arrow { color: var(--wz-orange); transform: translateX(2px); }
+.od-shipment__copy { display: inline-block; padding: 0 8px; font-size: 11px; color: var(--wz-orange); background: none; border: 1px solid var(--wz-orange); border-radius: 4px; cursor: pointer; line-height: 20px; font-family: inherit; transition: background .2s, color .2s; }
 .od-shipment__copy:hover { background: var(--wz-orange); color: #fff; }
 .od-shipment__delivery-time { font-size: 11px; color: var(--wz-text-muted); margin: 2px 0 12px; }
 .od-shipment__tracks { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px solid var(--wz-border-light); }

@@ -108,9 +108,13 @@ onMounted(async () => {
     return
   }
   try {
+    // Load product first — show page ASAP
     product.value = await getProductDetail(id)
     buildSpecGroups()
     buildThumbList()
+    loading.value = false
+
+    // Load comments in background, don't block rendering
     await loadComments(true)
 
     if (route.query.orderId) {
@@ -170,7 +174,9 @@ async function handleAddToCart() {
     showToast('已加入购物车', 'success')
     // Brief added state
     await new Promise(r => setTimeout(r, 400))
-  } catch { /* handled */ }
+  } catch (e: any) {
+    showToast(e?.message || '加入购物车失败', 'error')
+  }
   finally { cartAdding.value = false }
 }
 
@@ -178,9 +184,11 @@ async function handleBuyNow() {
   if (!product.value || !allSpecsSelected.value) return
   try {
     await checkAllCart(0)
-    await addToCart({ productId: product.value.id, quantity: quantity.value, specInfo: getSpecInfo() })
+    await addToCart({ productId: product.value.id, quantity: quantity.value, specInfo: getSpecInfo(), skuId: matchedSku.value?.id })
     router.push('/order/create')
-  } catch { /* handled */ }
+  } catch (e: any) {
+    showToast(e?.message || '创建订单失败', 'error')
+  }
 }
 
 async function loadComments(reset = false) {

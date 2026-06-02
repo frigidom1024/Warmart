@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getAdminProductList, addProduct, updateProduct, deleteProduct, getProductDetail, saveSpecGroups } from '@/api/product'
 import { getCategoryList } from '@/api/category'
@@ -50,6 +50,7 @@ function openAddDialog() {
   dialogMounted.value++
   dialogVisible.value = true
   specGroupsInput.value = []
+  specNewValues.value = []
   skuGrid.value = []
 }
 
@@ -67,6 +68,7 @@ async function openEditDialog(item: Product) {
         name: g.name,
         values: g.values.map((v: any) => v.value)
       }))
+      specNewValues.value = groups.map(() => '')
       regenerateSkuGrid()
       // 回填已有 SKU
       const skus = (detail as any).skuList || []
@@ -91,6 +93,7 @@ async function openEditDialog(item: Product) {
       }
     } else {
       specGroupsInput.value = []
+      specNewValues.value = []
       skuGrid.value = []
     }
     form.value = { ...detail, specList: detail.specList || [], imageList: detail.imageList || [] }
@@ -196,14 +199,17 @@ const specGroupsInput = ref<{ name: string; values: string[] }[]>([])
 const skuGrid = ref<{ specValueRefs: string[]; price: number | null; stock: number; image: string; enabled: boolean }[]>([])
 const batchPrice = ref<number | null>(null)
 const batchStock = ref<number>(0)
+const specNewValues = ref<string[]>([])
 const specPresets = ['颜色', '尺寸', '材质', '规格', '口味', '容量']
 
 function addDimension() {
   specGroupsInput.value.push({ name: '', values: [] })
+  specNewValues.value.push('')
 }
 
 function removeDimension(idx: number) {
   specGroupsInput.value.splice(idx, 1)
+  specNewValues.value.splice(idx, 1)
   regenerateSkuGrid()
 }
 
@@ -213,6 +219,14 @@ function addValue(groupIdx: number, value: string) {
   if (specGroupsInput.value[groupIdx].values.includes(v)) return
   specGroupsInput.value[groupIdx].values.push(v)
   regenerateSkuGrid()
+}
+
+function handleAddValue(groupIdx: number) {
+  const v = specNewValues.value[groupIdx]
+  if (v?.trim()) {
+    addValue(groupIdx, v.trim())
+    specNewValues.value[groupIdx] = ''
+  }
 }
 
 function removeValue(groupIdx: number, valIdx: number) {
@@ -343,11 +357,11 @@ onMounted(() => { loadCategories(); loadProducts() })
               <div class="form-grid-3">
                 <div class="form-field">
                   <label>价格</label>
-                  <el-input-number v-model="form.price" :min="0" :precision="2" style="width:100%" placeholder="0.00" />
+                  <el-input-number v-model="form.price" :min="0" :step="0.01" :precision="2" style="width:100%" placeholder="0.00" />
                 </div>
                 <div class="form-field">
                   <label>原价 <span class="label-optional">(选填)</span></label>
-                  <el-input-number v-model="form.originalPrice" :min="0" :precision="2" style="width:100%" placeholder="0.00" />
+                  <el-input-number v-model="form.originalPrice" :min="0" :step="0.01" :precision="2" style="width:100%" placeholder="0.00" />
                 </div>
                 <div class="form-field">
                   <label>库存</label>
@@ -431,8 +445,8 @@ onMounted(() => { loadCategories(); loadProducts() })
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
                   <el-input v-model="dim.name" placeholder="维度名称" size="small" style="width:100px" @input="regenerateSkuGrid" />
                   <el-tag v-for="(val, vi) in dim.values" :key="vi" closable size="small" @close="removeValue(di, vi)">{{ val }}</el-tag>
-                  <input type="text" size="small" class="spec-value-input" placeholder="输入值后回车"
-                    @keyup.enter="(e: any) => { if (e.target.value) { addValue(di, e.target.value); e.target.value = '' } }" />
+                  <el-input v-model="specNewValues[di]" size="small" class="spec-value-input" placeholder="输入规格值" />
+                  <button class="spec-add-value-btn" @click="handleAddValue(di)" title="添加">+</button>
                   <button style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:16px;padding:0 4px" @click="removeDimension(di)" title="删除维度">×</button>
                 </div>
               </div>
@@ -444,7 +458,7 @@ onMounted(() => { loadCategories(); loadProducts() })
                   <span style="font-size:12px;color:#64748b;margin-right:8px">共 {{ skuGrid.filter(s => s.enabled).length }} 个组合</span>
                   <el-button size="small" @click="enableAll">全部启用</el-button>
                   <span style="margin-left:8px;font-size:12px;color:#909399">统一加价:</span>
-                  <el-input-number v-model="batchPrice" :min="0" :precision="2" size="small" style="width:120px" />
+                  <el-input-number v-model="batchPrice" :min="0" :step="0.01" :precision="2" size="small" style="width:120px" />
                   <el-button size="small" @click="setAllPrice(batchPrice)">应用</el-button>
                   <span style="margin-left:8px;font-size:12px;color:#909399">统一库存:</span>
                   <el-input-number v-model="batchStock" :min="0" size="small" style="width:100px" />
@@ -459,7 +473,7 @@ onMounted(() => { loadCategories(); loadProducts() })
                   </div>
                   <div v-for="(sku, si) in skuGrid" :key="si" style="display:flex;align-items:center;padding:6px 12px;border-bottom:1px solid #f8f9fb;transition:background 0.15s" :style="{ opacity: sku.enabled ? 1 : 0.5, background: sku.enabled ? '' : '#f8f9fb' }">
                     <span style="flex:2;padding:2px 4px;font-size:13px;font-weight:500;color:#334155">{{ sku.specValueRefs.join(' / ') }}</span>
-                    <span style="flex:1;padding:2px 4px"><el-input-number v-model="sku.price" :min="0" :precision="2" size="small" style="width:100px" placeholder="基准价" /></span>
+                    <span style="flex:1;padding:2px 4px"><el-input-number v-model="sku.price" :min="0" :step="0.01" :precision="2" size="small" style="width:100px" placeholder="基准价" /></span>
                     <span style="flex:1;padding:2px 4px"><el-input-number v-model="sku.stock" :min="0" size="small" style="width:80px" /></span>
                     <span style="flex:1;padding:2px 4px"><el-switch v-model="sku.enabled" size="small" /></span>
                   </div>
@@ -719,17 +733,39 @@ onMounted(() => { loadCategories(); loadProducts() })
 .spec-add-btn { margin-top: 8px; display: inline-flex; align-items: center; gap: 4px; }
 
 .spec-value-input {
-  width: 120px;
+  width: 130px;
+}
+.spec-value-input :deep(.el-input__wrapper) {
   height: 24px;
+  border-radius: 4px;
+}
+.spec-value-input :deep(.el-input__inner) {
+  font-size: 12px;
+  height: 22px;
+}
+.spec-add-value-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
-  padding: 0 8px;
-  font-size: 12px;
-  outline: none;
-  font-family: inherit;
-  transition: border-color 0.2s;
+  background: #fff;
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.15s;
+  flex-shrink: 0;
 }
-.spec-value-input:focus { border-color: #409eff; }
+.spec-add-value-btn:hover {
+  border-color: #409eff;
+  color: #409eff;
+  background: #f0f7ff;
+}
 
 /* Status radio */
 .status-radio-group :deep(.el-radio-button__inner) { padding: 8px 20px; font-size: 13px; }

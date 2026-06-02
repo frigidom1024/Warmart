@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getProductDetail, addComment, getCommentList } from '@/api/product'
 import { addToCart } from '@/api/cart'
@@ -52,6 +52,9 @@ const commentPage = ref(1)
 const commentLoading = ref(false)
 const commentEnd = ref(false)
 
+// Cart interaction state
+const cartAdding = ref(false)
+
 // Add comment
 const showCommentForm = ref(false)
 const newComment = ref('')
@@ -75,6 +78,13 @@ const displayStock = computed(() => {
   if (!product.value.specGroups?.length && product.value.specList?.length) return 0
   if (!product.value.specGroups?.length) return product.value.stock
   return 0
+})
+
+// Price highlight on SKU change
+const priceHighlight = ref(false)
+watch(displayPrice, () => {
+  priceHighlight.value = true
+  setTimeout(() => { priceHighlight.value = false }, 600)
 })
 
 const averageRating = computed(() => {
@@ -148,7 +158,8 @@ function getSpecInfo(): string {
 }
 
 async function handleAddToCart() {
-  if (!product.value || !allSpecsSelected.value) return
+  if (!product.value || !allSpecsSelected.value || cartAdding.value) return
+  cartAdding.value = true
   try {
     await addToCart({
       productId: product.value.id,
@@ -157,7 +168,10 @@ async function handleAddToCart() {
       skuId: matchedSku.value?.id
     })
     showToast('已加入购物车', 'success')
+    // Brief added state
+    await new Promise(r => setTimeout(r, 400))
   } catch { /* handled */ }
+  finally { cartAdding.value = false }
 }
 
 async function handleBuyNow() {
@@ -264,28 +278,41 @@ function renderStars(rating: number) {
 
             <h1 class="pdp__name">{{ product.name }}</h1>
 
-            <div class="pdp__price-block">
-              <span class="pdp__price-current">¥{{ displayPrice }}</span>
-              <span v-if="product.originalPrice" class="pdp__price-original">¥{{ product.originalPrice }}</span>
-              <span v-if="product.tag" class="pdp__tag">{{ product.tag }}</span>
+            <!-- Price Section -->
+            <div class="pdp__price-section">
+              <div class="pdp__price-main">
+                <span class="pdp__price-current" :class="{ 'pdp__price-current--highlight': priceHighlight }">¥{{ displayPrice }}</span>
+                <span v-if="product.originalPrice" class="pdp__price-original">¥{{ product.originalPrice }}</span>
+              </div>
+              <span v-if="product.tag" class="pdp__price-tag">{{ product.tag }}</span>
             </div>
 
-            <div class="pdp__meta">
-              <div class="pdp__meta-item">
-                <span class="pdp__meta-num">{{ product.sales > 999 ? (product.sales / 1000).toFixed(1) + 'k' : product.sales }}</span>
-                <span class="pdp__meta-label">月销</span>
+            <!-- Trust Signals -->
+            <div class="pdp__trust">
+              <div class="pdp__trust-item">
+                <svg class="pdp__trust-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                <span class="pdp__trust-label">月销</span>
+                <span class="pdp__trust-value">{{ product.sales > 999 ? (product.sales / 1000).toFixed(1) + 'k' : product.sales }}</span>
               </div>
-              <div class="pdp__meta-item">
-                <span class="pdp__meta-num">{{ displayStock }}</span>
-                <span class="pdp__meta-label">库存</span>
+              <div class="pdp__trust-divider"></div>
+              <div class="pdp__trust-item">
+                <svg class="pdp__trust-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <span class="pdp__trust-label">评分</span>
+                <span class="pdp__trust-value">{{ averageRating || '-' }}</span>
               </div>
-              <div v-if="comments.length" class="pdp__meta-item">
-                <span class="pdp__meta-num">{{ averageRating }}</span>
-                <span class="pdp__meta-label">评分</span>
+              <div class="pdp__trust-divider"></div>
+              <div class="pdp__trust-item">
+                <svg class="pdp__trust-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span class="pdp__trust-label">库存</span>
+                <span class="pdp__trust-value" :class="{ 'pdp__trust-value--low': displayStock < 10 }">{{ displayStock }}</span>
               </div>
             </div>
 
-            <p class="pdp__desc">{{ product.description }}</p>
+            <!-- Section Divider -->
+            <div class="pdp__divider"></div>
+
+            <!-- Description -->
+            <p v-if="product.description" class="pdp__desc">{{ product.description }}</p>
 
             <!-- Specs -->
             <div v-if="product?.specGroups?.length" class="pdp__specs">
@@ -303,24 +330,40 @@ function renderStars(rating: number) {
                   </button>
                 </div>
               </div>
+
+              <!-- Selected spec summary -->
+              <transition name="pdp-spec-summary">
+                <div v-if="allSpecsSelected" class="pdp__spec-summary">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>已选: {{ product.specGroups.map(g => `${g.name}: ${selectedSpecs[g.name]}`).join('，') }}</span>
+                </div>
+              </transition>
             </div>
 
             <!-- Quantity -->
             <div class="pdp__qty-row">
               <span class="pdp__qty-label">数量</span>
               <div class="pdp__qty-control">
-                <button class="pdp__qty-btn" :disabled="quantity <= 1" @click="quantity > 1 && quantity--">−</button>
-                <span class="pdp__qty-value">{{ quantity }}</span>
-                <button class="pdp__qty-btn" :disabled="quantity >= displayStock" @click="quantity < displayStock && quantity++">+</button>
+                <button class="pdp__qty-btn" :disabled="quantity <= 1" @click="quantity > 1 && quantity--">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+                <input class="pdp__qty-input" type="text" v-model.number="quantity" @blur="quantity = Math.max(1, Math.min(displayStock || 999, quantity || 1))" />
+                <button class="pdp__qty-btn" :disabled="quantity >= displayStock" @click="quantity < displayStock && quantity++">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><line x1="12" y1="5" x2="12" y2="19"/></svg>
+                </button>
               </div>
               <span class="pdp__qty-hint">库存 {{ displayStock }} 件</span>
             </div>
 
+            <!-- Divider before actions -->
+            <div class="pdp__divider"></div>
+
             <!-- Actions -->
             <div class="pdp__actions">
-              <button class="pdp__cart-btn" :disabled="!allSpecsSelected" @click="handleAddToCart">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-                加入购物车
+              <button class="pdp__cart-btn" :class="{ 'pdp__cart-btn--adding': cartAdding }" :disabled="!allSpecsSelected || cartAdding" @click="handleAddToCart">
+                <svg v-if="!cartAdding" class="pdp__cart-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                <svg v-else class="pdp__cart-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>{{ cartAdding ? '已加入' : '加入购物车' }}</span>
               </button>
               <button class="pdp__buy-btn" :disabled="!allSpecsSelected" @click="handleBuyNow">立即购买</button>
             </div>
@@ -584,51 +627,63 @@ function renderStars(rating: number) {
 .pdp__breadcrumb {
   font-size: 12px;
   color: var(--wz-text-muted);
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   letter-spacing: 0.3px;
 }
-.pdp__breadcrumb span { cursor: pointer; transition: color 0.2s; }
+.pdp__breadcrumb span { cursor: pointer; transition: color 0.2s var(--wz-ease-out); }
 .pdp__breadcrumb span:hover { color: var(--wz-orange); }
 .pdp__breadcrumb-sep { margin: 0 8px; color: var(--wz-border); cursor: default; }
 .pdp__breadcrumb-current { color: var(--wz-text-muted); cursor: default; }
-.pdp__breadcrumb-current:hover { color: var(--wz-text-muted) !important; }
 
 /* ── Info Panel ── */
 .pdp__info-panel {
   padding-top: 12px;
 }
 .pdp__name {
-  font-family: 'Noto Serif SC', 'Source Han Serif SC', serif;
+  font-family: var(--wz-font-display);
   font-size: 28px;
   font-weight: 600;
   color: var(--wz-text);
   line-height: 1.35;
-  margin-bottom: 20px;
-  letter-spacing: 1px;
+  margin-bottom: 24px;
+  letter-spacing: 0.02em;
 }
 
-/* ── Price ── */
-.pdp__price-block {
+/* ── Price Section ── */
+.pdp__price-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.pdp__price-main {
   display: flex;
   align-items: baseline;
-  gap: 14px;
-  margin-bottom: 24px;
-  padding: 16px 20px;
-  background: var(--wz-orange-muted);
-  border-radius: 12px;
+  gap: 12px;
 }
 .pdp__price-current {
   font-size: 36px;
   font-weight: 700;
   color: var(--wz-orange);
   letter-spacing: -0.5px;
+  line-height: 1;
+  transition: transform 0.3s var(--wz-ease-out);
+}
+.pdp__price-current--highlight {
+  animation: price-pulse 0.6s var(--wz-ease-out);
+}
+@keyframes price-pulse {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.06); }
+  60% { transform: scale(0.98); }
+  100% { transform: scale(1); }
 }
 .pdp__price-original {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--wz-text-muted);
   text-decoration: line-through;
 }
-.pdp__tag {
+.pdp__price-tag {
   font-size: 11px;
   font-weight: 700;
   color: #fff;
@@ -636,30 +691,55 @@ function renderStars(rating: number) {
   padding: 3px 10px;
   border-radius: 99px;
   letter-spacing: 0.5px;
+  flex-shrink: 0;
 }
 
-/* ── Meta ── */
-.pdp__meta {
+/* ── Trust Signals ── */
+.pdp__trust {
   display: flex;
-  gap: 32px;
-  margin-bottom: 20px;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 24px;
+  background: var(--wz-bg-card);
+  border-radius: 12px;
   padding: 14px 0;
-  border-top: 1px solid var(--wz-border);
-  border-bottom: 1px solid var(--wz-border);
 }
-.pdp__meta-item {
+.pdp__trust-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 2px;
 }
-.pdp__meta-num {
-  font-size: 17px;
+.pdp__trust-icon {
+  color: var(--wz-text-muted);
+  margin-bottom: 2px;
+}
+.pdp__trust-label {
+  font-size: 11px;
+  color: var(--wz-text-muted);
+  letter-spacing: 0.5px;
+}
+.pdp__trust-value {
+  font-size: 16px;
   font-weight: 600;
   color: var(--wz-text);
 }
-.pdp__meta-label {
-  font-size: 12px;
-  color: var(--wz-text-muted);
+.pdp__trust-value--low {
+  color: var(--wz-danger);
+}
+.pdp__trust-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--wz-border);
+  flex-shrink: 0;
+}
+
+/* ── Section Divider ── */
+.pdp__divider {
+  height: 1px;
+  background: var(--wz-border);
+  margin: 20px 0;
 }
 
 /* ── Description ── */
@@ -667,19 +747,18 @@ function renderStars(rating: number) {
   font-size: 14px;
   color: var(--wz-text-soft);
   line-height: 1.8;
-  margin-bottom: 24px;
-  padding: 14px 0;
-  border-top: 1px solid var(--wz-border);
-  border-bottom: 1px solid var(--wz-border);
 }
 
 /* ── Specs ── */
-.pdp__specs { margin-bottom: 28px; }
+.pdp__specs {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
 .pdp__spec-row {
   display: flex;
   align-items: flex-start;
   gap: 16px;
-  margin-bottom: 14px;
 }
 .pdp__spec-label {
   font-size: 13px;
@@ -692,29 +771,58 @@ function renderStars(rating: number) {
   flex-wrap: wrap;
   gap: 8px;
 }
-.pdp__spec-option {
+.pdp .pdp__spec-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
   font-size: 13px;
-  padding: 7px 18px;
+  padding: 8px 20px;
   border-radius: 8px;
   border: 1px solid var(--wz-border);
   color: var(--wz-text-soft);
   background: transparent;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s var(--wz-ease-out);
 }
-.pdp__spec-option:hover {
+.pdp .pdp__spec-option:hover {
   border-color: var(--wz-orange);
   color: var(--wz-orange);
+  background: rgba(255, 107, 53, 0.06);
 }
-.pdp__spec-option--active {
+.pdp .pdp__spec-option--active {
   border-color: var(--wz-orange);
+  background: var(--wz-orange);
+  color: #fff;
+  font-weight: 600;
+}
+.pdp .pdp__spec-option--active:hover {
+  background: var(--wz-orange-dark);
+  border-color: var(--wz-orange-dark);
+}
+
+/* Spec Summary */
+.pdp__spec-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--wz-orange);
+  padding: 8px 14px;
   background: var(--wz-orange-muted);
-  color: var(--wz-orange);
+  border-radius: 8px;
+  line-height: 1.4;
 }
-.pdp__spec-extra {
-  font-size: 11px;
-  color: var(--wz-orange);
-  margin-left: 3px;
+.pdp-spec-summary-enter-active {
+  transition: all 0.25s var(--wz-ease-out);
+}
+.pdp-spec-summary-leave-active {
+  transition: all 0.15s ease-in;
+}
+.pdp-spec-summary-enter-from,
+.pdp-spec-summary-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 /* ── Quantity ── */
@@ -722,7 +830,6 @@ function renderStars(rating: number) {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 28px;
 }
 .pdp__qty-label {
   font-size: 13px;
@@ -735,6 +842,7 @@ function renderStars(rating: number) {
   border: 1px solid var(--wz-border);
   border-radius: 8px;
   overflow: hidden;
+  background: var(--wz-bg-card);
 }
 .pdp__qty-btn {
   width: 36px;
@@ -742,20 +850,37 @@ function renderStars(rating: number) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
   color: var(--wz-text-soft);
-  transition: background 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
-.pdp__qty-btn:hover:not(:disabled) { background: var(--wz-bg-elevated); }
+.pdp__qty-btn:hover:not(:disabled) {
+  background: var(--wz-bg-elevated);
+  color: var(--wz-orange);
+}
 .pdp__qty-btn:disabled { opacity: 0.25; cursor: not-allowed; }
-.pdp__qty-value {
+.pdp__qty-input {
   width: 44px;
   text-align: center;
   font-size: 15px;
   color: var(--wz-text);
+  background: transparent;
+  border: none;
   border-left: 1px solid var(--wz-border);
   border-right: 1px solid var(--wz-border);
   line-height: 36px;
+  height: 36px;
+  font-family: inherit;
+  outline: none;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.pdp__qty-input::-webkit-outer-spin-button,
+.pdp__qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.pdp__qty-input:focus {
+  color: var(--wz-orange);
 }
 .pdp__qty-hint { font-size: 12px; color: var(--wz-text-muted); }
 
@@ -766,36 +891,58 @@ function renderStars(rating: number) {
 }
 .pdp__cart-btn, .pdp__buy-btn {
   flex: 1;
-  height: 50px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 25px;
+  border-radius: 26px;
   font-size: 15px;
-  font-weight: 500;
-  transition: all 0.25s;
+  font-weight: 600;
+  transition: all 0.25s var(--wz-ease-out);
+  cursor: pointer;
 }
-.pdp__cart-btn {
-  border: 1px solid var(--wz-orange);
-  color: var(--wz-orange);
+.pdp .pdp__cart-btn {
+  border: 1.5px solid var(--wz-border);
+  color: var(--wz-text-soft);
   background: transparent;
 }
-.pdp__cart-btn:hover:not(:disabled) {
+.pdp .pdp__cart-btn:hover:not(:disabled) {
+  border-color: var(--wz-orange);
+  color: var(--wz-orange);
   background: var(--wz-orange-muted);
 }
-.pdp__buy-btn {
+.pdp .pdp__cart-btn--adding {
+  border-color: var(--wz-success) !important;
+  color: var(--wz-success) !important;
+  background: rgba(52, 199, 89, 0.08) !important;
+  pointer-events: none;
+}
+.pdp__cart-icon,
+.pdp__cart-check {
+  transition: transform 0.3s var(--wz-ease-out);
+}
+.pdp__cart-btn--adding .pdp__cart-check {
+  animation: cart-check-bounce 0.4s var(--wz-ease-out);
+}
+@keyframes cart-check-bounce {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+.pdp .pdp__buy-btn {
   background: var(--wz-orange);
   color: #fff;
-  font-weight: 600;
+  border: 1.5px solid var(--wz-orange);
 }
-.pdp__buy-btn:hover:not(:disabled) {
+.pdp .pdp__buy-btn:hover:not(:disabled) {
   background: var(--wz-orange-dark);
+  border-color: var(--wz-orange-dark);
   transform: translateY(-1px);
   box-shadow: var(--wz-shadow-glow);
 }
-.pdp__cart-btn:disabled, .pdp__buy-btn:disabled {
-  opacity: 0.35;
+.pdp .pdp__cart-btn:disabled, .pdp .pdp__buy-btn:disabled {
+  opacity: 0.3;
   cursor: not-allowed;
   transform: none !important;
   box-shadow: none !important;

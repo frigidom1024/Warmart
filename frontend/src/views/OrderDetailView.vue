@@ -824,17 +824,23 @@ function stepStatus(stepIndex: number) {
 </style>
 
 <style>
-.refund-dialog .el-dialog {
-  background: var(--wz-bg-card) !important;
-  border: 1px solid var(--wz-border) !important;
-  border-radius: var(--wz-radius-md) !important;
-  box-shadow: var(--wz-shadow-xl) !important;
+.refund-dialog.el-dialog,
+.refund-dialog {
+  --el-dialog-bg-color: var(--wz-bg-card);
+  --el-dialog-border: 1px solid var(--wz-border);
+  --el-dialog-border-radius: var(--wz-radius-md);
+  --el-dialog-box-shadow: var(--wz-shadow-xl);
+  --el-dialog-title-font-size: 17px;
+  --el-dialog-title-font-weight: 600;
+  --el-dialog-content-font-size: 14px;
+  --el-dialog-padding-primary: 0;
+  background: var(--wz-bg-card);
+  border: 1px solid var(--wz-border);
+  border-radius: var(--wz-radius-md);
+  box-shadow: var(--wz-shadow-xl);
 }
 .refund-dialog .el-overlay {
   background: rgba(0, 0, 0, 0.6) !important;
-}
-.refund-dialog .el-dialog__body {
-  padding: 0 !important;
 }
 .refund-dialog .el-dialog__header {
   padding: 20px 24px 0 !important;

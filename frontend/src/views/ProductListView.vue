@@ -25,16 +25,23 @@ const pageSize = 12
 
 const isSearching = computed(() => !!keyword.value || !!minPrice.value || !!maxPrice.value)
 
+const sortMap: Record<string, string | undefined> = {
+  default: undefined,
+  sales: 'sales_desc',
+  'price-asc': 'price_asc',
+  'price-desc': 'price_desc',
+  newest: undefined,
+}
+
 function buildParams() {
   const params: Record<string, any> = { page: currentPage.value, size: pageSize }
 
   if (activeCategory.value !== '') {
     params.categoryId = activeCategory.value
   }
-  if (sortBy.value !== 'default') {
-    params.sortBy = sortBy.value === 'sales' ? 'sales'
-      : sortBy.value === 'price-asc' ? 'price'
-      : sortBy.value === 'newest' ? 'new' : undefined
+  const sortValue = sortMap[sortBy.value]
+  if (sortValue) {
+    params.sortBy = sortValue
   }
 
   if (keyword.value) params.keyword = keyword.value
@@ -47,14 +54,26 @@ function buildParams() {
 async function loadProducts() {
   loading.value = true
   try {
-    let res: any
-    if (isSearching.value) {
-      res = await searchProducts(buildParams())
+    const baseParams = buildParams()
+    let allRecords: Product[] = []
+
+    if (keyword.value) {
+      // Fetch exact matches first, then fuzzy matches, merge with exact first
+      const exactRes = await searchProducts({ ...baseParams, exactMatch: true })
+      const exactIds = new Set(exactRes.records.map(p => p.id))
+      allRecords = [...exactRes.records]
+
+      const fuzzyRes = await searchProducts({ ...baseParams, exactMatch: false })
+      allRecords.push(...fuzzyRes.records.filter(p => !exactIds.has(p.id)))
+
+      totalCount.value = exactRes.total + fuzzyRes.records.filter(p => !exactIds.has(p.id)).length
     } else {
-      res = await getProductList(buildParams())
+      const res = await getProductList(baseParams)
+      allRecords = res.records || []
+      totalCount.value = res.total || 0
     }
-    products.value = res.records || []
-    totalCount.value = res.total || 0
+
+    products.value = allRecords
     totalPages.value = Math.max(1, Math.ceil(totalCount.value / pageSize))
   } catch {
     products.value = []
@@ -68,18 +87,47 @@ async function loadProducts() {
 function setCategory(value: number | '') {
   activeCategory.value = value
   currentPage.value = 1
-  router.replace({ query: { ...route.query, categoryId: value || undefined } })
+  syncStateToUrl()
   loadProducts()
 }
 
 function setSort(value: string) {
   sortBy.value = value
   currentPage.value = 1
+  syncStateToUrl()
   loadProducts()
 }
 
 function goProduct(id: number) {
   router.push({ name: 'ProductDetail', params: { id } })
+}
+
+function syncStateToUrl() {
+  const q: Record<string, string> = {}
+  if (keyword.value) q.keyword = keyword.value
+  if (activeCategory.value !== '') q.categoryId = String(activeCategory.value)
+  if (sortBy.value !== 'default') q.sortBy = sortBy.value
+  if (minPrice.value) q.minPrice = minPrice.value
+  if (maxPrice.value) q.maxPrice = maxPrice.value
+  if (currentPage.value > 1) q.page = String(currentPage.value)
+  router.replace({ query: q })
+}
+
+function handleSearch() {
+  currentPage.value = 1
+  syncStateToUrl()
+  loadProducts()
+}
+
+function handleReset() {
+  keyword.value = ''
+  activeCategory.value = ''
+  sortBy.value = 'default'
+  minPrice.value = ''
+  maxPrice.value = ''
+  currentPage.value = 1
+  router.replace({ query: {} })
+  loadProducts()
 }
 
 const animatingIds = reactive(new Set<number>())
@@ -99,6 +147,7 @@ async function handleFavorite(id: number) {
 function goPage(p: number) {
   if (p < 1 || p > totalPages.value) return
   currentPage.value = p
+  syncStateToUrl()
   loadProducts()
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
@@ -119,12 +168,18 @@ function clearPrice() {
 
 function applyPrice() {
   currentPage.value = 1
+  syncStateToUrl()
   loadProducts()
 }
 
-watch(keyword, (val) => {
-  currentPage.value = 1
-  router.replace({ query: { ...route.query, keyword: val || undefined } })
+watch(() => route.query, () => {
+  keyword.value = (route.query.keyword as string) || ''
+  activeCategory.value = (route.query.categoryId ? Number(route.query.categoryId) : '') as number | ''
+  sortBy.value = (route.query.sortBy as string) || 'default'
+  minPrice.value = (route.query.minPrice as string) || ''
+  maxPrice.value = (route.query.maxPrice as string) || ''
+  currentPage.value = route.query.page ? Number(route.query.page) : 1
+  loadProducts()
 })
 
 const categoryLabel = computed(() => {
@@ -177,6 +232,21 @@ onMounted(async () => {
         <span class="plp__crumb">商品列表</span>
         <span v-if="categoryLabel" class="plp__crumb-sep">/</span>
         <span v-if="categoryLabel" class="plp__crumb">{{ categoryLabel }}</span>
+      </div>
+
+      <!-- ====== In-page search bar ====== -->
+      <div class="plp__search-bar">
+        <div class="plp__search-input-wrap">
+          <input
+            v-model="keyword"
+            type="text"
+            class="plp__search-input"
+            placeholder="搜索商品名称…"
+            @keyup.enter="handleSearch"
+          />
+          <button class="plp__search-btn" @click="handleSearch">搜索</button>
+          <button class="plp__search-reset" @click="handleReset">重置</button>
+        </div>
       </div>
 
       <div class="plp__layout">
@@ -337,6 +407,76 @@ onMounted(async () => {
 
 .plp__crumb-sep {
   color: var(--wz-border);
+}
+
+/* ---- Search Bar ---- */
+.plp__search-bar {
+  margin-bottom: 20px;
+}
+
+.plp__search-input-wrap {
+  display: flex;
+  gap: 8px;
+  max-width: 520px;
+}
+
+.plp__search-input {
+  flex: 1;
+  height: 40px;
+  padding: 0 14px;
+  background: var(--wz-bg-card);
+  border: 1px solid var(--wz-border);
+  border-radius: 8px;
+  font-family: var(--wz-font-body);
+  font-size: 14px;
+  color: var(--wz-text);
+  outline: none;
+  transition: border-color var(--wz-duration-fast) var(--wz-ease-out);
+}
+
+.plp__search-input::placeholder {
+  color: var(--wz-text-muted);
+}
+
+.plp__search-input:focus {
+  border-color: var(--wz-orange);
+}
+
+.plp__search-btn {
+  height: 40px;
+  padding: 0 20px;
+  background: var(--wz-orange);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-family: var(--wz-font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--wz-duration-fast) var(--wz-ease-out);
+}
+
+.plp__search-btn:hover {
+  background: var(--wz-orange-dark);
+}
+
+.plp__search-reset {
+  height: 40px;
+  padding: 0 16px;
+  background: var(--wz-bg-card);
+  border: 1px solid var(--wz-border);
+  border-radius: 8px;
+  color: var(--wz-text-soft);
+  font-family: var(--wz-font-body);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color var(--wz-duration-fast) var(--wz-ease-out),
+              color var(--wz-duration-fast) var(--wz-ease-out);
+}
+
+.plp__search-reset:hover {
+  border-color: var(--wz-orange);
+  color: var(--wz-orange);
 }
 
 /* ---- Layout ---- */

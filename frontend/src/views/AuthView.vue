@@ -14,7 +14,7 @@ const mode = computed(() => (route.query.mode === 'register' ? 'register' : 'log
 const isLogin = computed(() => mode.value === 'login')
 
 const loginForm = ref({ account: '', password: '', remember: false })
-const registerForm = ref({ email: '', phone: '', password: '', confirm: '' })
+const registerForm = ref({ email: '', password: '', confirm: '' })
 const showPassword = ref(false)
 const loading = ref(false)
 
@@ -50,7 +50,7 @@ async function handleRegister() {
   loading.value = true
   try {
     await registerApi({
-      username: registerForm.value.phone || registerForm.value.email,
+      username: registerForm.value.email,
       password: registerForm.value.password,
       nickname: registerForm.value.email.split('@')[0],
       email: registerForm.value.email
@@ -141,14 +141,14 @@ function handleSubmit() {
               <p class="auth-form__desc">登录你的 Warmart 账号，继续温暖之旅</p>
 
               <div class="auth-form__field">
-                <label class="auth-form__label">邮箱 / 手机号</label>
+                <label class="auth-form__label">邮箱</label>
                 <div class="auth-form__input-wrap">
                   <svg class="auth-form__input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                   <input
                     v-model="loginForm.account"
                     type="text"
                     class="auth-form__input"
-                    placeholder="请输入邮箱或手机号"
+                    placeholder="请输入邮箱"
                   />
                 </div>
               </div>
@@ -222,13 +222,6 @@ function handleSubmit() {
                 <div class="auth-form__input-wrap">
                   <svg class="auth-form__input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                   <input v-model="registerForm.email" type="email" class="auth-form__input" placeholder="请输入邮箱" />
-                </div>
-              </div>
-              <div class="auth-form__field">
-                <label class="auth-form__label">手机号</label>
-                <div class="auth-form__input-wrap">
-                  <svg class="auth-form__input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-                  <input v-model="registerForm.phone" type="text" class="auth-form__input" placeholder="请输入手机号" />
                 </div>
               </div>
               <div class="auth-form__field">

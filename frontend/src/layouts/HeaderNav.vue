@@ -90,7 +90,7 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
       <!-- Center: Search bar -->
       <div class="header-nav__search-wrapper">
         <div class="header-nav__search">
-          <el-dropdown trigger="click" @command="(v: string) => selectedCategoryId.value = v ? Number(v) : ''">
+          <el-dropdown trigger="click" popper-class="cat-scroll-dropdown" @command="(v: string) => selectedCategoryId.value = v ? Number(v) : ''">
             <button class="header-nav__search-cat">
               <span>{{ selectedCategoryId.value ? (firstLevelCategories.find(c => c.id === selectedCategoryId.value)?.name || '分类') : '全部分类' }}</span>
               <svg width="8" height="6" viewBox="0 0 8 6" fill="none" class="header-nav__search-arrow">
@@ -612,5 +612,16 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
     padding: 6px 14px;
     font-size: 12px;
   }
+}
+</style>
+
+<style>
+.cat-scroll-dropdown {
+  max-height: 360px;
+  overflow-y: auto;
+}
+.cat-scroll-dropdown .el-dropdown-menu {
+  max-height: 360px;
+  overflow-y: auto;
 }
 </style>

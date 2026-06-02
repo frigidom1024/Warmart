@@ -678,51 +678,6 @@ const stats = [
       </button>
     </Transition>
 
-    <!-- ============ FOOTER ============ -->
-    <footer class="footer">
-      <div class="section__inner">
-        <div class="footer__grid">
-          <div class="footer__brand">
-            <h3><span class="footer__logo">暖</span> Warmart</h3>
-            <p class="footer__desc">专注品质好物，打造轻松便捷高品质网购平台</p>
-            <div class="footer__social">
-              <a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></a>
-              <a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg></a>
-              <a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></a>
-            </div>
-          </div>
-          <div class="footer__col">
-            <h4>购物指南</h4>
-            <ul>
-              <li><a href="#">注册登录</a></li>
-              <li><a href="#">下单流程</a></li>
-              <li><a href="#">支付方式</a></li>
-              <li><a href="#">常见问题</a></li>
-            </ul>
-          </div>
-          <div class="footer__col">
-            <h4>售后服务</h4>
-            <ul>
-              <li><a href="#">退换货政策</a></li>
-              <li><a href="#">物流查询</a></li>
-              <li><a href="#">售后投诉</a></li>
-              <li><a href="#">正品保障</a></li>
-            </ul>
-          </div>
-          <div class="footer__col">
-            <h4>联系我们</h4>
-            <ul>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:middle;margin-right:4px"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>400-888-9999</li>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:middle;margin-right:4px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>service@warmart.com</li>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:middle;margin-right:4px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>杭州市电商产业园</li>
-            </ul>
-          </div>
-        </div>
-        <div class="footer__bottom">
-          <p>© 2026 暖 Warmart 版权所有 浙ICP备12345678号</p>
-        </div>
-      </div>
-    </footer>
   </div>
 </template>
 
@@ -1108,9 +1063,8 @@ const stats = [
 }
 
 /* ---- Footer ---- */
-.footer { padding: var(--wz-space-3xl) var(--wz-space-md) var(--wz-space-xl); border-top: 1px solid var(--wz-border); }
 .footer__grid { display: grid; grid-template-columns: 1fr; gap: var(--wz-space-xl); padding-bottom: var(--wz-space-xl); border-bottom: 1px solid var(--wz-border); }
-@media (min-width: 768px) { .footer__grid { grid-template-columns: 2fr 1fr 1fr 1fr; } }
+
 .footer__logo { font-family: 'Noto Serif SC', serif; font-size: 22px; font-weight: 700; color: var(--wz-orange); }
 .footer__brand h3 { font-size: 20px; font-weight: 700; color: var(--wz-text); display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
 .footer__desc { font-size: 14px; color: var(--wz-text-muted); line-height: 1.6; margin-bottom: 16px; max-width: 280px; }

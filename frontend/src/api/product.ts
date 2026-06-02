@@ -72,6 +72,7 @@ export interface SearchParams {
   categoryId?: number
   minPrice?: number
   maxPrice?: number
+  exactMatch?: boolean
   sortBy?: string
   page?: number
   size?: number

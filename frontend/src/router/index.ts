@@ -118,7 +118,7 @@ router.beforeEach((to) => {
   if (to.meta.requiresAuth) {
     const userStore = useUserStore()
     if (!userStore.token) {
-      return { name: 'Login', query: { redirect: to.fullPath } }
+      return { name: 'Auth', query: { redirect: to.fullPath } }
     }
   }
 })

@@ -75,7 +75,7 @@ public class CommentController {
             String url = "/images/comments/" + filename;
             return Result.success(url);
         } catch (IOException e) {
-            return Result.error(500, "文件上传失败: " + e.getMessage());
+            return Result.error(500, "文件上传失败");
         }
     }
 }

@@ -151,7 +151,7 @@ function stepStatus(stepIndex: number) {
         <div class="order-detail__steps">
           <template v-for="(step, i) in stepConfig" :key="step.key">
             <div
-              v-if="order.status !== 5 || i <= 3"
+              v-if="order.status !== 5 || (i <= 3 && (i !== 2 || order.deliveryTime))"
               class="order-detail__step"
               :class="[`order-detail__step--${stepStatus(i)}`]"
             >
@@ -161,7 +161,7 @@ function stepStatus(stepIndex: number) {
                 <p class="order-detail__step-time" v-if="stepStatus(i)">{{ step.timeField && (order as any)[step.timeField] || '——' }}</p>
               </div>
             </div>
-            <div v-if="i < stepConfig.length - 1 && (order.status !== 5 || (i < 3 && stepStatus(i) === 'completed'))" class="order-detail__step-connector"></div>
+            <div v-if="i < stepConfig.length - 1 && (order.status !== 5 || (order.deliveryTime ? i < 3 : i < 1))" class="order-detail__step-connector"></div>
           </template>
         </div>
         <!-- Refund info banner -->

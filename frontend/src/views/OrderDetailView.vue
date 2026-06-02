@@ -171,23 +171,27 @@ function stepStatus(stepIndex: number) {
             <div v-if="i < stepConfig.length - 1 && (order.status !== 5 || (order.deliveryTime ? i < 3 : i < 1))" class="order-detail__step-connector"></div>
           </template>
         </div>
-        <!-- Refund info banner -->
+        <!-- Refund pending banner (inside steps) -->
         <div v-if="order.status === 5" class="order-detail__refund-banner order-detail__refund-banner--pending">
           <span class="order-detail__refund-dot"></span>
           <span>退款申请已提交，等待商家处理</span>
         </div>
-        <div v-else-if="refundInfo?.status === 'REJECTED'" class="order-detail__refund-banner order-detail__refund-banner--rejected">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-          <div class="order-detail__refund-msg">
-            <span class="order-detail__refund-title">退款申请已被拒绝</span>
-            <span v-if="refundInfo.adminReply" class="order-detail__refund-reply">商家回复：{{ refundInfo.adminReply }}</span>
-          </div>
-        </div>
-        <div v-else-if="refundInfo?.status === 'APPROVED'" class="order-detail__refund-banner order-detail__refund-banner--approved">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-          <span>退款已完成</span>
-        </div>
       </section>
+
+      <!-- Refund result banners (outside steps, visible even for cancelled orders) -->
+      <div v-if="refundInfo?.status === 'REJECTED'" class="order-detail__refund-banner order-detail__refund-banner--rejected">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <div class="order-detail__refund-msg">
+          <span class="order-detail__refund-title">退款申请已被拒绝</span>
+          <span v-if="refundInfo.adminReply" class="order-detail__refund-reply">商家回复：{{ refundInfo.adminReply }}</span>
+        </div>
+      </div>
+      <div v-if="refundInfo?.status === 'APPROVED'" class="order-detail__refund-banner order-detail__refund-banner--approved">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        <div class="order-detail__refund-msg">
+          <span class="order-detail__refund-title">退款已完成</span>
+        </div>
+      </div>
 
       <!-- Receiver Info -->
       <section class="order-detail__section">

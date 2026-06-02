@@ -73,6 +73,10 @@ export function cancelRefund(id: number) {
   return request.post<void>('/order/refund/cancel/' + id)
 }
 
+export function getRefundInfo(orderId: number) {
+  return request.get<any>('/order/refund/info/' + orderId)
+}
+
 export function payOrder(data: { orderId: number; method: string }) {
   return request.post<void>('/order/payment/pay', data)
 }

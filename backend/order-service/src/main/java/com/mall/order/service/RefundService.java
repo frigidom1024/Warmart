@@ -76,6 +76,22 @@ public class RefundService {
         }
     }
 
+    public RefundApplication getByOrderId(Long orderId) {
+        RefundApplication app = refundApplicationMapper.selectOne(
+                new LambdaQueryWrapper<RefundApplication>()
+                        .eq(RefundApplication::getOrderId, orderId)
+                        .orderByDesc(RefundApplication::getCreatedTime)
+                        .last("LIMIT 1"));
+        if (app != null) {
+            Order order = orderMapper.selectById(app.getOrderId());
+            if (order != null) {
+                app.setOrderNo(order.getOrderNo());
+                app.setReceiverName(order.getReceiverName());
+            }
+        }
+        return app;
+    }
+
     public IPage<RefundApplication> list(String status, int page, int size) {
         LambdaQueryWrapper<RefundApplication> wrapper = new LambdaQueryWrapper<>();
         if (status != null && !status.isEmpty()) {
@@ -131,10 +147,11 @@ public class RefundService {
         app.setUpdatedTime(LocalDateTime.now());
         refundApplicationMapper.updateById(app);
 
-        // Restore order to completed
+        // Restore order to its previous status
         Order order = orderMapper.selectById(app.getOrderId());
         if (order != null) {
-            order.setStatus(3);
+            int restoreStatus = app.getPreviousStatus() != null ? app.getPreviousStatus() : 3;
+            order.setStatus(restoreStatus);
             order.setUpdatedTime(LocalDateTime.now());
             orderMapper.updateById(order);
         }

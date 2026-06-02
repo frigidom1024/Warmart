@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mall.order.entity.Cart;
 import com.mall.order.entity.Order;
 import com.mall.order.entity.OrderItem;
+import com.mall.order.entity.RefundApplication;
 import com.mall.order.mapper.CartMapper;
 import com.mall.order.mapper.OrderItemMapper;
 import com.mall.order.mapper.OrderMapper;
@@ -174,6 +175,10 @@ public class OrderService {
 
     public void cancelRefund(Long orderId, Long userId) {
         refundService.cancelByOrderId(orderId, userId);
+    }
+
+    public RefundApplication getRefundInfo(Long orderId) {
+        return refundService.getByOrderId(orderId);
     }
 
     public IPage<Order> adminList(Integer status, int page, int size) {

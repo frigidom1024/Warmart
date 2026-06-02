@@ -85,6 +85,11 @@ public class OrderController {
         return Result.success(null);
     }
 
+    @GetMapping("/refund/info/{id}")
+    public Result<RefundApplication> refundInfo(@PathVariable Long id) {
+        return Result.success(orderService.getRefundInfo(id));
+    }
+
     // ─── Admin endpoints ───
 
     @GetMapping("/admin/list")

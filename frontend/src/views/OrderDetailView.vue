@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getOrderDetail, cancelOrder, confirmOrder, payOrder, applyRefund, cancelRefund } from '@/api/order'
+import { getOrderDetail, cancelOrder, confirmOrder, payOrder, applyRefund, cancelRefund, getRefundInfo } from '@/api/order'
 import type { Order } from '@/api/order'
 import { showToast } from '@/utils/toast'
 
@@ -12,6 +12,7 @@ const loading = ref(true)
 const refundDialogVisible = ref(false)
 const refundReason = ref('')
 const refundSubmitting = ref(false)
+const refundInfo = ref<{ status: string; adminReply: string | null } | null>(null)
 
 const refundPresets = [
   '商品与描述不符',
@@ -45,6 +46,12 @@ onMounted(async () => {
   }
   try {
     order.value = await getOrderDetail(id)
+    // 获取退款申请信息（如果有）
+    try {
+      const res: any = await getRefundInfo(id)
+      const info = res?.data || res
+      if (info?.status) refundInfo.value = { status: info.status, adminReply: info.adminReply || null }
+    } catch {}
   } catch {
     // handled
   } finally {
@@ -165,9 +172,20 @@ function stepStatus(stepIndex: number) {
           </template>
         </div>
         <!-- Refund info banner -->
-        <div v-if="order.status === 5" class="order-detail__refund-banner">
+        <div v-if="order.status === 5" class="order-detail__refund-banner order-detail__refund-banner--pending">
           <span class="order-detail__refund-dot"></span>
           <span>退款申请已提交，等待商家处理</span>
+        </div>
+        <div v-else-if="refundInfo?.status === 'REJECTED'" class="order-detail__refund-banner order-detail__refund-banner--rejected">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          <div class="order-detail__refund-msg">
+            <span class="order-detail__refund-title">退款申请已被拒绝</span>
+            <span v-if="refundInfo.adminReply" class="order-detail__refund-reply">商家回复：{{ refundInfo.adminReply }}</span>
+          </div>
+        </div>
+        <div v-else-if="refundInfo?.status === 'APPROVED'" class="order-detail__refund-banner order-detail__refund-banner--approved">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>退款已完成</span>
         </div>
       </section>
 
@@ -460,18 +478,31 @@ function stepStatus(stepIndex: number) {
   height: 2px;
 }
 
-/* ── Refund banner ── */
+/* ── Refund banners ── */
 .order-detail__refund-banner {
   margin-top: 12px;
   padding: 10px 16px;
-  background: rgba(255, 159, 10, 0.08);
-  border: 1px solid rgba(255, 159, 10, 0.2);
   border-radius: var(--wz-radius-sm);
   font-size: 13px;
-  color: var(--wz-warning);
   display: flex;
   align-items: center;
   gap: 8px;
+  line-height: 1.4;
+}
+.order-detail__refund-banner--pending {
+  background: rgba(255, 159, 10, 0.08);
+  border: 1px solid rgba(255, 159, 10, 0.2);
+  color: var(--wz-warning);
+}
+.order-detail__refund-banner--rejected {
+  background: rgba(255, 69, 58, 0.08);
+  border: 1px solid rgba(255, 69, 58, 0.2);
+  color: var(--wz-danger);
+}
+.order-detail__refund-banner--approved {
+  background: rgba(52, 199, 89, 0.08);
+  border: 1px solid rgba(52, 199, 89, 0.2);
+  color: var(--wz-success);
 }
 .order-detail__refund-dot {
   width: 8px;
@@ -480,6 +511,18 @@ function stepStatus(stepIndex: number) {
   background: var(--wz-warning);
   flex-shrink: 0;
   animation: refund-pulse 2s ease-in-out infinite;
+}
+.order-detail__refund-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.order-detail__refund-title {
+  font-weight: 500;
+}
+.order-detail__refund-reply {
+  font-size: 12px;
+  opacity: 0.8;
 }
 @keyframes refund-pulse {
   0%, 100% { opacity: 0.6; }

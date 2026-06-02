@@ -209,6 +209,23 @@ public class OrderService {
         }
     }
 
+    @Transactional
+    public void adminShip(Long id, String logisticsCompany, String logisticsNo) {
+        Order order = orderMapper.selectById(id);
+        if (order == null) {
+            throw new RuntimeException("Order not found");
+        }
+        order.setStatus(2);
+        order.setLogisticsCompany(logisticsCompany);
+        order.setLogisticsNo(logisticsNo);
+        order.setDeliveryTime(LocalDateTime.now());
+        order.setUpdatedTime(LocalDateTime.now());
+        if (order.getPaymentTime() == null) {
+            order.setPaymentTime(LocalDateTime.now());
+        }
+        orderMapper.updateById(order);
+    }
+
     @SuppressWarnings("unchecked")
     private Map<Long, Map<String, Object>> fetchProductMap(List<Long> productIds) {
         try {

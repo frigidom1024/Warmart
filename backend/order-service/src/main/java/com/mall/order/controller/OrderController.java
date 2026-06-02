@@ -92,6 +92,14 @@ public class OrderController {
         return Result.success(null);
     }
 
+    @PutMapping("/admin/ship")
+    public Result<Void> adminShip(@RequestParam Long id,
+                                  @RequestParam String logisticsCompany,
+                                  @RequestParam String logisticsNo) {
+        orderService.adminShip(id, logisticsCompany, logisticsNo);
+        return Result.success(null);
+    }
+
     @Data
     public static class CreateOrderRequest {
         @NotBlank

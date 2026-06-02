@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getAdminOrderList, updateOrderStatus } from '@/api/order'
+import { Truck } from '@element-plus/icons-vue'
+import { getAdminOrderList, updateOrderStatus, shipOrder } from '@/api/order'
 import type { Order } from '@/api/order'
 
 const orders = ref<Order[]>([])
@@ -9,6 +10,9 @@ const total = ref(0)
 const loading = ref(false)
 const query = ref({ status: undefined as number | undefined, page: 1, size: 10 })
 const expandedRows = ref<number[]>([])
+const shipDialogVisible = ref(false)
+const shipTarget = ref<Order | null>(null)
+const shipForm = ref({ logisticsCompany: '', logisticsNo: '' })
 
 const statusMap: Record<number, { type: string; text: string }> = {
   0: { type: 'warning', text: '待付款' },
@@ -37,6 +41,27 @@ async function handleUpdateStatus(order: Order, newStatus: number, label: string
     await updateOrderStatus(order.id, newStatus); ElMessage.success('操作成功'); await loadData()
   } catch {}
 }
+
+function openShipDialog(order: Order) {
+  shipTarget.value = order
+  shipForm.value = { logisticsCompany: '', logisticsNo: '' }
+  shipDialogVisible.value = true
+}
+
+async function handleShip() {
+  if (!shipTarget.value) return
+  if (!shipForm.value.logisticsCompany || !shipForm.value.logisticsNo) {
+    ElMessage.warning('请填写物流公司和运单号')
+    return
+  }
+  try {
+    await shipOrder(shipTarget.value.id, shipForm.value.logisticsCompany, shipForm.value.logisticsNo)
+    ElMessage.success('发货成功')
+    shipDialogVisible.value = false
+    await loadData()
+  } catch {}
+}
+
 function handlePageChange(page: number) { query.value.page = page; loadData() }
 function toggleExpand(row: Order) {
   const idx = expandedRows.value.indexOf(row.id)
@@ -66,6 +91,10 @@ onMounted(loadData)
                 <div class="item-info"><p class="item-name">{{ item.productName }}</p><p class="item-spec" v-if="item.specInfo">{{ item.specInfo }}</p></div>
                 <div class="item-price">¥{{ item.price }}</div><div class="item-qty">x{{ item.quantity }}</div><div class="item-subtotal">¥{{ item.subtotal }}</div>
               </div>
+              <div v-if="row.logisticsCompany" class="order-logistics">
+                <el-icon><Truck /></el-icon>
+                物流：{{ row.logisticsCompany }} · {{ row.logisticsNo }}
+              </div>
             </div>
           </template>
         </el-table-column>
@@ -74,11 +103,12 @@ onMounted(loadData)
         <el-table-column prop="totalAmount" label="金额" width="90"><template #default="{ row }">¥{{ row.totalAmount }}</template></el-table-column>
         <el-table-column prop="status" label="状态" width="90"><template #default="{ row }"><el-tag :type="statusMap[row.status]?.type" size="small">{{ statusMap[row.status]?.text || '未知' }}</el-tag></template></el-table-column>
         <el-table-column prop="createdTime" label="下单时间" width="170" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="toggleExpand(row)">详情</el-button>
-            <el-button v-if="row.status === 1" size="small" type="primary" @click="handleUpdateStatus(row, 2, '待收货')">发货</el-button>
+            <el-button v-if="row.status === 1" size="small" type="primary" @click="openShipDialog(row)">发货</el-button>
             <el-button v-if="row.status === 2" size="small" type="success" @click="handleUpdateStatus(row, 3, '已完成')">确认收货</el-button>
+            <el-tag v-if="row.logisticsCompany" size="small" type="info" style="margin-left:4px">已发货</el-tag>
           </template>
         </el-table-column>
       </el-table>
@@ -86,6 +116,33 @@ onMounted(loadData)
         <el-pagination v-model:current-page="query.page" :page-size="query.size" :total="total" layout="prev, pager, next, total" @current-change="handlePageChange" />
       </div>
     </el-card>
+
+    <!-- Ship Dialog -->
+    <el-dialog v-model="shipDialogVisible" title="发货" width="400px">
+      <el-form v-if="shipTarget" label-width="80px">
+        <el-form-item label="订单号">
+          <span>{{ shipTarget.orderNo }}</span>
+        </el-form-item>
+        <el-form-item label="物流公司" required>
+          <el-select v-model="shipForm.logisticsCompany" placeholder="选择物流公司" style="width:100%">
+            <el-option label="顺丰速运" value="顺丰速运" />
+            <el-option label="中通快递" value="中通快递" />
+            <el-option label="圆通速递" value="圆通速递" />
+            <el-option label="韵达快递" value="韵达快递" />
+            <el-option label="京东物流" value="京东物流" />
+            <el-option label="EMS" value="EMS" />
+            <el-option label="其它" value="其它" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="运单编号" required>
+          <el-input v-model="shipForm.logisticsNo" placeholder="请输入运单编号" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="shipDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleShip">确认发货</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -102,4 +159,5 @@ onMounted(loadData)
 .item-name { margin: 0 0 4px; font-size: 14px; color: #303133; }
 .item-spec { margin: 0; font-size: 12px; color: #909399; }
 .item-price, .item-qty, .item-subtotal { font-size: 14px; color: #606266; white-space: nowrap; }
+.order-logistics { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e4e7ed; font-size: 13px; color: #909399; display: flex; align-items: center; gap: 4px; }
 </style>

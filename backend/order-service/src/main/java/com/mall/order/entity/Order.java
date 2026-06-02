@@ -19,6 +19,8 @@ public class Order {
     private LocalDateTime paymentTime;
     private LocalDateTime deliveryTime;
     private LocalDateTime receiveTime;
+    private String logisticsCompany;
+    private String logisticsNo;
     private String receiverName;
     private String receiverPhone;
     private String receiverAddress;

@@ -22,6 +22,8 @@ export interface Order {
   paymentTime: string | null
   deliveryTime: string | null
   receiveTime: string | null
+  logisticsCompany: string | null
+  logisticsNo: string | null
   receiverName: string
   receiverPhone: string
   receiverAddress: string

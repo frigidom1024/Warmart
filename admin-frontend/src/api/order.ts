@@ -23,6 +23,8 @@ export interface Order {
   paymentTime: string | null
   deliveryTime: string | null
   receiveTime: string | null
+  logisticsCompany: string | null
+  logisticsNo: string | null
   receiverName: string
   receiverPhone: string
   receiverAddress: string
@@ -41,4 +43,8 @@ export function getAdminOrderList(params: {
 
 export function updateOrderStatus(id: number, status: number) {
   return request.put<void>('/order/admin/status', null, { params: { id, status } })
+}
+
+export function shipOrder(id: number, logisticsCompany: string, logisticsNo: string) {
+  return request.put<void>('/order/admin/ship', null, { params: { id, logisticsCompany, logisticsNo } })
 }

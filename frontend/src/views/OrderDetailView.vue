@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getOrderDetail, cancelOrder, confirmOrder, payOrder } from '@/api/order'
+import { getOrderDetail, cancelOrder, confirmOrder, payOrder, applyRefund } from '@/api/order'
 import type { Order } from '@/api/order'
 import { showToast } from '@/utils/toast'
 
@@ -19,7 +19,7 @@ const stepConfig = [
 ]
 
 const statusLabels: Record<number, string> = {
-  0: '待付款', 1: '待发货', 2: '待收货', 3: '已完成', 4: '已取消'
+  0: '待付款', 1: '待发货', 2: '待收货', 3: '已完成', 4: '已取消', 5: '退款中'
 }
 
 onMounted(async () => {
@@ -53,10 +53,26 @@ async function handleConfirm() {
   } catch { /* handled */ }
 }
 
+async function handleRefund() {
+  if (!order.value) return
+  if (!window.confirm('确定要申请退款吗？')) return
+  try {
+    await applyRefund(order.value.id)
+    order.value.status = 5
+    showToast('退款申请已提交', 'success')
+  } catch { /* handled */ }
+}
+
 function goToComment() {
   if (order.value?.items?.length) {
     router.push(`/product/detail/${order.value.items[0].productId}?orderId=${order.value.id}`)
   }
+}
+
+function copyLogisticsNo() {
+  if (!order.value?.logisticsNo) return
+  navigator.clipboard.writeText(order.value.logisticsNo)
+  showToast('运单号已复制', 'success')
 }
 
 async function handlePay() {
@@ -72,6 +88,14 @@ function stepStatus(stepIndex: number) {
   if (!order.value) return ''
   const s = order.value.status
   if (s === 4) return '' // cancelled
+  if (s === 5) {
+    // 退款中：显示到"已发货"，最后一步显示"退款处理中"
+    if (stepIndex === 0) return 'completed'
+    if (stepIndex === 1) return 'completed'
+    if (stepIndex === 2) return 'completed'
+    if (stepIndex === 3) return 'active'
+    return ''
+  }
   if (stepIndex === 0) return 'completed'
   if (stepIndex === 1) return s >= 1 ? 'completed' : ''
   if (stepIndex === 2) return s >= 2 ? 'completed' : ''
@@ -92,18 +116,23 @@ function stepStatus(stepIndex: number) {
       <section v-if="order.status !== 4" class="order-detail__section">
         <div class="order-detail__steps">
           <template v-for="(step, i) in stepConfig" :key="step.key">
-            <div
+            <div v-if="order.status !== 5 || i <= 3"
               class="order-detail__step"
               :class="[`order-detail__step--${stepStatus(i)}`]"
             >
               <div class="order-detail__step-dot"></div>
               <div class="order-detail__step-info">
-                <p class="order-detail__step-label">{{ step.label }}</p>
+                <p class="order-detail__step-label">{{ order.status === 5 && i === 3 ? '退款处理中' : step.label }}</p>
                 <p class="order-detail__step-time">{{ step.timeField && (order as any)[step.timeField] || '——' }}</p>
               </div>
             </div>
-            <div v-if="i < stepConfig.length - 1" class="order-detail__step-connector"></div>
+            <div v-if="i < stepConfig.length - 1 && (order.status !== 5 || i < 3)" class="order-detail__step-connector"></div>
           </template>
+        </div>
+        <!-- Refund info banner -->
+        <div v-if="order.status === 5" class="order-detail__refund-banner">
+          <span class="order-detail__refund-dot"></span>
+          <span>退款申请已提交，等待商家处理</span>
         </div>
       </section>
 
@@ -122,6 +151,31 @@ function stepStatus(stepIndex: number) {
           <div class="order-detail__card-row">
             <span class="order-detail__card-label">收货地址</span>
             <span class="order-detail__card-value">{{ order.receiverAddress }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Logistics Tracking -->
+      <section v-if="order.logisticsCompany" class="order-detail__section">
+        <h2 class="order-detail__section-title">物流信息</h2>
+        <div class="order-detail__card">
+          <div class="order-detail__card-row">
+            <span class="order-detail__card-label">物流公司</span>
+            <span class="order-detail__card-value">{{ order.logisticsCompany }}</span>
+          </div>
+          <div class="order-detail__card-row">
+            <span class="order-detail__card-label">运单编号</span>
+            <span class="order-detail__card-value">
+              {{ order.logisticsNo }}
+              <span
+                class="order-detail__copy-btn"
+                @click="copyLogisticsNo"
+              >复制</span>
+            </span>
+          </div>
+          <div class="order-detail__card-row" v-if="order.deliveryTime">
+            <span class="order-detail__card-label">发货时间</span>
+            <span class="order-detail__card-value">{{ order.deliveryTime }}</span>
           </div>
         </div>
       </section>
@@ -182,6 +236,15 @@ function stepStatus(stepIndex: number) {
             class="order-detail__action order-detail__action--primary"
             @click="goToComment"
           >去评价</span>
+          <span
+            v-if="order.status === 2 || order.status === 3"
+            class="order-detail__action order-detail__action--danger"
+            @click="handleRefund"
+          >申请退款</span>
+          <span
+            v-if="order.logisticsCompany"
+            class="order-detail__action order-detail__action--secondary"
+          >查看物流</span>
         </div>
       </div>
     </div>
@@ -197,20 +260,24 @@ function stepStatus(stepIndex: number) {
   padding-top: 64px;
   background: var(--wz-bg);
 }
+
 .order-detail {
   max-width: 800px;
   margin: 0 auto;
-  padding: 32px 24px 80px;
+  padding: 28px 24px 80px;
 }
+
 .order-detail__breadcrumb {
   font-size: 13px;
-  color: var(--wz-text-soft);
-  margin-bottom: 12px;
+  color: var(--wz-text-muted);
+  margin-bottom: 16px;
   cursor: pointer;
+  transition: color var(--wz-duration-fast) var(--wz-ease-out);
 }
 .order-detail__breadcrumb:hover {
-  color: var(--wz-orange);
+  color: var(--wz-text-soft);
 }
+
 .order-detail--loading {
   display: flex;
   align-items: center;
@@ -218,185 +285,331 @@ function stepStatus(stepIndex: number) {
   min-height: 300px;
   color: var(--wz-text-muted);
 }
-.order-detail__actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 16px;
-}
-.order-detail__action {
-  flex: 1;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 22px;
-  font-size: 14px;
-  cursor: pointer;
-  font-weight: 500;
-}
-.order-detail__action--primary {
-  background: var(--wz-orange);
-  color: #fff;
-}
-.order-detail__action--primary:hover {
-  background: var(--wz-orange-dark);
-}
-.order-detail__action--danger {
-  border: 1px solid var(--wz-danger, #e74c3c);
-  color: var(--wz-danger, #e74c3c);
-}
-.order-detail__action--danger:hover {
-  background: rgba(231, 76, 60, 0.06);
-}
+
 .order-detail__title {
   font-family: var(--wz-font-display, 'Noto Serif SC', serif);
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 600;
   color: var(--wz-text);
+  letter-spacing: 0.02em;
+  margin-bottom: 32px;
+}
+
+.order-detail__section {
   margin-bottom: 28px;
 }
-.order-detail__section {
-  margin-bottom: 24px;
-}
+
 .order-detail__section-title {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--wz-text);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--wz-text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   margin-bottom: 12px;
+  padding-left: 2px;
 }
+
+/* ── Steps ── */
 .order-detail__steps {
   display: flex;
   align-items: flex-start;
-  padding: 24px;
-  background: var(--wz-bg-card, #fff);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 28px 24px;
+  background: var(--wz-bg-card);
+  border: 1px solid var(--wz-border);
+  border-radius: var(--wz-radius-md);
   overflow-x: auto;
 }
+
 .order-detail__step {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   flex-shrink: 0;
 }
+
 .order-detail__step-dot {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: #e0d8d0;
-  margin-top: 4px;
+  background: var(--wz-text-muted);
+  margin-top: 5px;
   flex-shrink: 0;
+  transition: background var(--wz-duration-normal) var(--wz-ease-out),
+              box-shadow var(--wz-duration-normal) var(--wz-ease-out);
 }
+
 .order-detail__step--completed .order-detail__step-dot {
   background: var(--wz-orange);
+  box-shadow: 0 0 0 3px var(--wz-orange-muted);
 }
+
 .order-detail__step--active .order-detail__step-dot {
   background: var(--wz-orange);
-  box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.2);
+  box-shadow: 0 0 0 5px var(--wz-orange-muted);
 }
+
 .order-detail__step-label {
   font-size: 13px;
   font-weight: 500;
   color: var(--wz-text);
+  line-height: 1.3;
   white-space: nowrap;
 }
-.order-detail__step-time {
-  font-size: 12px;
-  color: var(--wz-text-soft);
+
+.order-detail__step--active .order-detail__step-label {
+  color: var(--wz-orange);
 }
+
+.order-detail__step-time {
+  font-size: 11px;
+  color: var(--wz-text-muted);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
 .order-detail__step-connector {
-  width: 40px;
-  height: 2px;
-  background: #e0d8d0;
-  margin: 10px 12px 0;
+  width: 48px;
+  height: 1px;
+  background: var(--wz-border);
+  margin: 10px 8px 0;
   flex-shrink: 0;
 }
-.order-detail__card {
-  background: var(--wz-bg-card, #fff);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+.order-detail__step--completed + .order-detail__step-connector {
+  background: var(--wz-orange-muted);
+  height: 2px;
 }
+
+/* ── Refund banner ── */
+.order-detail__refund-banner {
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: rgba(255, 159, 10, 0.08);
+  border: 1px solid rgba(255, 159, 10, 0.2);
+  border-radius: var(--wz-radius-sm);
+  font-size: 13px;
+  color: var(--wz-warning);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.order-detail__refund-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--wz-warning);
+  flex-shrink: 0;
+  animation: refund-pulse 2s ease-in-out infinite;
+}
+@keyframes refund-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* ── Cards (dark surface) ── */
+.order-detail__card {
+  background: var(--wz-bg-card);
+  border: 1px solid var(--wz-border);
+  border-radius: var(--wz-radius-md);
+  padding: 20px;
+  transition: border-color var(--wz-duration-normal) var(--wz-ease-out);
+}
+
 .order-detail__card-row {
   display: flex;
-  gap: 16px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 10px;
   font-size: 14px;
+  line-height: 1.5;
 }
 .order-detail__card-row:last-child {
   margin-bottom: 0;
 }
+
 .order-detail__card-label {
-  color: var(--wz-text-soft);
-  min-width: 72px;
+  color: var(--wz-text-muted);
+  min-width: 68px;
   flex-shrink: 0;
+  font-size: 13px;
 }
+
 .order-detail__card-value {
-  color: var(--wz-text);
+  color: var(--wz-text-soft);
+  word-break: break-all;
 }
+
+.order-detail__copy-btn {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 7px;
+  font-size: 11px;
+  color: var(--wz-orange);
+  border: 1px solid var(--wz-orange);
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 18px;
+  transition: background var(--wz-duration-fast) var(--wz-ease-out),
+              color var(--wz-duration-fast) var(--wz-ease-out);
+  vertical-align: middle;
+}
+.order-detail__copy-btn:hover {
+  background: var(--wz-orange);
+  color: #fff;
+}
+
+/* ── Order items ── */
 .order-detail__item {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 12px 0;
-  border-bottom: 1px solid #f0ebe6;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--wz-border-light);
 }
 .order-detail__item:last-child {
   border-bottom: none;
 }
+
 .order-detail__item-image {
-  width: 64px;
-  height: 64px;
-  border-radius: 8px;
+  width: 60px;
+  height: 60px;
+  border-radius: var(--wz-radius-sm);
   flex-shrink: 0;
   object-fit: cover;
   background: var(--wz-bg);
 }
-.order-detail__item-qty {
-  font-size: 14px;
-  color: var(--wz-text-soft);
-}
+
 .order-detail__item-info {
   flex: 1;
+  min-width: 0;
 }
+
 .order-detail__item-name {
   font-size: 14px;
   font-weight: 500;
   color: var(--wz-text);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
 .order-detail__item-spec {
   font-size: 12px;
-  color: var(--wz-text-soft);
+  color: var(--wz-text-muted);
 }
+
 .order-detail__item-price {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--wz-text);
+  white-space: nowrap;
 }
+
 .order-detail__item-qty {
-  font-size: 14px;
-  color: var(--wz-text-soft);
+  font-size: 13px;
+  color: var(--wz-text-muted);
+  margin-left: 4px;
 }
+
+/* ── Summary ── */
 .order-detail__summary {
-  background: var(--wz-bg-card, #fff);
-  border-radius: 12px;
+  background: var(--wz-bg-card);
+  border: 1px solid var(--wz-border);
+  border-radius: var(--wz-radius-md);
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
+
 .order-detail__summary-row {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
-  color: var(--wz-text);
-  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--wz-text-soft);
+  margin-bottom: 8px;
+  line-height: 1.5;
 }
+
 .order-detail__summary-row--total {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
-  color: var(--wz-orange);
-  margin-top: 8px;
+  color: var(--wz-text);
+  margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #f0ebe6;
+  border-top: 1px solid var(--wz-border);
+}
+
+.order-detail__summary-row--total span:last-child {
+  color: var(--wz-orange);
+}
+
+/* ── Actions ── */
+.order-detail__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.order-detail__action {
+  flex: 1;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background var(--wz-duration-fast) var(--wz-ease-out),
+              border-color var(--wz-duration-fast) var(--wz-ease-out),
+              color var(--wz-duration-fast) var(--wz-ease-out);
+  user-select: none;
+}
+
+.order-detail__action--primary {
+  background: var(--wz-orange);
+  color: #fff;
+  border: none;
+}
+.order-detail__action--primary:hover {
+  background: var(--wz-orange-dark);
+}
+
+.order-detail__action--secondary {
+  background: transparent;
+  color: var(--wz-text-soft);
+  border: 1px solid var(--wz-border);
+}
+.order-detail__action--secondary:hover {
+  border-color: var(--wz-text-muted);
+  color: var(--wz-text);
+}
+
+.order-detail__action--danger {
+  background: transparent;
+  color: var(--wz-danger);
+  border: 1px solid var(--wz-danger);
+}
+.order-detail__action--danger:hover {
+  background: rgba(255, 69, 58, 0.08);
+}
+
+@media (max-width: 640px) {
+  .order-detail {
+    padding: 20px 16px 80px;
+  }
+  .order-detail__title {
+    font-size: 22px;
+    margin-bottom: 24px;
+  }
+  .order-detail__steps {
+    padding: 20px 16px;
+  }
+  .order-detail__action {
+    font-size: 12px;
+    height: 36px;
+  }
+  .order-detail__item-image {
+    width: 48px;
+    height: 48px;
+  }
 }
 </style>

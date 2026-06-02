@@ -71,6 +71,10 @@ async function handleUploadImage(file: File): Promise<boolean> {
     showToast('最多上传 3 张图片', 'warning')
     return false
   }
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('图片大小不能超过 2MB', 'warning')
+    return false
+  }
   uploadingImage.value = true
   try {
     const url = await uploadCommentImage(file) as unknown as string
@@ -244,6 +248,10 @@ function loadMore() {
 async function handleSubmitComment() {
   if (!newComment.value.trim()) {
     showToast('请输入评论内容', 'warning')
+    return
+  }
+  if (uploadingImage.value) {
+    showToast('请等待图片上传完成', 'warning')
     return
   }
   const productId = Number(route.params.id)
@@ -499,7 +507,7 @@ function renderStars(rating: number) {
                 <span class="pdp__comments-form-count">{{ newComment.length }}/500</span>
                 <div class="pdp__comments-form-btns">
                   <button class="pdp__comments-form-cancel" @click="showCommentForm = false">取消</button>
-                  <button class="pdp__comments-form-submit" :disabled="submittingComment || !newComment.trim()" @click="handleSubmitComment">
+                  <button class="pdp__comments-form-submit" :disabled="submittingComment || uploadingImage || !newComment.trim()" @click="handleSubmitComment">
                     {{ submittingComment ? '提交中...' : '提交评价' }}
                   </button>
                 </div>

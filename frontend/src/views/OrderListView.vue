@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { getOrderList, cancelOrder, confirmOrder, applyRefund } from '@/api/order'
 import type { Order, OrderItem } from '@/api/order'
 
@@ -22,6 +22,23 @@ const orderTabs = [
 
 const statusLabels: Record<number, string> = {
   0: '待付款', 1: '待发货', 2: '待收货', 3: '已完成', 4: '已取消', 5: '退款中'
+}
+
+const refundDialogVisible = ref(false)
+const refundTargetId = ref(0)
+const refundReason = ref('')
+const refundSubmitting = ref(false)
+
+const refundPresets = [
+  '商品与描述不符',
+  '质量问题',
+  '不想要了',
+  '发错货/漏发',
+  '其他原因'
+]
+
+function selectPreset(reason: string) {
+  refundReason.value = reason
 }
 
 onMounted(async () => {
@@ -59,18 +76,21 @@ async function handleConfirm(id: number) {
 }
 
 async function handleRefund(id: number) {
+  refundTargetId.value = id
+  refundReason.value = ''
+  refundDialogVisible.value = true
+}
+
+async function submitRefund() {
+  if (!refundTargetId.value || !refundReason.value.trim()) return
+  refundSubmitting.value = true
   try {
-    const { value } = await ElMessageBox.prompt('请填写退款原因', '申请退款', {
-      inputType: 'textarea',
-      inputPlaceholder: '请详细描述退款原因',
-      inputValidator: (v: string) => !!v.trim() || '退款原因不能为空',
-      confirmButtonText: '提交申请',
-      cancelButtonText: '取消'
-    })
-    await applyRefund(id, value.trim())
+    await applyRefund(refundTargetId.value, refundReason.value.trim())
     ElMessage.success('退款申请已提交')
+    refundDialogVisible.value = false
     loadOrders()
-  } catch { /* handled (cancel or error) */ }
+  } catch { /* handled */ }
+  finally { refundSubmitting.value = false }
 }
 
 function goToComment(order: Order) {
@@ -172,6 +192,42 @@ const orderStatus = (status: number) => statusLabels[status] || '未知'
       </div>
     </div>
   </div>
+
+  <!-- Refund Dialog -->
+  <el-dialog v-model="refundDialogVisible" title="申请退款" width="440px" class="refund-dialog">
+    <div class="refund-dialog__body">
+      <div class="refund-dialog__section">
+        <p class="refund-dialog__section-title">退款原因</p>
+        <div class="refund-dialog__presets">
+          <span
+            v-for="reason in refundPresets"
+            :key="reason"
+            class="refund-dialog__preset"
+            :class="{ 'refund-dialog__preset--active': refundReason === reason }"
+            @click="selectPreset(reason)"
+          >{{ reason }}</span>
+        </div>
+        <div class="refund-dialog__textarea-wrap">
+          <textarea
+            v-model="refundReason"
+            class="refund-dialog__textarea"
+            :rows="3"
+            placeholder="请详细描述退款原因，这将帮助商家更快处理您的申请"
+            maxlength="500"
+          ></textarea>
+          <span class="refund-dialog__textarea-count">{{ refundReason.length }}/500</span>
+        </div>
+      </div>
+    </div>
+    <template #footer>
+      <div class="refund-dialog__footer">
+        <button class="refund-dialog__btn refund-dialog__btn--cancel" @click="refundDialogVisible = false">取消</button>
+        <button class="refund-dialog__btn refund-dialog__btn--submit" :disabled="!refundReason.trim() || refundSubmitting" @click="submitRefund">
+          {{ refundSubmitting ? '提交中...' : '提交申请' }}
+        </button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <style scoped>
@@ -392,6 +448,134 @@ const orderStatus = (status: number) => statusLabels[status] || '未知'
 .order-list__empty {
   text-align: center;
   padding: 80px 24px;
+}
+
+/* ── Refund Dialog ── */
+.refund-dialog :deep(.el-dialog__body) {
+  padding: 0;
+}
+.refund-dialog :deep(.el-dialog__header) {
+  padding: 20px 24px 0;
+  margin: 0;
+}
+.refund-dialog :deep(.el-dialog__headerbtn) {
+  top: 20px;
+  right: 20px;
+}
+.refund-dialog :deep(.el-dialog__title) {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--wz-text);
+}
+.refund-dialog__body {
+  padding: 20px 24px;
+}
+.refund-dialog__section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wz-text);
+  margin: 0 0 10px;
+}
+.refund-dialog__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.refund-dialog__preset {
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--wz-text-soft);
+  background: var(--wz-bg);
+  border: 1px solid var(--wz-border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s var(--wz-ease-out);
+  user-select: none;
+}
+.refund-dialog__preset:hover {
+  border-color: var(--wz-orange);
+  color: var(--wz-orange);
+}
+.refund-dialog__preset--active {
+  background: var(--wz-orange);
+  border-color: var(--wz-orange);
+  color: #fff;
+}
+.refund-dialog__preset--active:hover {
+  background: var(--wz-orange-dark);
+  border-color: var(--wz-orange-dark);
+  color: #fff;
+}
+.refund-dialog__textarea-wrap {
+  position: relative;
+}
+.refund-dialog__textarea {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--wz-text);
+  background: var(--wz-bg);
+  border: 1px solid var(--wz-border);
+  border-radius: 8px;
+  outline: none;
+  resize: none;
+  line-height: 1.6;
+  transition: border-color 0.2s var(--wz-ease-out);
+  box-sizing: border-box;
+}
+.refund-dialog__textarea:focus {
+  border-color: var(--wz-orange);
+}
+.refund-dialog__textarea::placeholder {
+  color: var(--wz-text-muted);
+}
+.refund-dialog__textarea-count {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  font-size: 11px;
+  color: var(--wz-text-muted);
+}
+.refund-dialog__footer {
+  display: flex;
+  gap: 10px;
+  padding: 0 24px 20px;
+}
+.refund-dialog__btn {
+  flex: 1;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 21px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s var(--wz-ease-out);
+  border: none;
+  font-family: inherit;
+}
+.refund-dialog__btn--cancel {
+  background: var(--wz-bg);
+  color: var(--wz-text-soft);
+  border: 1px solid var(--wz-border);
+}
+.refund-dialog__btn--cancel:hover {
+  border-color: var(--wz-text-muted);
+  color: var(--wz-text);
+}
+.refund-dialog__btn--submit {
+  background: var(--wz-orange);
+  color: #fff;
+}
+.refund-dialog__btn--submit:hover:not(:disabled) {
+  background: var(--wz-orange-dark);
+}
+.refund-dialog__btn--submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .order-list__empty-text {

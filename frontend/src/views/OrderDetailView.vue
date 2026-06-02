@@ -13,6 +13,18 @@ const refundDialogVisible = ref(false)
 const refundReason = ref('')
 const refundSubmitting = ref(false)
 
+const refundPresets = [
+  '商品与描述不符',
+  '质量问题',
+  '不想要了',
+  '发错货/漏发',
+  '其他原因'
+]
+
+function selectPreset(reason: string) {
+  refundReason.value = reason
+}
+
 const stepConfig = [
   { label: '下单成功', key: 'created', timeField: 'createdTime' },
   { label: '已付款', key: 'paid', timeField: 'paymentTime' },
@@ -265,18 +277,42 @@ function stepStatus(stepIndex: number) {
   </div>
 
   <!-- Refund Dialog -->
-  <el-dialog v-model="refundDialogVisible" title="申请退款" width="420px">
-    <el-form label-width="70px">
-      <el-form-item label="订单金额">
-        <span style="font-size:16px;font-weight:600;color:#ff6b35">¥{{ order?.totalAmount }}</span>
-      </el-form-item>
-      <el-form-item label="退款原因" required>
-        <el-input v-model="refundReason" type="textarea" :rows="4" placeholder="请详细描述退款原因，这将帮助商家更快处理您的申请" maxlength="500" show-word-limit />
-      </el-form-item>
-    </el-form>
+  <el-dialog v-model="refundDialogVisible" title="申请退款" width="440px" class="refund-dialog">
+    <div class="refund-dialog__body">
+      <div class="refund-dialog__amount">
+        <span class="refund-dialog__amount-label">退款金额</span>
+        <span class="refund-dialog__amount-value">¥{{ order?.totalAmount }}</span>
+      </div>
+      <div class="refund-dialog__section">
+        <p class="refund-dialog__section-title">退款原因</p>
+        <div class="refund-dialog__presets">
+          <span
+            v-for="reason in refundPresets"
+            :key="reason"
+            class="refund-dialog__preset"
+            :class="{ 'refund-dialog__preset--active': refundReason === reason }"
+            @click="selectPreset(reason)"
+          >{{ reason }}</span>
+        </div>
+        <div class="refund-dialog__textarea-wrap">
+          <textarea
+            v-model="refundReason"
+            class="refund-dialog__textarea"
+            :rows="3"
+            placeholder="请详细描述退款原因，这将帮助商家更快处理您的申请"
+            maxlength="500"
+          ></textarea>
+          <span class="refund-dialog__textarea-count">{{ refundReason.length }}/500</span>
+        </div>
+      </div>
+    </div>
     <template #footer>
-      <el-button @click="refundDialogVisible = false">取消</el-button>
-      <el-button type="primary" :loading="refundSubmitting" @click="submitRefund">提交申请</el-button>
+      <div class="refund-dialog__footer">
+        <button class="refund-dialog__btn refund-dialog__btn--cancel" @click="refundDialogVisible = false">取消</button>
+        <button class="refund-dialog__btn refund-dialog__btn--submit" :disabled="!refundReason.trim() || refundSubmitting" @click="submitRefund">
+          {{ refundSubmitting ? '提交中...' : '提交申请' }}
+        </button>
+      </div>
     </template>
   </el-dialog>
 </template>
@@ -638,5 +674,152 @@ function stepStatus(stepIndex: number) {
     width: 48px;
     height: 48px;
   }
+}
+
+/* ── Refund Dialog ── */
+.refund-dialog :deep(.el-dialog__body) {
+  padding: 0;
+}
+.refund-dialog :deep(.el-dialog__header) {
+  padding: 20px 24px 0;
+  margin: 0;
+}
+.refund-dialog :deep(.el-dialog__headerbtn) {
+  top: 20px;
+  right: 20px;
+}
+.refund-dialog :deep(.el-dialog__title) {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--wz-text);
+}
+.refund-dialog__body {
+  padding: 20px 24px;
+}
+.refund-dialog__amount {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--wz-orange-muted);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+.refund-dialog__amount-label {
+  font-size: 13px;
+  color: var(--wz-text-soft);
+}
+.refund-dialog__amount-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--wz-orange);
+  letter-spacing: -0.3px;
+}
+.refund-dialog__section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wz-text);
+  margin: 0 0 10px;
+}
+.refund-dialog__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.refund-dialog__preset {
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--wz-text-soft);
+  background: var(--wz-bg);
+  border: 1px solid var(--wz-border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s var(--wz-ease-out);
+  user-select: none;
+}
+.refund-dialog__preset:hover {
+  border-color: var(--wz-orange);
+  color: var(--wz-orange);
+}
+.refund-dialog__preset--active {
+  background: var(--wz-orange);
+  border-color: var(--wz-orange);
+  color: #fff;
+}
+.refund-dialog__preset--active:hover {
+  background: var(--wz-orange-dark);
+  border-color: var(--wz-orange-dark);
+  color: #fff;
+}
+.refund-dialog__textarea-wrap {
+  position: relative;
+}
+.refund-dialog__textarea {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--wz-text);
+  background: var(--wz-bg);
+  border: 1px solid var(--wz-border);
+  border-radius: 8px;
+  outline: none;
+  resize: none;
+  line-height: 1.6;
+  transition: border-color 0.2s var(--wz-ease-out);
+  box-sizing: border-box;
+}
+.refund-dialog__textarea:focus {
+  border-color: var(--wz-orange);
+}
+.refund-dialog__textarea::placeholder {
+  color: var(--wz-text-muted);
+}
+.refund-dialog__textarea-count {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  font-size: 11px;
+  color: var(--wz-text-muted);
+}
+.refund-dialog__footer {
+  display: flex;
+  gap: 10px;
+  padding: 0 24px 20px;
+}
+.refund-dialog__btn {
+  flex: 1;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 21px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s var(--wz-ease-out);
+  border: none;
+  font-family: inherit;
+}
+.refund-dialog__btn--cancel {
+  background: var(--wz-bg);
+  color: var(--wz-text-soft);
+  border: 1px solid var(--wz-border);
+}
+.refund-dialog__btn--cancel:hover {
+  border-color: var(--wz-text-muted);
+  color: var(--wz-text);
+}
+.refund-dialog__btn--submit {
+  background: var(--wz-orange);
+  color: #fff;
+}
+.refund-dialog__btn--submit:hover:not(:disabled) {
+  background: var(--wz-orange-dark);
+}
+.refund-dialog__btn--submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 </style>

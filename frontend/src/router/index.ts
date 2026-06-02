@@ -66,6 +66,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '订单详情', requiresAuth: true }
   },
   {
+    path: '/logistics/:id',
+    name: 'Logistics',
+    component: () => import('@/views/LogisticsView.vue'),
+    meta: { title: '物流跟踪', requiresAuth: true }
+  },
+  {
     path: '/user/info',
     name: 'UserInfo',
     component: () => import('@/views/UserInfoView.vue'),

@@ -19,3 +19,11 @@ export function getCommentList(productId: number, params: { page?: number; size?
 export function addComment(data: { productId: number; content: string; rating: number; imageUrls?: string }) {
   return request.post<void>('/product/comment/add', data)
 }
+
+export function uploadCommentImage(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post<string>('/product/comment/upload-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }).then(res => res.data)
+}

@@ -31,6 +31,7 @@ public class OrderService {
     private final CartService cartService;
     private final CartMapper cartMapper;
     private final RestTemplate restTemplate;
+    private final RefundService refundService;
 
     @Transactional
     public Order create(Long userId, String receiverName, String receiverPhone,
@@ -167,16 +168,8 @@ public class OrderService {
     }
 
     @Transactional
-    public void applyRefund(Long orderId, Long userId) {
-        Order order = orderMapper.selectOne(
-                new LambdaQueryWrapper<Order>()
-                        .eq(Order::getId, orderId)
-                        .eq(Order::getUserId, userId));
-        if (order != null && (order.getStatus() == 2 || order.getStatus() == 3)) {
-            order.setStatus(5); // refunding
-            order.setUpdatedTime(LocalDateTime.now());
-            orderMapper.updateById(order);
-        }
+    public void applyRefund(Long orderId, Long userId, String reason) {
+        refundService.create(orderId, userId, reason);
     }
 
     public IPage<Order> adminList(Integer status, int page, int size) {

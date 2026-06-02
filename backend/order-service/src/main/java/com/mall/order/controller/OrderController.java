@@ -70,9 +70,11 @@ public class OrderController {
     }
 
     @PostMapping("/refund/{id}")
-    public Result<Void> refund(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+    public Result<Void> refund(@PathVariable Long id,
+                               @RequestParam String reason,
+                               @AuthenticationPrincipal Jwt jwt) {
         Long userId = Long.valueOf(jwt.getSubject());
-        orderService.applyRefund(id, userId);
+        orderService.applyRefund(id, userId, reason);
         return Result.success(null);
     }
 

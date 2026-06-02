@@ -18,6 +18,7 @@ const menuItems = [
     ]
   },
   { path: '/orders', icon: 'List', label: '订单管理' },
+  { path: '/refunds', icon: 'Coin', label: '退款管理' },
   {
     label: '内容管理', icon: 'Document',
     children: [

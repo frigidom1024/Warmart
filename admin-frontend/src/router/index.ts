@@ -45,6 +45,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '订单管理' }
       },
       {
+        path: 'refunds',
+        name: 'RefundManage',
+        component: () => import('@/views/RefundManageView.vue'),
+        meta: { title: '退款管理' }
+      },
+      {
         path: 'banners',
         name: 'BannerList',
         component: () => import('@/views/BannerView.vue'),

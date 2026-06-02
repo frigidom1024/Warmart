@@ -1128,14 +1128,13 @@ function renderStars(rating: number) {
   min-height: 200px;
 }
 
-/* Summary */
+/* Summary - no card, just a compact header */
 .pdp__comments-summary {
   display: flex;
-  gap: 40px;
-  padding: 24px 28px;
-  background: var(--wz-bg-card);
-  border-radius: 16px;
-  margin-bottom: 28px;
+  gap: 32px;
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--wz-border);
 }
 .pdp__comments-score {
   display: flex;
@@ -1172,8 +1171,8 @@ function renderStars(rating: number) {
 }
 .pdp__comments-bar-track {
   flex: 1;
-  height: 6px;
-  background: var(--wz-bg-elevated);
+  height: 4px;
+  background: var(--wz-border);
   border-radius: 99px;
   overflow: hidden;
 }
@@ -1192,30 +1191,33 @@ function renderStars(rating: number) {
 
 /* Add Comment */
 .pdp__comments-add {
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--wz-border-light);
 }
 .pdp__comments-add-btn {
   width: 100%;
   height: 48px;
-  border: 1px dashed var(--wz-border);
-  border-radius: 12px;
-  color: var(--wz-text-soft);
+  border: 1px solid var(--wz-border);
+  border-radius: 10px;
+  color: var(--wz-text-muted);
   font-size: 14px;
   cursor: pointer;
+  font-weight: 500;
   transition: all 0.2s;
+  letter-spacing: 0.3px;
 }
 .pdp__comments-add-btn:hover:not(:disabled) {
   border-color: var(--wz-orange);
   color: var(--wz-orange);
+  background: var(--wz-orange-muted);
 }
 .pdp__comments-add-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 .pdp__comments-form {
-  background: var(--wz-bg-card);
-  border-radius: 16px;
-  padding: 24px;
+  padding: 0;
 }
 .pdp__comments-form-rating {
   display: flex;
@@ -1372,20 +1374,17 @@ function renderStars(rating: number) {
   margin-top: 6px;
 }
 
-/* Comment List */
+/* Comment List - no cards, border separation */
 .pdp__comments-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
 }
 .pdp__comment-card {
-  background: var(--wz-bg-card);
-  border-radius: 14px;
-  padding: 20px 24px;
-  transition: background 0.2s;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--wz-border-light);
 }
-.pdp__comment-card:hover {
-  background: var(--wz-bg-elevated);
+.pdp__comment-card:last-child {
+  border-bottom: none;
 }
 .pdp__comment-header {
   display: flex;
@@ -1454,7 +1453,7 @@ function renderStars(rating: number) {
 /* Load More & End */
 .pdp__comments-more {
   text-align: center;
-  padding: 20px 0;
+  padding: 24px 0 8px;
 }
 .pdp__comments-more button {
   height: 42px;

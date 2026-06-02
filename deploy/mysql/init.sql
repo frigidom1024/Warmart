@@ -288,6 +288,18 @@ CREATE TABLE IF NOT EXISTS payment (
     INDEX idx_order_id (order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS logistics_track (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id BIGINT NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    message VARCHAR(500),
+    location VARCHAR(200),
+    track_time DATETIME NOT NULL,
+    created_time DATETIME NOT NULL,
+    INDEX idx_order_id (order_id),
+    INDEX idx_track_time (track_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS refund_application (
     id           BIGINT AUTO_INCREMENT PRIMARY KEY,
     order_id     BIGINT NOT NULL,

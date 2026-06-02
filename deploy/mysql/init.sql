@@ -294,6 +294,7 @@ CREATE TABLE IF NOT EXISTS refund_application (
     user_id      BIGINT NOT NULL,
     reason       VARCHAR(500) NOT NULL,
     amount       DECIMAL(10,2) NOT NULL,
+    previous_status INT DEFAULT NULL,
     status       VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     admin_reply  VARCHAR(500),
     handled_time DATETIME,

@@ -16,7 +16,8 @@ const actionForm = ref({ adminReply: '' })
 const statusMap: Record<string, { type: string; text: string }> = {
   PENDING: { type: 'warning', text: '待处理' },
   APPROVED: { type: 'success', text: '已通过' },
-  REJECTED: { type: 'danger', text: '已拒绝' }
+  REJECTED: { type: 'danger', text: '已拒绝' },
+  CANCELLED: { type: 'info', text: '已取消' }
 }
 
 async function loadData() {
@@ -74,6 +75,7 @@ onMounted(loadData)
           <el-option label="待处理" value="PENDING" />
           <el-option label="已通过" value="APPROVED" />
           <el-option label="已拒绝" value="REJECTED" />
+          <el-option label="已取消" value="CANCELLED" />
         </el-select>
         <el-button type="primary" @click="handleSearch">搜索</el-button>
       </div>

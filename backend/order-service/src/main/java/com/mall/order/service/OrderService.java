@@ -33,6 +33,7 @@ public class OrderService {
     private final CartMapper cartMapper;
     private final RestTemplate restTemplate;
     private final RefundService refundService;
+    private final LogisticsService logisticsService;
 
     @Transactional
     public Order create(Long userId, String receiverName, String receiverPhone,
@@ -226,6 +227,10 @@ public class OrderService {
             order.setPaymentTime(LocalDateTime.now());
         }
         orderMapper.updateById(order);
+
+        // Generate initial logistics tracks
+        logisticsService.addTrack(id, "ORDERED", "订单已确认", null, order.getCreatedTime());
+        logisticsService.addTrack(id, "WAREHOUSE", "商品已打包完成，等待快递揽收", null, LocalDateTime.now());
     }
 
     @SuppressWarnings("unchecked")

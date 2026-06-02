@@ -17,8 +17,14 @@ const menuItems = [
       { path: '/categories', label: '分类管理' }
     ]
   },
-  { path: '/orders', icon: 'List', label: '订单管理' },
-  { path: '/refunds', icon: 'Coin', label: '退款管理' },
+  {
+    label: '订单管理', icon: 'List',
+    children: [
+      { path: '/orders', label: '订单列表' },
+      { path: '/logistics', label: '物流管理' },
+      { path: '/refunds', label: '退款管理' }
+    ]
+  },
   {
     label: '内容管理', icon: 'Document',
     children: [

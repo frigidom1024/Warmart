@@ -35,6 +35,11 @@ export interface Order {
 
 export function getAdminOrderList(params: {
   status?: number
+  orderNo?: string
+  receiverName?: string
+  receiverPhone?: string
+  startTime?: string
+  endTime?: string
   page?: number
   size?: number
 }) {

@@ -472,9 +472,8 @@ function stepStatus(stepIndex: number) {
 .order-detail__steps {
   display: flex;
   align-items: flex-start;
-  padding: 24px;
+  padding: 20px 24px;
   background: var(--wz-bg-card);
-  border: 1px solid var(--wz-border);
   border-radius: var(--wz-radius-md);
   overflow-x: auto;
 }
@@ -600,7 +599,6 @@ function stepStatus(stepIndex: number) {
 /* ── Items ── */
 .order-detail__items {
   background: var(--wz-bg-card);
-  border: 1px solid var(--wz-border);
   border-radius: var(--wz-radius-md);
   overflow: hidden;
 }
@@ -609,7 +607,7 @@ function stepStatus(stepIndex: number) {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 20px;
+  padding: 18px 20px;
 }
 
 .order-detail__item + .order-detail__item {
@@ -670,10 +668,9 @@ function stepStatus(stepIndex: number) {
 /* ── Logistics ── */
 .order-detail__logistics {
   margin-top: 16px;
-  background: var(--wz-bg-card);
-  border: 1px solid var(--wz-border);
-  border-radius: var(--wz-radius-md);
-  padding: 16px 20px;
+  background: var(--wz-bg);
+  border-radius: var(--wz-radius-sm);
+  padding: 14px 20px;
 }
 
 .order-detail__logistics-header {
@@ -782,19 +779,18 @@ function stepStatus(stepIndex: number) {
 
 /* ── Side panel ── */
 .order-detail__info {
-  background: var(--wz-bg-card);
-  border: 1px solid var(--wz-border);
-  border-radius: var(--wz-radius-md);
-  padding: 18px 20px;
+  background: var(--wz-bg-elevated);
+  border-radius: var(--wz-radius-sm);
+  padding: 16px 18px;
 }
 
 .order-detail__info-title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   color: var(--wz-text-muted);
+  letter-spacing: 0.08em;
+  margin: 0 0 10px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin: 0 0 12px;
 }
 
 .order-detail__info-row {
@@ -803,7 +799,7 @@ function stepStatus(stepIndex: number) {
   gap: 12px;
   font-size: 13px;
   color: var(--wz-text);
-  padding: 5px 0;
+  padding: 4px 0;
   line-height: 1.5;
 }
 

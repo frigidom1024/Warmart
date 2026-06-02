@@ -3,6 +3,8 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getOrderDetail, cancelOrder, confirmOrder, payOrder, applyRefund, cancelRefund, getRefundInfo } from '@/api/order'
 import type { Order } from '@/api/order'
+import { getLogisticsTracks } from '@/api/logistics'
+import type { LogisticsTrack } from '@/api/logistics'
 import { showToast } from '@/utils/toast'
 
 const route = useRoute()
@@ -13,6 +15,7 @@ const refundDialogVisible = ref(false)
 const refundReason = ref('')
 const refundSubmitting = ref(false)
 const refundInfo = ref<{ status: string; adminReply: string | null } | null>(null)
+const logisticsTracks = ref<LogisticsTrack[]>([])
 
 const refundPresets = [
   '商品与描述不符',
@@ -38,6 +41,19 @@ const statusLabels: Record<number, string> = {
   0: '待付款', 1: '待发货', 2: '待收货', 3: '已完成', 4: '已取消', 5: '退款中'
 }
 
+const logisticsStatusMap: Record<string, { label: string; color: string }> = {
+  ORDERED: { label: '已下单', color: '#6b6c72' },
+  WAREHOUSE: { label: '仓库处理中', color: '#6b6c72' },
+  IN_TRANSIT: { label: '运输中', color: '#409eff' },
+  PICKUP: { label: '待取件', color: '#ff9f0a' },
+  DELIVERED: { label: '已签收', color: '#34c759' }
+}
+
+function formatTime(t: string) {
+  if (!t) return ''
+  return t.replace('T', ' ').substring(0, 16)
+}
+
 onMounted(async () => {
   const id = Number(route.params.id)
   if (!id) {
@@ -46,6 +62,13 @@ onMounted(async () => {
   }
   try {
     order.value = await getOrderDetail(id)
+    // 获取物流跟踪信息
+    if (order.value?.logisticsCompany) {
+      try {
+        const res: any = await getLogisticsTracks(id)
+        logisticsTracks.value = res?.data || res || []
+      } catch {}
+    }
     // 获取退款申请信息（如果有）
     try {
       const res: any = await getRefundInfo(id)
@@ -233,6 +256,34 @@ function stepStatus(stepIndex: number) {
           <div class="order-detail__card-row" v-if="order.deliveryTime">
             <span class="order-detail__card-label">发货时间</span>
             <span class="order-detail__card-value">{{ order.deliveryTime }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Logistics Tracking Timeline (compact) -->
+      <section v-if="logisticsTracks.length" class="order-detail__section">
+        <h2 class="order-detail__section-title">物流跟踪</h2>
+        <div class="logistics-compact">
+          <div
+            v-for="(track, i) in logisticsTracks.slice(0, 4)"
+            :key="track.id"
+            class="logistics-compact__item"
+          >
+            <div class="logistics-compact__dot"
+              :style="{ background: i === 0 ? logisticsStatusMap[track.status]?.color : '#2a2b30' }">
+            </div>
+            <div v-if="i < Math.min(logisticsTracks.length, 4) - 1" class="logistics-compact__line"></div>
+            <div class="logistics-compact__content">
+              <p class="logistics-compact__status"
+                :style="{ color: i === 0 ? logisticsStatusMap[track.status]?.color : 'var(--wz-text-soft)' }">
+                {{ logisticsStatusMap[track.status]?.label || track.status }}
+              </p>
+              <p class="logistics-compact__msg">{{ track.message || '' }}</p>
+              <p class="logistics-compact__time">{{ formatTime(track.trackTime) }}</p>
+            </div>
+          </div>
+          <div v-if="logisticsTracks.length > 4" class="logistics-compact__more">
+            <span @click="$router.push('/logistics/' + order?.id)">查看完整物流 →</span>
           </div>
         </div>
       </section>
@@ -869,6 +920,74 @@ function stepStatus(stepIndex: number) {
 .refund-dialog__btn--submit:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ── Logistics Compact Timeline ── */
+.logistics-compact {
+  background: var(--wz-bg-card);
+  border: 1px solid var(--wz-border);
+  border-radius: var(--wz-radius-md);
+  padding: 20px;
+}
+.logistics-compact__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+  padding-bottom: 16px;
+}
+.logistics-compact__item:last-child {
+  padding-bottom: 0;
+}
+.logistics-compact__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+  position: relative;
+  z-index: 1;
+}
+.logistics-compact__line {
+  position: absolute;
+  left: 4px;
+  top: 16px;
+  width: 2px;
+  bottom: 0;
+  background: var(--wz-border);
+}
+.logistics-compact__content {
+  flex: 1;
+  min-width: 0;
+}
+.logistics-compact__status {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+.logistics-compact__msg {
+  font-size: 12px;
+  color: var(--wz-text-muted);
+  margin: 2px 0;
+}
+.logistics-compact__time {
+  font-size: 11px;
+  color: var(--wz-text-muted);
+  margin: 0;
+}
+.logistics-compact__more {
+  text-align: center;
+  padding-top: 8px;
+  border-top: 1px solid var(--wz-border-light);
+  margin-top: 8px;
+}
+.logistics-compact__more span {
+  font-size: 13px;
+  color: var(--wz-orange);
+  cursor: pointer;
+}
+.logistics-compact__more span:hover {
+  color: var(--wz-orange-dark);
 }
 </style>
 

@@ -132,8 +132,8 @@ function stepStatus(stepIndex: number) {
   if (stepIndex === 0) return 'completed'
   if (stepIndex === 1) return s >= 1 ? 'completed' : ''
   if (stepIndex === 2) return s >= 2 ? 'completed' : ''
-  if (stepIndex === 3) return s >= 3 ? (s === 3 ? 'active' : 'completed') : ''
-  if (stepIndex === 4) return s >= 3 ? 'completed' : ''
+  if (stepIndex === 3) return s >= 2 ? (s === 2 ? 'active' : 'completed') : ''
+  if (stepIndex === 4) return s >= 3 ? (s === 3 ? 'active' : 'completed') : ''
   return ''
 }
 </script>

@@ -463,17 +463,33 @@ const orderStatus = (status: number) => statusLabels[status] || '未知'
   padding: 80px 24px;
 }
 
-/* ── Refund Dialog ── */
+/* ── Refund Dialog (Dark Theme) ── */
+.refund-dialog :deep(.el-dialog) {
+  background: var(--wz-bg-card);
+  border: 1px solid var(--wz-border);
+  border-radius: var(--wz-radius-md);
+  box-shadow: var(--wz-shadow-xl);
+}
+.refund-dialog :deep(.el-overlay) {
+  background: rgba(0, 0, 0, 0.6);
+}
 .refund-dialog :deep(.el-dialog__body) {
   padding: 0;
 }
 .refund-dialog :deep(.el-dialog__header) {
   padding: 20px 24px 0;
   margin: 0;
+  border-bottom: none;
 }
 .refund-dialog :deep(.el-dialog__headerbtn) {
   top: 20px;
   right: 20px;
+}
+.refund-dialog :deep(.el-dialog__headerbtn .el-dialog__close) {
+  color: var(--wz-text-muted);
+}
+.refund-dialog :deep(.el-dialog__headerbtn .el-dialog__close:hover) {
+  color: var(--wz-text);
 }
 .refund-dialog :deep(.el-dialog__title) {
   font-size: 17px;
@@ -571,7 +587,7 @@ const orderStatus = (status: number) => statusLabels[status] || '未知'
   font-family: inherit;
 }
 .refund-dialog__btn--cancel {
-  background: var(--wz-bg);
+  background: var(--wz-bg-elevated);
   color: var(--wz-text-soft);
   border: 1px solid var(--wz-border);
 }

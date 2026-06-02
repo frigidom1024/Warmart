@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessageBox, ElMessage } from 'element-plus'
 import { getOrderList, cancelOrder, confirmOrder, applyRefund } from '@/api/order'
 import type { Order, OrderItem } from '@/api/order'
 
@@ -58,11 +59,18 @@ async function handleConfirm(id: number) {
 }
 
 async function handleRefund(id: number) {
-  if (!window.confirm('确定要申请退款吗？')) return
   try {
-    await applyRefund(id)
+    const { value } = await ElMessageBox.prompt('请填写退款原因', '申请退款', {
+      inputType: 'textarea',
+      inputPlaceholder: '请详细描述退款原因',
+      inputValidator: (v: string) => !!v.trim() || '退款原因不能为空',
+      confirmButtonText: '提交申请',
+      cancelButtonText: '取消'
+    })
+    await applyRefund(id, value.trim())
+    ElMessage.success('退款申请已提交')
     loadOrders()
-  } catch { /* handled */ }
+  } catch { /* handled (cancel or error) */ }
 }
 
 function goToComment(order: Order) {

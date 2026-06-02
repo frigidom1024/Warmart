@@ -9,6 +9,9 @@ const route = useRoute()
 const router = useRouter()
 const order = ref<Order | null>(null)
 const loading = ref(true)
+const refundDialogVisible = ref(false)
+const refundReason = ref('')
+const refundSubmitting = ref(false)
 
 const stepConfig = [
   { label: '下单成功', key: 'created', timeField: 'createdTime' },
@@ -55,12 +58,20 @@ async function handleConfirm() {
 
 async function handleRefund() {
   if (!order.value) return
-  if (!window.confirm('确定要申请退款吗？')) return
+  refundReason.value = ''
+  refundDialogVisible.value = true
+}
+
+async function submitRefund() {
+  if (!order.value || !refundReason.value.trim()) return
+  refundSubmitting.value = true
   try {
-    await applyRefund(order.value.id)
+    await applyRefund(order.value.id, refundReason.value.trim())
     order.value.status = 5
+    refundDialogVisible.value = false
     showToast('退款申请已提交', 'success')
   } catch { /* handled */ }
+  finally { refundSubmitting.value = false }
 }
 
 function goToComment() {
@@ -252,6 +263,22 @@ function stepStatus(stepIndex: number) {
     <!-- Loading -->
     <div v-else-if="loading" class="order-detail order-detail--loading">加载中...</div>
   </div>
+
+  <!-- Refund Dialog -->
+  <el-dialog v-model="refundDialogVisible" title="申请退款" width="420px">
+    <el-form label-width="70px">
+      <el-form-item label="订单金额">
+        <span style="font-size:16px;font-weight:600;color:#ff6b35">¥{{ order?.totalAmount }}</span>
+      </el-form-item>
+      <el-form-item label="退款原因" required>
+        <el-input v-model="refundReason" type="textarea" :rows="4" placeholder="请详细描述退款原因，这将帮助商家更快处理您的申请" maxlength="500" show-word-limit />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="refundDialogVisible = false">取消</el-button>
+      <el-button type="primary" :loading="refundSubmitting" @click="submitRefund">提交申请</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <style scoped>

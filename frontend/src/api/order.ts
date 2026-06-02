@@ -64,8 +64,9 @@ export function confirmOrder(id: number) {
   return request.post<void>('/order/confirm/' + id)
 }
 
-export function applyRefund(id: number) {
-  return request.post<void>('/order/refund/' + id)
+export function applyRefund(id: number, reason?: string) {
+  const url = reason ? '/order/refund/' + id + '?reason=' + encodeURIComponent(reason) : '/order/refund/' + id
+  return request.post<void>(url)
 }
 
 export function payOrder(data: { orderId: number; method: string }) {

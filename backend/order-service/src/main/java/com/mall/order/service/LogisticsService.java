@@ -35,4 +35,26 @@ public class LogisticsService {
                         .eq(LogisticsTrack::getOrderId, orderId)
                         .orderByDesc(LogisticsTrack::getTrackTime));
     }
+
+    @Transactional
+    public void updateTrack(Long id, String status, String message, String location, LocalDateTime trackTime) {
+        LogisticsTrack track = logisticsTrackMapper.selectById(id);
+        if (track == null) {
+            throw new RuntimeException("Logistics track not found");
+        }
+        if (status != null) track.setStatus(status);
+        if (message != null) track.setMessage(message);
+        if (location != null) track.setLocation(location);
+        if (trackTime != null) track.setTrackTime(trackTime);
+        logisticsTrackMapper.updateById(track);
+    }
+
+    @Transactional
+    public void deleteTrack(Long id) {
+        LogisticsTrack track = logisticsTrackMapper.selectById(id);
+        if (track == null) {
+            throw new RuntimeException("Logistics track not found");
+        }
+        logisticsTrackMapper.deleteById(id);
+    }
 }

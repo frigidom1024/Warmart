@@ -140,6 +140,29 @@ public class OrderService {
         return order;
     }
 
+    /**
+     * Transition order to a new status: updates status, sets time fields,
+     * saves the order, and auto-creates corresponding logistics tracks.
+     * Caller is responsible for loading the order and any pre-update mutations.
+     */
+    private void transitionStatus(Order order, int newStatus) {
+        int oldStatus = order.getStatus();
+        if (oldStatus == newStatus) return;
+
+        order.setStatus(newStatus);
+        order.setUpdatedTime(LocalDateTime.now());
+        if (newStatus >= 1 && order.getPaymentTime() == null) order.setPaymentTime(LocalDateTime.now());
+        if (newStatus >= 2 && order.getDeliveryTime() == null) order.setDeliveryTime(LocalDateTime.now());
+        if (newStatus == 3) order.setReceiveTime(LocalDateTime.now());
+        orderMapper.updateById(order);
+
+        // Auto-create logistics tracks for key milestones
+        if (newStatus == 3 && oldStatus == 2) {
+            logisticsService.addTrack(order.getId(), "DELIVERED", "订单已签收，确认收货",
+                    order.getReceiverAddress(), LocalDateTime.now());
+        }
+    }
+
     @Transactional
     public void cancel(Long orderId, Long userId) {
         Order order = orderMapper.selectOne(
@@ -148,9 +171,7 @@ public class OrderService {
                         .eq(Order::getUserId, userId)
                         .eq(Order::getStatus, 0));
         if (order != null) {
-            order.setStatus(4); // cancelled
-            order.setUpdatedTime(LocalDateTime.now());
-            orderMapper.updateById(order);
+            transitionStatus(order, 4);
         }
     }
 
@@ -162,10 +183,7 @@ public class OrderService {
                         .eq(Order::getUserId, userId)
                         .eq(Order::getStatus, 2));
         if (order != null) {
-            order.setStatus(3); // completed
-            order.setReceiveTime(LocalDateTime.now());
-            order.setUpdatedTime(LocalDateTime.now());
-            orderMapper.updateById(order);
+            transitionStatus(order, 3);
         }
     }
 
@@ -182,11 +200,16 @@ public class OrderService {
         return refundService.getByOrderId(orderId);
     }
 
-    public IPage<Order> adminList(Integer status, int page, int size) {
+    public IPage<Order> adminList(Integer status, String orderNo, String receiverName,
+                                   String receiverPhone, String startTime, String endTime,
+                                   int page, int size) {
         LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<>();
-        if (status != null) {
-            wrapper.eq(Order::getStatus, status);
-        }
+        if (status != null) wrapper.eq(Order::getStatus, status);
+        if (orderNo != null && !orderNo.isEmpty()) wrapper.like(Order::getOrderNo, orderNo);
+        if (receiverName != null && !receiverName.isEmpty()) wrapper.like(Order::getReceiverName, receiverName);
+        if (receiverPhone != null && !receiverPhone.isEmpty()) wrapper.like(Order::getReceiverPhone, receiverPhone);
+        if (startTime != null && !startTime.isEmpty()) wrapper.ge(Order::getCreatedTime, LocalDateTime.parse(startTime));
+        if (endTime != null && !endTime.isEmpty()) wrapper.le(Order::getCreatedTime, LocalDateTime.parse(endTime));
         wrapper.orderByDesc(Order::getCreatedTime);
         IPage<Order> orderPage = orderMapper.selectPage(new Page<>(page, size), wrapper);
 
@@ -218,19 +241,14 @@ public class OrderService {
         if (order == null) {
             throw new RuntimeException("Order not found");
         }
-        order.setStatus(2);
         order.setLogisticsCompany(logisticsCompany);
         order.setLogisticsNo(logisticsNo);
-        order.setDeliveryTime(LocalDateTime.now());
-        order.setUpdatedTime(LocalDateTime.now());
-        if (order.getPaymentTime() == null) {
-            order.setPaymentTime(LocalDateTime.now());
-        }
-        orderMapper.updateById(order);
 
-        // Generate initial logistics tracks
+        // Generate initial logistics tracks before status transition
         logisticsService.addTrack(id, "ORDERED", "订单已确认", null, order.getCreatedTime());
         logisticsService.addTrack(id, "WAREHOUSE", "商品已打包完成，等待快递揽收", null, LocalDateTime.now());
+
+        transitionStatus(order, 2);
     }
 
     @SuppressWarnings("unchecked")

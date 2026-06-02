@@ -96,9 +96,14 @@ public class OrderController {
     @GetMapping("/admin/list")
     public Result<IPage<Order>> adminList(
             @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String orderNo,
+            @RequestParam(required = false) String receiverName,
+            @RequestParam(required = false) String receiverPhone,
+            @RequestParam(required = false) String startTime,
+            @RequestParam(required = false) String endTime,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return Result.success(orderService.adminList(status, page, size));
+        return Result.success(orderService.adminList(status, orderNo, receiverName, receiverPhone, startTime, endTime, page, size));
     }
 
     @PutMapping("/admin/status")

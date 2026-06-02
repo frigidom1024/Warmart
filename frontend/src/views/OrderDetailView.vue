@@ -172,208 +172,145 @@ function stepStatus(stepIndex: number) {
 <template>
   <div class="page-container">
     <div class="order-detail" v-if="order">
-
-      <!-- ── Header ── -->
+      <!-- Header -->
       <div class="od-header">
-        <div class="od-header__breadcrumb" @click="router.push('/order/list')">我的订单</div>
-        <div class="od-header__row">
-          <h1 class="od-header__title">订单详情</h1>
-          <span class="od-header__badge" :class="`od-header__badge--${order.status}`">
+        <button class="od-header__back" @click="router.push('/order/list')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          返回
+        </button>
+        <div class="od-header__status">
+          <span class="od-header__status-badge" :class="`od-header__status-badge--${order.status}`">
             {{ statusLabels[order.status] || '未知' }}
           </span>
-        </div>
-        <div class="od-header__meta">
-          <span>{{ order.orderNo }}</span>
-          <span class="od-header__dot">·</span>
-          <span>{{ formatTime(order.createdTime) }}</span>
-          <span class="od-header__dot">·</span>
-          <span>实付 <strong>¥{{ order.totalAmount }}</strong></span>
+          <span class="od-header__order-no">#{{ order.orderNo }}</span>
         </div>
       </div>
 
-      <!-- ── Progress ── -->
-      <section v-if="order.status !== 4" class="od-progress">
-        <div class="od-progress__steps">
-          <template v-for="(step, i) in stepConfig" :key="step.key">
-            <div
-              v-if="order.status !== 5 || (i <= 3 && (i !== 2 || order.deliveryTime))"
-              class="od-progress__step"
-              :class="[`od-progress__step--${stepStatus(i)}`]"
-            >
-              <div class="od-progress__dot"></div>
-              <div class="od-progress__info">
-                <p class="od-progress__label">{{ order.status === 5 && i === 3 ? '退款处理中' : step.label }}</p>
-                <p class="od-progress__time" v-if="stepStatus(i)">{{ step.timeField && (order as any)[step.timeField] || '——' }}</p>
-              </div>
+      <!-- Steps bar -->
+      <div v-if="order.status !== 4" class="od-steps">
+        <template v-for="(step, i) in stepConfig" :key="step.key">
+          <div
+            v-if="order.status !== 5 || (i <= 3 && (i !== 2 || order.deliveryTime))"
+            class="od-step"
+            :class="[`od-step--${stepStatus(i)}`]"
+          >
+            <div class="od-step__dot"></div>
+            <div class="od-step__info">
+              <p class="od-step__label">{{ order.status === 5 && i === 3 ? '退款处理中' : step.label }}</p>
+              <p class="od-step__time">{{ stepStatus(i) && step.timeField ? ((order as any)[step.timeField] || '') : '' }}</p>
             </div>
-            <div v-if="i < stepConfig.length - 1 && (order.status !== 5 || (order.deliveryTime ? i < 3 : i < 1))" class="od-progress__connector"></div>
-          </template>
-        </div>
-        <div v-if="order.status === 5" class="od-progress__refund od-progress__refund--pending">
-          <span class="od-progress__pulse"></span>
-          <span>退款申请已提交，等待商家处理</span>
-        </div>
-      </section>
+          </div>
+          <div v-if="i < stepConfig.length - 1 && (order.status !== 5 || (order.deliveryTime ? i < 3 : i < 1))" class="od-step__connector"></div>
+        </template>
+      </div>
 
-      <!-- Refund result banners -->
-      <div v-if="refundInfo?.status === 'REJECTED'" class="od-progress__refund od-progress__refund--rejected">
+      <!-- Refund banner -->
+      <div v-if="order.status === 5" class="od-refund od-refund--pending">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>退款申请已提交，等待商家处理</span>
+      </div>
+      <div v-if="refundInfo?.status === 'REJECTED'" class="od-refund od-refund--rejected">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
         <div>
-          <p class="od-progress__refund-title">退款申请已被拒绝</p>
-          <p v-if="refundInfo.adminReply" class="od-progress__refund-reply">{{ refundInfo.adminReply }}</p>
+          <p class="od-refund__title">退款申请已被拒绝</p>
+          <p v-if="refundInfo.adminReply" class="od-refund__reply">{{ refundInfo.adminReply }}</p>
         </div>
       </div>
-      <div v-if="refundInfo?.status === 'APPROVED'" class="od-progress__refund od-progress__refund--approved">
+      <div v-if="refundInfo?.status === 'APPROVED'" class="od-refund od-refund--approved">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
         <span>退款已完成</span>
       </div>
 
-      <!-- ── Content (single card) ── -->
-      <div class="od-content">
-
-        <!-- Receiver -->
-        <div class="od-content__block">
-          <div class="od-content__label">收货信息</div>
-          <div class="od-content__grid">
-            <div class="od-content__cell">
-              <span class="od-content__hint">收货人</span>
-              <span>{{ order.receiverName }}</span>
-            </div>
-            <div class="od-content__cell">
-              <span class="od-content__hint">联系电话</span>
-              <span>{{ order.receiverPhone }}</span>
-            </div>
-            <div class="od-content__cell od-content__cell--wide">
-              <span class="od-content__hint">收货地址</span>
-              <span>{{ order.receiverAddress }}</span>
-            </div>
+      <!-- Shipment panel: receiver + logistics + timeline merged -->
+      <div class="od-shipment">
+        <div class="od-shipment__main">
+          <div class="od-shipment__receiver">
+            <p class="od-shipment__name">{{ order.receiverName }}</p>
+            <p class="od-shipment__phone">{{ order.receiverPhone }}</p>
+            <p class="od-shipment__address">{{ order.receiverAddress }}</p>
           </div>
-        </div>
-
-        <div class="od-content__divider"></div>
-
-        <!-- Logistics -->
-        <div v-if="order.logisticsCompany" class="od-content__block">
-          <div class="od-content__label">物流信息</div>
-          <div class="od-content__grid">
-            <div class="od-content__cell">
-              <span class="od-content__hint">物流公司</span>
-              <span>{{ order.logisticsCompany }}</span>
+          <div class="od-shipment__divider"></div>
+          <div class="od-shipment__logistics" v-if="order.logisticsCompany">
+            <div class="od-shipment__courier">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              <span>{{ order.logisticsCompany }} · {{ order.logisticsNo }}</span>
+              <button class="od-shipment__copy" @click="copyLogisticsNo">复制</button>
             </div>
-            <div class="od-content__cell">
-              <span class="od-content__hint">运单编号</span>
-              <span>
-                {{ order.logisticsNo }}
-                <span class="od-content__copy" @click="copyLogisticsNo">复制</span>
-              </span>
-            </div>
-            <div class="od-content__cell" v-if="order.deliveryTime">
-              <span class="od-content__hint">发货时间</span>
-              <span>{{ formatTime(order.deliveryTime) }}</span>
-            </div>
-          </div>
-        </div>
+            <p class="od-shipment__delivery-time" v-if="order.deliveryTime">发货 {{ formatTime(order.deliveryTime) }}</p>
 
-        <div v-if="order.logisticsCompany && logisticsTracks.length" class="od-content__divider"></div>
-
-        <!-- Logistics Timeline (compact) -->
-        <div v-if="logisticsTracks.length" class="od-content__block">
-          <div class="od-content__label">物流跟踪</div>
-          <div class="od-timeline">
-            <div
-              v-for="(track, i) in logisticsTracks.slice(0, 4)"
-              :key="track.id"
-              class="od-timeline__item"
-            >
-              <div class="od-timeline__dot"
-                :style="{ background: i === 0 ? logisticsStatusMap[track.status]?.color : 'var(--wz-text-muted)' }">
-              </div>
-              <div v-if="i < Math.min(logisticsTracks.length, 4) - 1" class="od-timeline__line"></div>
-              <div class="od-timeline__content">
-                <p class="od-timeline__status"
-                  :style="{ color: i === 0 ? logisticsStatusMap[track.status]?.color : '' }">
+            <!-- Compact timeline inside shipment -->
+            <div class="od-shipment__tracks" v-if="logisticsTracks.length">
+              <div
+                v-for="(track, i) in logisticsTracks.slice(0, 3)"
+                :key="track.id"
+                class="od-shipment__track"
+              >
+                <span class="od-shipment__track-dot" :style="{ background: i === 0 ? logisticsStatusMap[track.status]?.color : '' }"></span>
+                <span class="od-shipment__track-label" :style="{ color: i === 0 ? logisticsStatusMap[track.status]?.color : '' }">
                   {{ logisticsStatusMap[track.status]?.label || track.status }}
-                </p>
-                <p class="od-timeline__msg">{{ track.message || '' }}</p>
-                <p class="od-timeline__time">{{ formatTime(track.trackTime) }}</p>
+                </span>
+                <span class="od-shipment__track-time">{{ formatTime(track.trackTime) }}</span>
               </div>
-            </div>
-            <div v-if="logisticsTracks.length > 4" class="od-timeline__more">
-              <span @click="$router.push('/logistics/' + order?.id)">查看完整物流</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="od-content__divider"></div>
-
-        <!-- Items -->
-        <div class="od-content__block">
-          <div class="od-content__label">商品清单</div>
-          <div
-            v-for="item in (order.items || [])"
-            :key="item.id"
-            class="od-item"
-          >
-            <img v-if="item.productImage" :src="item.productImage" class="od-item__img">
-            <div v-else class="od-item__img od-item__img--empty"></div>
-            <div class="od-item__info">
-              <p class="od-item__name">{{ item.productName }}</p>
-              <p v-if="item.specInfo" class="od-item__spec">{{ item.specInfo }}</p>
-            </div>
-            <div class="od-item__pricing">
-              <span class="od-item__price">¥{{ item.price }}</span>
-              <span class="od-item__qty">x{{ item.quantity }}</span>
+              <button v-if="logisticsTracks.length > 3" class="od-shipment__view-all" @click="$router.push('/logistics/' + order.id)">
+                查看完整物流
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- ── Footer ── -->
-      <div class="od-footer">
-        <div class="od-footer__total">
-          <span>共 {{ order.items?.length || 0 }} 件商品</span>
-          <span class="od-footer__amount">实付 <strong>¥{{ order.totalAmount }}</strong></span>
+      <!-- Order Items -->
+      <div class="od-items">
+        <div v-for="item in (order.items || [])" :key="item.id" class="od-item">
+          <img v-if="item.productImage" :src="item.productImage" class="od-item__image">
+          <div v-else class="od-item__image od-item__image--empty"></div>
+          <div class="od-item__body">
+            <p class="od-item__name">{{ item.productName }}</p>
+            <p v-if="item.specInfo" class="od-item__spec">{{ item.specInfo }}</p>
+          </div>
+          <div class="od-item__pricing">
+            <p class="od-item__price">¥{{ item.price }}</p>
+            <p class="od-item__qty">x{{ item.quantity }}</p>
+            <p class="od-item__subtotal">¥{{ item.subtotal }}</p>
+          </div>
         </div>
-        <div class="od-footer__actions">
-          <button
-            v-if="order.status === 0"
-            class="od-btn od-btn--primary"
-            @click="handlePay"
-          >去支付</button>
-          <button
-            v-if="order.status === 0"
-            class="od-btn od-btn--ghost"
-            @click="handleCancel"
-          >取消订单</button>
-          <button
-            v-if="order.status === 2"
-            class="od-btn od-btn--primary"
-            @click="handleConfirm"
-          >确认收货</button>
-          <button
-            v-if="order.status === 3"
-            class="od-btn od-btn--primary"
-            @click="goToComment"
-          >去评价</button>
-          <button
-            v-if="order.status === 1 || order.status === 2 || order.status === 3"
-            class="od-btn od-btn--danger"
-            @click="handleRefund"
-          >申请退款</button>
-          <button
-            v-if="order.status === 5"
-            class="od-btn od-btn--ghost"
-            @click="handleCancelRefund"
-          >取消退款</button>
-          <button
-            v-if="order.logisticsCompany"
-            class="od-btn od-btn--ghost"
-            @click="$router.push('/logistics/' + order?.id)"
-          >查看物流</button>
+      </div>
+
+      <!-- Summary + Actions -->
+      <div class="od-summary">
+        <div class="od-summary__rows">
+          <div class="od-summary__row">
+            <span>订单编号</span>
+            <span>{{ order.orderNo }}</span>
+          </div>
+          <div class="od-summary__row">
+            <span>下单时间</span>
+            <span>{{ order.createdTime }}</span>
+          </div>
+          <div class="od-summary__row">
+            <span>订单状态</span>
+            <span>{{ statusLabels[order.status] || '未知' }}</span>
+          </div>
         </div>
+        <div class="od-summary__total">
+          <span>实付金额</span>
+          <span class="od-summary__amount">¥{{ order.totalAmount }}</span>
+        </div>
+      </div>
+
+      <div class="od-actions">
+        <button v-if="order.status === 0" class="od-btn od-btn--primary" @click="handlePay">去支付</button>
+        <button v-if="order.status === 0" class="od-btn od-btn--ghost" @click="handleCancel">取消订单</button>
+        <button v-if="order.status === 2" class="od-btn od-btn--primary" @click="handleConfirm">确认收货</button>
+        <button v-if="order.status === 3" class="od-btn od-btn--primary" @click="goToComment">去评价</button>
+        <button v-if="order.status === 1 || order.status === 2 || order.status === 3" class="od-btn od-btn--danger" @click="handleRefund">申请退款</button>
+        <button v-if="order.status === 5" class="od-btn od-btn--ghost" @click="handleCancelRefund">取消退款</button>
+        <button v-if="order.logisticsCompany" class="od-btn od-btn--ghost" @click="$router.push('/logistics/' + order.id)">查看物流</button>
       </div>
     </div>
 
+    <!-- Loading -->
     <div v-else-if="loading" class="od-loading">加载中...</div>
   </div>
 
@@ -419,279 +356,88 @@ function stepStatus(stepIndex: number) {
 </template>
 
 <style scoped>
-.page-container {
-  min-height: 100vh;
-  padding-top: 64px;
-  background: var(--wz-bg);
-}
-.order-detail {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 28px 24px 80px;
-}
-.od-loading {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 80px 24px;
-  text-align: center;
-  color: var(--wz-text-muted);
-}
-.od-header { margin-bottom: 28px; }
-.od-header__breadcrumb {
-  font-size: 13px;
-  color: var(--wz-text-muted);
-  margin-bottom: 12px;
-  cursor: pointer;
-  transition: color var(--wz-duration-fast) var(--wz-ease-out);
-}
-.od-header__breadcrumb:hover { color: var(--wz-text-soft); }
-.od-header__row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 10px;
-}
-.od-header__title {
-  font-family: var(--wz-font-display);
-  font-size: 26px;
-  font-weight: 600;
-  color: var(--wz-text);
-  letter-spacing: 0.02em;
-  margin: 0;
-}
-.od-header__badge {
-  display: inline-block;
-  padding: 3px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 999px;
-  line-height: 1.4;
-}
-.od-header__badge--0 { background: var(--wz-orange-muted); color: var(--wz-orange); }
-.od-header__badge--1 { background: rgba(64,158,255,0.12); color: #409eff; }
-.od-header__badge--2 { background: var(--wz-bg-elevated); color: var(--wz-text-soft); }
-.od-header__badge--3 { background: rgba(52,199,89,0.12); color: var(--wz-success); }
-.od-header__badge--4 { background: var(--wz-bg-elevated); color: var(--wz-text-muted); }
-.od-header__badge--5 { background: rgba(255,159,10,0.12); color: var(--wz-warning); }
-.od-header__meta {
-  font-size: 13px;
-  color: var(--wz-text-muted);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.od-header__meta strong { color: var(--wz-orange); font-weight: 600; }
-.od-header__dot { color: var(--wz-border); }
-
-.od-progress {
-  background: var(--wz-bg-card);
-  border: 1px solid var(--wz-border);
-  border-radius: var(--wz-radius-md);
-  padding: 24px 20px;
-  margin-bottom: 20px;
-}
-.od-progress__steps { display: flex; align-items: flex-start; overflow-x: auto; }
-.od-progress__step { display: flex; align-items: flex-start; gap: 10px; flex-shrink: 0; }
-.od-progress__dot {
-  width: 10px; height: 10px; border-radius: 50%;
-  background: var(--wz-text-muted);
-  margin-top: 5px; flex-shrink: 0;
-  transition: background var(--wz-duration-normal) var(--wz-ease-out), box-shadow var(--wz-duration-normal) var(--wz-ease-out);
-}
-.od-progress__step--completed .od-progress__dot {
-  background: var(--wz-orange);
-  box-shadow: 0 0 0 3px var(--wz-orange-muted);
-}
-.od-progress__step--active .od-progress__dot {
-  background: var(--wz-orange);
-  box-shadow: 0 0 0 5px var(--wz-orange-muted);
-}
-.od-progress__label {
-  font-size: 13px; font-weight: 500;
-  color: var(--wz-text);
-  line-height: 1.3; white-space: nowrap; margin: 0;
-}
-.od-progress__step--active .od-progress__label { color: var(--wz-orange); }
-.od-progress__time { font-size: 11px; color: var(--wz-text-muted); margin: 0; }
-.od-progress__connector {
-  width: 48px; height: 1px;
-  background: var(--wz-border);
-  margin: 10px 8px 0;
-  flex-shrink: 0;
-}
-.od-progress__step--completed + .od-progress__connector {
-  background: var(--wz-orange-muted); height: 2px;
-}
-.od-progress__refund {
-  margin-top: 14px; padding: 10px 14px;
-  border-radius: var(--wz-radius-sm);
-  font-size: 13px;
-  display: flex; align-items: flex-start; gap: 8px;
-  line-height: 1.4;
-}
-.od-progress__refund--pending {
-  background: rgba(255,159,10,0.08);
-  border: 1px solid rgba(255,159,10,0.2);
-  color: var(--wz-warning);
-}
-.od-progress__refund--rejected {
-  background: rgba(255,69,58,0.08);
-  border: 1px solid rgba(255,69,58,0.2);
-  color: var(--wz-danger);
-  margin-bottom: 20px;
-}
-.od-progress__refund--approved {
-  background: rgba(52,199,89,0.08);
-  border: 1px solid rgba(52,199,89,0.2);
-  color: var(--wz-success);
-  margin-bottom: 20px;
-}
-.od-progress__refund-title { font-weight: 500; margin: 0; }
-.od-progress__refund-reply { font-size: 12px; opacity: 0.8; margin: 2px 0 0; }
-.od-progress__pulse {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--wz-warning);
-  flex-shrink: 0;
-  animation: od-pulse 2s ease-in-out infinite;
-}
-@keyframes od-pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
-.od-content {
-  background: var(--wz-bg-card);
-  border: 1px solid var(--wz-border);
-  border-radius: var(--wz-radius-md);
-  margin-bottom: 20px;
-  overflow: hidden;
-}
-.od-content__block { padding: 20px; }
-.od-content__label {
-  font-size: 13px; font-weight: 600;
-  color: var(--wz-text-soft);
-  margin-bottom: 14px;
-  letter-spacing: 0.04em;
-}
-.od-content__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-.od-content__cell {
-  font-size: 14px; color: var(--wz-text);
-  line-height: 1.5;
-  display: flex; flex-direction: column; gap: 2px;
-}
-.od-content__cell--wide { grid-column: 1 / -1; }
-.od-content__hint { font-size: 12px; color: var(--wz-text-muted); }
-.od-content__divider {
-  height: 1px; background: var(--wz-border-light);
-  margin: 0 20px;
-}
-.od-content__copy {
-  display: inline-block; margin-left: 6px;
-  padding: 0 7px; font-size: 11px;
-  color: var(--wz-orange);
-  border: 1px solid var(--wz-orange); border-radius: 4px;
-  cursor: pointer; line-height: 18px; vertical-align: middle;
-  transition: background var(--wz-duration-fast) var(--wz-ease-out), color var(--wz-duration-fast) var(--wz-ease-out);
-}
-.od-content__copy:hover { background: var(--wz-orange); color: #fff; }
-
-.od-timeline { position: relative; }
-.od-timeline__item {
-  display: flex; align-items: flex-start; gap: 12px;
-  position: relative; padding-bottom: 16px;
-}
-.od-timeline__item:last-child { padding-bottom: 0; }
-.od-timeline__dot {
-  width: 10px; height: 10px; border-radius: 50%;
-  flex-shrink: 0; margin-top: 4px;
-  position: relative; z-index: 1;
-}
-.od-timeline__line {
-  position: absolute; left: 4px; top: 16px;
-  width: 2px; bottom: 0; background: var(--wz-border);
-}
-.od-timeline__content { flex: 1; min-width: 0; }
-.od-timeline__status {
-  font-size: 14px; font-weight: 500;
-  margin: 0; color: var(--wz-text-soft);
-}
-.od-timeline__msg { font-size: 12px; color: var(--wz-text-muted); margin: 2px 0; }
-.od-timeline__time { font-size: 11px; color: var(--wz-text-muted); margin: 0; }
-.od-timeline__more { text-align: center; padding-top: 10px; border-top: 1px solid var(--wz-border-light); margin-top: 10px; }
-.od-timeline__more span { font-size: 13px; color: var(--wz-orange); cursor: pointer; }
-.od-timeline__more span:hover { color: var(--wz-orange-dark); }
-
-.od-item {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--wz-border-light);
-}
-.od-item:last-child { border-bottom: none; padding-bottom: 0; }
-.od-item:first-child { padding-top: 0; }
-.od-item__img {
-  width: 60px; height: 60px;
-  border-radius: var(--wz-radius-sm);
-  flex-shrink: 0; object-fit: cover;
-  background: var(--wz-bg);
-}
-.od-item__info { flex: 1; min-width: 0; }
-.od-item__name {
-  font-size: 14px; font-weight: 500;
-  color: var(--wz-text);
-  margin: 0 0 2px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
+.page-container { min-height: 100vh; padding-top: 64px; background: var(--wz-bg); }
+.order-detail { max-width: 640px; margin: 0 auto; padding: 24px 20px 80px; }
+.od-loading { display: flex; align-items: center; justify-content: center; min-height: 300px; color: var(--wz-text-muted); font-size: 14px; }
+.od-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+.od-header__back { display: inline-flex; align-items: center; gap: 4px; background: none; border: none; color: var(--wz-text-muted); font-size: 13px; cursor: pointer; padding: 4px 8px; border-radius: 6px; font-family: inherit; transition: color .2s, background .2s; }
+.od-header__back:hover { color: var(--wz-text); background: var(--wz-bg-hover); }
+.od-header__status { display: flex; align-items: center; gap: 10px; }
+.od-header__status-badge { font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 99px; }
+.od-header__status-badge--0 { background: rgba(255,159,10,0.15); color: var(--wz-warning); }
+.od-header__status-badge--1 { background: rgba(64,158,255,0.15); color: #409eff; }
+.od-header__status-badge--2 { background: rgba(255,255,255,0.08); color: var(--wz-text-soft); }
+.od-header__status-badge--3 { background: rgba(52,199,89,0.15); color: var(--wz-success); }
+.od-header__status-badge--4 { background: rgba(107,108,114,0.2); color: var(--wz-text-muted); }
+.od-header__status-badge--5 { background: rgba(255,69,58,0.15); color: var(--wz-danger); }
+.od-header__order-no { font-size: 13px; color: var(--wz-text-muted); font-family: var(--wz-font-mono,monospace); }
+.od-steps { display: flex; align-items: flex-start; padding: 20px; background: var(--wz-bg-card); border: 1px solid var(--wz-border); border-radius: 12px; margin-bottom: 20px; overflow-x: auto; }
+.od-step { display: flex; align-items: flex-start; gap: 8px; flex-shrink: 0; }
+.od-step__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--wz-text-muted); margin-top: 4px; flex-shrink: 0; transition: background .3s, box-shadow .3s; }
+.od-step--completed .od-step__dot { background: var(--wz-orange); box-shadow: 0 0 0 3px rgba(255,107,53,0.15); }
+.od-step--active .od-step__dot { background: var(--wz-orange); box-shadow: 0 0 0 5px rgba(255,107,53,0.2); }
+.od-step__label { font-size: 12px; font-weight: 500; color: var(--wz-text); line-height: 1.3; white-space: nowrap; }
+.od-step--active .od-step__label { color: var(--wz-orange); }
+.od-step__time { font-size: 10px; color: var(--wz-text-muted); margin-top: 1px; line-height: 1.2; }
+.od-step__connector { width: 32px; height: 1px; background: var(--wz-border); margin: 7px 6px 0; flex-shrink: 0; }
+.od-step--completed + .od-step__connector { background: rgba(255,107,53,0.3); height: 2px; }
+.od-refund { margin-bottom: 20px; padding: 12px 16px; border-radius: 10px; font-size: 13px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.5; }
+.od-refund--pending { background: rgba(255,159,10,0.08); border: 1px solid rgba(255,159,10,0.2); color: var(--wz-warning); }
+.od-refund--rejected { background: rgba(255,69,58,0.08); border: 1px solid rgba(255,69,58,0.2); color: var(--wz-danger); }
+.od-refund--approved { background: rgba(52,199,89,0.08); border: 1px solid rgba(52,199,89,0.2); color: var(--wz-success); }
+.od-refund svg { flex-shrink: 0; margin-top: 2px; }
+.od-refund__title { font-weight: 500; margin: 0; }
+.od-refund__reply { font-size: 12px; opacity: 0.8; margin: 2px 0 0; }
+.od-shipment { background: var(--wz-bg-card); border: 1px solid var(--wz-border); border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+.od-shipment__main { padding: 20px; }
+.od-shipment__receiver { display: flex; flex-direction: column; gap: 4px; }
+.od-shipment__name { font-size: 15px; font-weight: 600; color: var(--wz-text); margin: 0; }
+.od-shipment__phone { font-size: 12px; color: var(--wz-text-soft); margin: 0; }
+.od-shipment__address { font-size: 12px; color: var(--wz-text-muted); margin: 0; line-height: 1.5; }
+.od-shipment__divider { height: 1px; background: var(--wz-border-light); margin: 14px 0; }
+.od-shipment__courier { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--wz-text-soft); margin-bottom: 4px; }
+.od-shipment__courier svg { flex-shrink: 0; color: var(--wz-text-muted); }
+.od-shipment__copy { display: inline-block; padding: 0 8px; font-size: 11px; color: var(--wz-orange); background: none; border: 1px solid var(--wz-orange); border-radius: 4px; cursor: pointer; line-height: 20px; font-family: inherit; margin-left: auto; transition: background .2s, color .2s; }
+.od-shipment__copy:hover { background: var(--wz-orange); color: #fff; }
+.od-shipment__delivery-time { font-size: 11px; color: var(--wz-text-muted); margin: 2px 0 12px; }
+.od-shipment__tracks { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px solid var(--wz-border-light); }
+.od-shipment__track { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.od-shipment__track-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--wz-border); flex-shrink: 0; }
+.od-shipment__track-label { color: var(--wz-text-muted); flex: 1; }
+.od-shipment__track-time { color: var(--wz-text-muted); font-size: 11px; flex-shrink: 0; }
+.od-shipment__view-all { display: inline-flex; align-items: center; gap: 4px; background: none; border: none; color: var(--wz-orange); font-size: 12px; cursor: pointer; padding: 4px 0; font-family: inherit; margin-top: 2px; }
+.od-shipment__view-all:hover { color: var(--wz-orange-dark); }
+.od-items { background: var(--wz-bg-card); border: 1px solid var(--wz-border); border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+.od-item { display: flex; align-items: center; gap: 14px; padding: 16px 20px; border-bottom: 1px solid var(--wz-border-light); }
+.od-item:last-child { border-bottom: none; }
+.od-item__image { width: 64px; height: 64px; border-radius: 8px; flex-shrink: 0; object-fit: cover; background: var(--wz-bg); }
+.od-item__image--empty { background: var(--wz-bg-elevated); }
+.od-item__body { flex: 1; min-width: 0; }
+.od-item__name { font-size: 14px; font-weight: 500; color: var(--wz-text); margin: 0 0 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .od-item__spec { font-size: 12px; color: var(--wz-text-muted); margin: 0; }
-.od-item__pricing {
-  display: flex; flex-direction: column;
-  align-items: flex-end; gap: 2px; white-space: nowrap;
-}
-.od-item__price { font-size: 14px; font-weight: 500; color: var(--wz-text); }
-.od-item__qty { font-size: 13px; color: var(--wz-text-muted); }
-
-.od-footer {
-  background: var(--wz-bg-card);
-  border: 1px solid var(--wz-border);
-  border-radius: var(--wz-radius-md);
-  padding: 20px;
-}
-.od-footer__total {
-  display: flex; justify-content: space-between;
-  align-items: center;
-  font-size: 13px; color: var(--wz-text-soft);
-  margin-bottom: 16px;
-}
-.od-footer__amount { font-size: 16px; }
-.od-footer__amount strong { color: var(--wz-orange); font-weight: 600; }
-.od-footer__actions { display: flex; gap: 10px; flex-wrap: wrap; }
-.od-btn {
-  flex: 1; min-width: 0; height: 42px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 21px;
-  font-size: 13px; font-weight: 600;
-  cursor: pointer; border: none;
-  font-family: inherit; padding: 0 20px;
-  transition: background var(--wz-duration-fast) var(--wz-ease-out), border-color var(--wz-duration-fast) var(--wz-ease-out), color var(--wz-duration-fast) var(--wz-ease-out), box-shadow var(--wz-duration-fast) var(--wz-ease-out);
-  user-select: none;
-}
+.od-item__pricing { text-align: right; flex-shrink: 0; }
+.od-item__price { font-size: 14px; font-weight: 600; color: var(--wz-text); margin: 0; }
+.od-item__qty { font-size: 12px; color: var(--wz-text-muted); margin: 2px 0; }
+.od-item__subtotal { font-size: 13px; font-weight: 500; color: var(--wz-text-soft); margin: 0; }
+.od-summary { background: var(--wz-bg-card); border: 1px solid var(--wz-border); border-radius: 12px; margin-bottom: 20px; padding: 20px; }
+.od-summary__rows { display: flex; flex-direction: column; gap: 6px; }
+.od-summary__row { display: flex; justify-content: space-between; font-size: 13px; color: var(--wz-text-muted); line-height: 1.5; }
+.od-summary__total { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--wz-border); font-size: 14px; color: var(--wz-text); font-weight: 500; }
+.od-summary__amount { font-size: 20px; font-weight: 700; color: var(--wz-orange); letter-spacing: -0.3px; }
+.od-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.od-btn { flex: 1; min-width: 100px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 21px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; transition: background .2s, color .2s, border-color .2s, box-shadow .2s; }
 .od-btn--primary { background: var(--wz-orange); color: #fff; }
-.od-btn--primary:hover { background: var(--wz-orange-dark); box-shadow: 0 0 24px rgba(255,107,53,0.25); }
+.od-btn--primary:hover { background: var(--wz-orange-dark); box-shadow: 0 0 20px rgba(255,107,53,0.25); }
 .od-btn--ghost { background: transparent; color: var(--wz-text-soft); border: 1px solid var(--wz-border); }
 .od-btn--ghost:hover { border-color: var(--wz-text-muted); color: var(--wz-text); }
 .od-btn--danger { background: transparent; color: var(--wz-danger); border: 1px solid var(--wz-danger); }
 .od-btn--danger:hover { background: rgba(255,69,58,0.08); }
-
-@media (max-width: 640px) {
-  .order-detail { padding: 20px 16px 80px; }
-  .od-header__title { font-size: 22px; }
-  .od-content__grid { grid-template-columns: 1fr; }
-  .od-footer__actions { flex-direction: column; }
-  .od-btn { flex: none; width: 100%; }
+@media (max-width:640px) {
+  .order-detail { padding: 16px 14px 80px; }
+  .od-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .od-item { padding: 12px 14px; }
+  .od-item__image { width: 52px; height: 52px; }
+  .od-btn { font-size: 12px; height: 38px; min-width: 80px; }
 }
 </style>
 

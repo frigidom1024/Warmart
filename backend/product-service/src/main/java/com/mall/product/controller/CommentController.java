@@ -71,7 +71,7 @@ public class CommentController {
         }
         String filename = UUID.randomUUID().toString().replace("-", "") + ext;
         try {
-            Path dir = Paths.get(commentUploadPath);
+            Path dir = Paths.get(commentUploadPath).toAbsolutePath().normalize();
             if (!Files.exists(dir)) {
                 Files.createDirectories(dir);
             }

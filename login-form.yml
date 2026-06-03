@@ -1,0 +1,87 @@
+- generic [ref=e40]:
+  - generic [ref=e41]:
+    - banner [ref=e1]:
+      - generic [ref=e2]:
+        - generic [ref=e3] [cursor=pointer]:
+          - generic [ref=e4]: 暖
+          - generic [ref=e5]: Warmart
+        - generic [ref=e7]:
+          - button "全部分类" [ref=e9] [cursor=pointer]:
+            - generic [ref=e10]: 全部分类
+            - img [ref=e11]
+          - textbox "搜搜你喜欢的商品…" [ref=e14]
+          - button [ref=e15] [cursor=pointer]:
+            - img [ref=e16]
+        - generic [ref=e19]:
+          - button [ref=e20] [cursor=pointer]:
+            - img [ref=e21]
+          - button "登录" [active] [ref=e26] [cursor=pointer]
+          - button "注册" [ref=e27] [cursor=pointer]
+    - main [ref=e42]:
+      - generic [ref=e46]:
+        - generic [ref=e49]:
+          - generic [ref=e50]:
+            - generic [ref=e51]: 暖
+            - generic [ref=e52]: Warmart
+          - heading "温暖你的生活" [level=2] [ref=e53]
+          - paragraph [ref=e54]: 精选全球好物，一站式轻松购齐，让每一次购物都成为温暖的体验
+          - generic [ref=e55]:
+            - generic [ref=e56]:
+              - img [ref=e58]
+              - generic [ref=e61]:
+                - generic [ref=e62]: 正品直供·品质保障
+                - generic [ref=e63]: 全球严选，100%正品承诺
+            - generic [ref=e64]:
+              - img [ref=e66]
+              - generic [ref=e69]:
+                - generic [ref=e70]: 极速发货·准时送达
+                - generic [ref=e71]: 下单即发，次日达覆盖全国
+            - generic [ref=e72]:
+              - img [ref=e74]
+              - generic [ref=e76]:
+                - generic [ref=e77]: 7天退换·无忧购物
+                - generic [ref=e78]: 不满意随时退，运费我们承担
+            - generic [ref=e79]:
+              - img [ref=e81]
+              - generic [ref=e84]:
+                - generic [ref=e85]: 会员专享·积分加倍
+                - generic [ref=e86]: 开通会员享专属价+双倍积分
+        - generic [ref=e87]:
+          - generic [ref=e88]:
+            - button "登录" [ref=e89] [cursor=pointer]
+            - button "注册" [ref=e90] [cursor=pointer]
+          - generic [ref=e91]:
+            - heading "欢迎回来" [level=2] [ref=e92]
+            - paragraph [ref=e93]: 登录你的 Warmart 账号，继续温暖之旅
+            - generic [ref=e94]:
+              - generic [ref=e95]: 邮箱 / 手机号
+              - generic [ref=e96]:
+                - img
+                - textbox "请输入邮箱或手机号" [ref=e97]
+            - generic [ref=e98]:
+              - generic [ref=e99]: 密码
+              - generic [ref=e100]:
+                - img
+                - textbox "请输入密码" [ref=e101]
+                - button [ref=e102] [cursor=pointer]
+            - generic [ref=e106]:
+              - generic [ref=e107] [cursor=pointer]:
+                - checkbox "记住我" [ref=e108]
+                - generic [ref=e109]: 记住我
+              - link "忘记密码？" [ref=e110] [cursor=pointer]:
+                - /url: /auth/forgot-password
+            - button "登录" [ref=e111] [cursor=pointer]
+            - generic [ref=e112]: 其他方式
+            - generic [ref=e113]:
+              - button "微信" [ref=e114] [cursor=pointer]:
+                - img [ref=e115]
+                - text: 微信
+              - button "支付宝" [ref=e117] [cursor=pointer]:
+                - img [ref=e118]
+                - text: 支付宝
+            - paragraph [ref=e120]: 还没有账号？ 立即注册
+  - generic [ref=e28]:
+    - generic "Toggle devtools panel" [ref=e29] [cursor=pointer]:
+      - img [ref=e30]
+    - generic "Toggle Component Inspector" [ref=e35] [cursor=pointer]:
+      - img [ref=e36]

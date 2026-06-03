@@ -1,0 +1,16 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - generic [ref=e6]: W
+    - heading "管理员登录" [level=2] [ref=e7]
+    - paragraph [ref=e8]: Warmart Admin 管理系统
+  - generic [ref=e9]:
+    - generic [ref=e10]:
+      - generic [ref=e11]: 用户名
+      - textbox "用户名" [ref=e16]:
+        - /placeholder: 请输入用户名
+    - generic [ref=e17]:
+      - generic [ref=e18]: 密码
+      - textbox "密码" [ref=e23]:
+        - /placeholder: 请输入密码
+    - button "登 录" [ref=e26] [cursor=pointer]:
+      - generic [ref=e27]: 登 录

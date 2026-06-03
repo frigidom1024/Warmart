@@ -1,0 +1,30 @@
+#96 [GET] http://localhost:5173/api/product/list?size=200
+
+  General
+    status:    [200] OK
+    duration:  290ms
+    type:      xhr
+    mimeType:  application/json
+
+  Request headers
+    sec-ch-ua-platform: "Windows"
+    referer: http://localhost:5173/
+    user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36
+    accept: application/json, text/plain, */*
+    sec-ch-ua: "Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"
+    sec-ch-ua-mobile: ?0
+
+  Response headers
+    transfer-encoding: chunked
+    cache-control: no-cache, no-store, max-age=0, must-revalidate
+    pragma: no-cache
+    connection: close
+    x-content-type-options: nosniff
+    expires: 0
+    x-xss-protection: 0
+    date: Tue, 02 Jun 2026 10:23:13 GMT
+    content-type: application/json
+    vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers, Origin, Access-Control-Request-Method, Access-Control-Request-Headers
+    x-frame-options: DENY
+
+Run `response-body 96` to read the response body.

@@ -1,5 +1,6 @@
 package com.mall.auth.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mall.auth.common.Result;
 import com.mall.auth.entity.User;
 import com.mall.auth.mapper.UserMapper;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -32,6 +34,16 @@ public class UserController {
         info.put("avatar", user.getAvatar());
         info.put("role", user.getRole());
         return Result.success(info);
+    }
+
+    @GetMapping("/user/search")
+    public Result<List<Long>> searchUsersByNickname(@RequestParam String nickname) {
+        List<User> users = userMapper.selectList(
+                new LambdaQueryWrapper<User>()
+                        .like(User::getNickname, nickname)
+                        .select(User::getId));
+        List<Long> ids = users.stream().map(User::getId).collect(Collectors.toList());
+        return Result.success(ids);
     }
 
     @GetMapping("/user/batch")

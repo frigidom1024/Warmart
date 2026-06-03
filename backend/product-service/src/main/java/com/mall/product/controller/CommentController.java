@@ -6,6 +6,7 @@ import com.mall.product.dto.CommentVO;
 import com.mall.product.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -38,6 +39,7 @@ public class CommentController {
     }
 
     @GetMapping("/admin/comment/list")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<IPage<CommentVO>> adminList(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -48,6 +50,7 @@ public class CommentController {
     }
 
     @DeleteMapping("/admin/comment/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<Void> delete(@PathVariable Long id) {
         commentService.deleteById(id);
         return Result.success(null);

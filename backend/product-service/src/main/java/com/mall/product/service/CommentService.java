@@ -9,6 +9,8 @@ import com.mall.product.entity.Product;
 import com.mall.product.mapper.CommentMapper;
 import com.mall.product.mapper.ProductMapper;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class CommentService {
+
+    private static final Logger log = LoggerFactory.getLogger(CommentService.class);
 
     private final CommentMapper commentMapper;
     private final ProductMapper productMapper;
@@ -52,34 +56,7 @@ public class CommentService {
         List<Long> userIds = commentPage.getRecords().stream()
                 .map(Comment::getUserId).distinct().collect(Collectors.toList());
 
-        Map<Long, Map<String, Object>> finalUserMap;
-        try {
-            String url = "http://auth-service:8081/api/auth/user/batch?ids=" +
-                    userIds.stream().map(String::valueOf).collect(Collectors.joining(","));
-            var response = restTemplate.getForEntity(url, Map.class);
-            Map<String, Object> result = response.getBody();
-            if (result != null && Integer.valueOf(200).equals(result.get("code"))) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> data = (Map<String, Object>) result.get("data");
-                if (data != null) {
-                    finalUserMap = data.entrySet().stream()
-                            .collect(Collectors.toMap(
-                                    e -> Long.valueOf(e.getKey()),
-                                    e -> {
-                                        Map<String, Object> val = (Map<String, Object>) e.getValue();
-                                        return val;
-                                    }));
-                } else {
-                    finalUserMap = Collections.emptyMap();
-                }
-            } else {
-                finalUserMap = Collections.emptyMap();
-            }
-        } catch (Exception ignored) {
-            finalUserMap = Collections.emptyMap();
-        }
-
-        Map<Long, Map<String, Object>> userMap = finalUserMap;
+        Map<Long, Map<String, Object>> userMap = resolveUserInfo(userIds);
 
         List<CommentVO> vos = commentPage.getRecords().stream().map(c -> {
             CommentVO vo = new CommentVO();
@@ -106,12 +83,61 @@ public class CommentService {
     }
 
     public IPage<CommentVO> adminList(int page, int size, String productName, String username, Integer rating) {
+        // 1. Resolve product IDs by name at DB level via ProductMapper
+        List<Long> filterProductIds = null;
+        if (productName != null && !productName.isEmpty()) {
+            List<Product> products = productMapper.selectList(
+                    new LambdaQueryWrapper<Product>()
+                            .like(Product::getName, productName)
+                            .select(Product::getId));
+            filterProductIds = products.stream().map(Product::getId).collect(Collectors.toList());
+            if (filterProductIds.isEmpty()) {
+                Page<CommentVO> emptyPage = new Page<>(page, size, 0);
+                emptyPage.setRecords(Collections.emptyList());
+                return emptyPage;
+            }
+        }
+
+        // 2. Resolve user IDs by nickname at DB level via auth-service REST
+        List<Long> filterUserIds = null;
+        if (username != null && !username.isEmpty()) {
+            try {
+                String url = "http://auth-service:8081/api/auth/user/search?nickname=" + username;
+                var response = restTemplate.getForEntity(url, Map.class);
+                Map<String, Object> result = response.getBody();
+                if (result != null && Integer.valueOf(200).equals(result.get("code"))) {
+                    @SuppressWarnings("unchecked")
+                    List<Object> data = (List<Object>) result.get("data");
+                    if (data != null) {
+                        filterUserIds = data.stream()
+                                .map(o -> Long.valueOf(o.toString()))
+                                .collect(Collectors.toList());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to search users by nickname from auth-service: {}", e.getMessage());
+            }
+            if (filterUserIds == null || filterUserIds.isEmpty()) {
+                Page<CommentVO> emptyPage = new Page<>(page, size, 0);
+                emptyPage.setRecords(Collections.emptyList());
+                return emptyPage;
+            }
+        }
+
+        // 3. Build DB query with all filters applied at DB level
         LambdaQueryWrapper<Comment> wrapper = new LambdaQueryWrapper<Comment>()
                 .orderByDesc(Comment::getCreatedTime);
         if (rating != null) {
             wrapper.eq(Comment::getRating, rating);
         }
+        if (filterProductIds != null) {
+            wrapper.in(Comment::getProductId, filterProductIds);
+        }
+        if (filterUserIds != null) {
+            wrapper.in(Comment::getUserId, filterUserIds);
+        }
 
+        // 4. Execute paginated query (total comes from DB, correct pagination metadata)
         Page<Comment> commentPage = commentMapper.selectPage(new Page<>(page, size), wrapper);
 
         Page<CommentVO> voPage = new Page<>(commentPage.getCurrent(), commentPage.getSize(), commentPage.getTotal());
@@ -120,49 +146,24 @@ public class CommentService {
             return voPage;
         }
 
-        // Resolve user info via REST call to auth-service
-        List<Long> userIds = commentPage.getRecords().stream()
+        // 5. Resolve user info for the returned page's comments
+        List<Long> userIdsInPage = commentPage.getRecords().stream()
                 .map(Comment::getUserId).distinct().collect(Collectors.toList());
+        Map<Long, Map<String, Object>> userMap = resolveUserInfo(userIdsInPage);
 
-        Map<Long, Map<String, Object>> finalUserMap;
-        try {
-            String url = "http://auth-service:8081/api/auth/user/batch?ids=" +
-                    userIds.stream().map(String::valueOf).collect(Collectors.joining(","));
-            var response = restTemplate.getForEntity(url, Map.class);
-            Map<String, Object> result = response.getBody();
-            if (result != null && Integer.valueOf(200).equals(result.get("code"))) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> data = (Map<String, Object>) result.get("data");
-                if (data != null) {
-                    finalUserMap = data.entrySet().stream()
-                            .collect(Collectors.toMap(
-                                    e -> Long.valueOf(e.getKey()),
-                                    e -> (Map<String, Object>) e.getValue()));
-                } else {
-                    finalUserMap = Collections.emptyMap();
-                }
-            } else {
-                finalUserMap = Collections.emptyMap();
-            }
-        } catch (Exception ignored) {
-            finalUserMap = Collections.emptyMap();
-        }
-
-        Map<Long, Map<String, Object>> userMap = finalUserMap;
-
-        // Resolve product names via ProductMapper
-        List<Long> productIds = commentPage.getRecords().stream()
+        // 6. Resolve product names for the returned page's comments
+        List<Long> productIdsInPage = commentPage.getRecords().stream()
                 .map(Comment::getProductId).distinct().collect(Collectors.toList());
         Map<Long, String> productNameMap;
-        if (!productIds.isEmpty()) {
-            List<Product> products = productMapper.selectBatchIds(productIds);
+        if (!productIdsInPage.isEmpty()) {
+            List<Product> products = productMapper.selectBatchIds(productIdsInPage);
             productNameMap = products.stream()
-                    .collect(Collectors.toMap(Product::getId, Product::getName));
+                    .collect(Collectors.toMap(Product::getId, Product::getName, (a, b) -> a));
         } else {
             productNameMap = Collections.emptyMap();
         }
 
-        // Map to VOs with resolved user and product info
+        // 7. Map to VOs with resolved user and product info
         List<CommentVO> vos = commentPage.getRecords().stream().map(c -> {
             CommentVO vo = new CommentVO();
             vo.setId(c.getId());
@@ -184,20 +185,36 @@ public class CommentService {
             return vo;
         }).collect(Collectors.toList());
 
-        // In-memory filtering for productName and username (can't filter at DB level)
-        if (productName != null && !productName.isEmpty()) {
-            vos = vos.stream()
-                    .filter(v -> v.getProductName() != null && v.getProductName().contains(productName))
-                    .collect(Collectors.toList());
-        }
-        if (username != null && !username.isEmpty()) {
-            vos = vos.stream()
-                    .filter(v -> v.getUserNickname() != null && v.getUserNickname().contains(username))
-                    .collect(Collectors.toList());
-        }
-
         voPage.setRecords(vos);
         return voPage;
+    }
+
+    /**
+     * Resolve user display info (nickname, avatar) from auth-service by user IDs.
+     */
+    private Map<Long, Map<String, Object>> resolveUserInfo(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        try {
+            String url = "http://auth-service:8081/api/auth/user/batch?ids=" +
+                    userIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+            var response = restTemplate.getForEntity(url, Map.class);
+            Map<String, Object> result = response.getBody();
+            if (result != null && Integer.valueOf(200).equals(result.get("code"))) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = (Map<String, Object>) result.get("data");
+                if (data != null) {
+                    return data.entrySet().stream()
+                            .collect(Collectors.toMap(
+                                    e -> Long.valueOf(e.getKey()),
+                                    e -> (Map<String, Object>) e.getValue()));
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to resolve user info from auth-service: {}", e.getMessage());
+        }
+        return Collections.emptyMap();
     }
 
     public void deleteById(Long id) {

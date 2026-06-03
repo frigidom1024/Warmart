@@ -35,7 +35,9 @@ jobs:
         working-directory: ./admin-frontend
 
       - name: Build Docker images
-        run: docker compose -f deploy/docker-compose.yml build
+        run: IMAGE_TAG=${GITHUB_SHA::8} docker compose -f deploy/docker-compose.yml build
+        env:
+          DOCKER_BUILDKIT: 0
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -45,4 +47,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push Docker images to GHCR
-        run: docker compose -f deploy/docker-compose.yml push
+        run: |
+          IMAGE_TAG=${GITHUB_SHA::8} docker compose -f deploy/docker-compose.yml push
+          # 也推送 latest 标签
+          for service in gateway auth-service user-service product-service order-service; do
+            docker tag ghcr.io/frigidom1024/warmart-${service}:${GITHUB_SHA::8} ghcr.io/frigidom1024/warmart-${service}:latest
+            docker push ghcr.io/frigidom1024/warmart-${service}:latest
+          done

@@ -1,4 +1,20 @@
+# ============================================
+# 生产部署配置 - 使用 GHCR 预构建镜像
+# ============================================
+# 使用方法:
+#   export IMAGE_TAG=latest
+#   docker compose -f deploy/docker-compose.prod.yml up -d
+#
+# 如需同时指定环境变量:
+#   IMAGE_TAG=latest docker compose -f deploy/docker-compose.prod.yml up -d
+# ============================================
+
+name: mall
+
 services:
+  # ====================
+  # 基础设施 (与本地开发共用)
+  # ====================
   nacos:
     image: nacos/nacos-server:v2.3.2
     container_name: mall-nacos
@@ -30,137 +46,6 @@ services:
     container_name: mall-redis
     ports:
       - "${REDIS_PORT:-6379}:6379"
-    networks:
-      - mall-network
-
-  gateway:
-    build:
-      context: ../backend
-      dockerfile: gateway/Dockerfile
-    image: ghcr.io/frigidom1024/warmart-gateway:${IMAGE_TAG:-latest}
-    container_name: mall-gateway
-    restart: unless-stopped
-    ports:
-      - "${GATEWAY_PORT:-8080}:8080"
-    environment:
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall_auth?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-    depends_on:
-      - nacos
-      - mysql
-      - redis
-    networks:
-      - mall-network
-
-  auth-service:
-    build:
-      context: ../backend
-      dockerfile: auth-service/Dockerfile
-    image: ghcr.io/frigidom1024/warmart-auth-service:${IMAGE_TAG:-latest}
-    container_name: mall-auth-service
-    restart: unless-stopped
-    ports:
-      - "${AUTH_SERVICE_PORT:-8081}:8081"
-    environment:
-      SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: "true"
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall_auth?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      ALIYUN_DM_ACCESS_KEY_ID: ${ALIYUN_DM_ACCESS_KEY_ID}
-      ALIYUN_DM_ACCESS_KEY_SECRET: ${ALIYUN_DM_ACCESS_KEY_SECRET}
-      ALIYUN_DM_ACCOUNT_NAME: ${ALIYUN_DM_ACCOUNT_NAME}
-      EMAIL_SENDER_TYPE: ${EMAIL_SENDER_TYPE:-mock}  # aliyun / mock
-    depends_on:
-      - nacos
-      - mysql
-      - redis
-    networks:
-      - mall-network
-
-  user-service:
-    build:
-      context: ../backend
-      dockerfile: user-service/Dockerfile
-    image: ghcr.io/frigidom1024/warmart-user-service:${IMAGE_TAG:-latest}
-    container_name: mall-user-service
-    restart: unless-stopped
-    ports:
-      - "${USER_SERVICE_PORT:-8082}:8082"
-    environment:
-      SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: "true"
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall_user?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: http://auth-service:8081
-    depends_on:
-      - nacos
-      - mysql
-      - redis
-    networks:
-      - mall-network
-
-  product-service:
-    build:
-      context: ../backend
-      dockerfile: product-service/Dockerfile
-    image: ghcr.io/frigidom1024/warmart-product-service:${IMAGE_TAG:-latest}
-    container_name: mall-product-service
-    restart: unless-stopped
-    ports:
-      - "${PRODUCT_SERVICE_PORT:-8083}:8083"
-    environment:
-      SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: "true"
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall_product?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: http://auth-service:8081
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      # 文件上传大小限制（可覆盖）
-      MULTIPART_MAX_FILE_SIZE: ${MULTIPART_MAX_FILE_SIZE:-10MB}
-      MULTIPART_MAX_REQUEST_SIZE: ${MULTIPART_MAX_REQUEST_SIZE:-10MB}
-      # MinIO 对象存储
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
-      MINIO_BUCKET: ${MINIO_BUCKET:-mall-images}
-    depends_on:
-      - nacos
-      - mysql
-      - redis
-      - minio
-    networks:
-      - mall-network
-
-  order-service:
-    build:
-      context: ../backend
-      dockerfile: order-service/Dockerfile
-    image: ghcr.io/frigidom1024/warmart-order-service:${IMAGE_TAG:-latest}
-    container_name: mall-order-service
-    restart: unless-stopped
-    ports:
-      - "${ORDER_SERVICE_PORT:-8084}:8084"
-    environment:
-      SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: "true"
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall_order?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: http://auth-service:8081
-    depends_on:
-      - nacos
-      - mysql
-      - redis
     networks:
       - mall-network
 
@@ -199,15 +84,128 @@ services:
         mc mb myminio/mall-images --ignore-existing &&
         echo '设置公开读策略...' &&
         mc anonymous set public myminio/mall-images &&
-        echo '上传种子图片...' &&
-        mc cp --recursive /seed-images/ myminio/mall-images/ &&
         echo 'MinIO 初始化完成'
       "
-    volumes:
-      - ./static/images:/seed-images:ro
     depends_on:
       minio:
         condition: service_healthy
+    networks:
+      - mall-network
+
+  # ====================
+  # 微服务 (从 GHCR 拉取)
+  # ====================
+  gateway:
+    image: ghcr.io/frigidom1024/warmart-gateway:${IMAGE_TAG:-latest}
+    container_name: mall-gateway
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    environment:
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall_auth?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      - nacos
+      - mysql
+      - redis
+    networks:
+      - mall-network
+
+  auth-service:
+    image: ghcr.io/frigidom1024/warmart-auth-service:${IMAGE_TAG:-latest}
+    container_name: mall-auth-service
+    restart: unless-stopped
+    ports:
+      - "${AUTH_SERVICE_PORT:-8081}:8081"
+    environment:
+      SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: "true"
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall_auth?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      ALIYUN_DM_ACCESS_KEY_ID: ${ALIYUN_DM_ACCESS_KEY_ID}
+      ALIYUN_DM_ACCESS_KEY_SECRET: ${ALIYUN_DM_ACCESS_KEY_SECRET}
+      ALIYUN_DM_ACCOUNT_NAME: ${ALIYUN_DM_ACCOUNT_NAME}
+      EMAIL_SENDER_TYPE: ${EMAIL_SENDER_TYPE:-mock}
+    depends_on:
+      - nacos
+      - mysql
+      - redis
+    networks:
+      - mall-network
+
+  user-service:
+    image: ghcr.io/frigidom1024/warmart-user-service:${IMAGE_TAG:-latest}
+    container_name: mall-user-service
+    restart: unless-stopped
+    ports:
+      - "${USER_SERVICE_PORT:-8082}:8082"
+    environment:
+      SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: "true"
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall_user?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: http://auth-service:8081
+    depends_on:
+      - nacos
+      - mysql
+      - redis
+    networks:
+      - mall-network
+
+  product-service:
+    image: ghcr.io/frigidom1024/warmart-product-service:${IMAGE_TAG:-latest}
+    container_name: mall-product-service
+    restart: unless-stopped
+    ports:
+      - "${PRODUCT_SERVICE_PORT:-8083}:8083"
+    environment:
+      SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: "true"
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall_product?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: http://auth-service:8081
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      MULTIPART_MAX_FILE_SIZE: ${MULTIPART_MAX_FILE_SIZE:-10MB}
+      MULTIPART_MAX_REQUEST_SIZE: ${MULTIPART_MAX_REQUEST_SIZE:-10MB}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      MINIO_BUCKET: ${MINIO_BUCKET:-mall-images}
+    depends_on:
+      - nacos
+      - mysql
+      - redis
+      - minio
+    networks:
+      - mall-network
+
+  order-service:
+    image: ghcr.io/frigidom1024/warmart-order-service:${IMAGE_TAG:-latest}
+    container_name: mall-order-service
+    restart: unless-stopped
+    ports:
+      - "${ORDER_SERVICE_PORT:-8084}:8084"
+    environment:
+      SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: "true"
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall_order?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: http://auth-service:8081
+    depends_on:
+      - nacos
+      - mysql
+      - redis
     networks:
       - mall-network
 

@@ -22,12 +22,6 @@ public class MinioStorageService implements FileStorageService {
     @Value("${minio.bucket}")
     private String bucket;
 
-    @Value("${minio.endpoint}")
-    private String endpoint;
-
-    @Value("${minio.public-url}")
-    private String publicUrl;
-
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
             ".png", ".jpg", ".jpeg", ".webp", ".svg"
     );
@@ -88,19 +82,28 @@ public class MinioStorageService implements FileStorageService {
     }
 
     private String buildUrl(String objectName) {
-        return publicUrl + "/" + bucket + "/" + objectName;
+        return "/images/" + objectName;
     }
 
     String extractObjectName(String fileUrl) {
-        // URL 格式: http(s)://host:port/bucket/subdir/uuid.ext
-        // 跳过 protocol://host:port/ 部分
+        // URL 格式: /images/subdir/uuid.ext 或 http(s)://host:port/bucket/subdir/uuid.ext
+        // 统一提取 subdir/uuid.ext 部分
+        int idx = fileUrl.indexOf("/images/");
+        if (idx >= 0) {
+            return fileUrl.substring(idx + "/images/".length());
+        }
+        // 兼容旧的全路径格式
         int afterScheme = fileUrl.indexOf("://");
-        if (afterScheme < 0) return fileUrl;
-        int firstSlash = fileUrl.indexOf('/', afterScheme + 3);
-        if (firstSlash < 0) return fileUrl;
-        int afterBucketSlash = fileUrl.indexOf('/', firstSlash + 1);
-        if (afterBucketSlash < 0) return fileUrl;
-        return fileUrl.substring(afterBucketSlash + 1);
+        if (afterScheme >= 0) {
+            int firstSlash = fileUrl.indexOf('/', afterScheme + 3);
+            if (firstSlash >= 0) {
+                int afterBucketSlash = fileUrl.indexOf('/', firstSlash + 1);
+                if (afterBucketSlash >= 0) {
+                    return fileUrl.substring(afterBucketSlash + 1);
+                }
+            }
+        }
+        return fileUrl;
     }
 
     private String extractExtension(String filename) {

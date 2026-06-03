@@ -5,9 +5,10 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
+// 注意：server.proxy 仅在 vite dev 开发服务器中生效，
+// 生产部署请修改 deploy/nginx/nginx.conf 中的 proxy_pass 地址。
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-
   const proxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:8080'
 
   return {

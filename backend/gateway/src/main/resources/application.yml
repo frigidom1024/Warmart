@@ -22,9 +22,11 @@ spring:
           predicates:
             - Path=/api/product/**
         - id: product-static
-          uri: lb://product-service
+          uri: http://minio:9000
           predicates:
             - Path=/images/**
+          filters:
+            - RewritePath=/images/(?<segment>.*), /mall-images/$\{segment}
         - id: order-service
           uri: lb://order-service
           predicates:

@@ -124,10 +124,17 @@ services:
       # 文件上传大小限制（可覆盖）
       MULTIPART_MAX_FILE_SIZE: ${MULTIPART_MAX_FILE_SIZE:-10MB}
       MULTIPART_MAX_REQUEST_SIZE: ${MULTIPART_MAX_REQUEST_SIZE:-10MB}
+      # MinIO 对象存储
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_PUBLIC_URL: http://localhost:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      MINIO_BUCKET: ${MINIO_BUCKET:-mall-images}
     depends_on:
       - nacos
       - mysql
       - redis
+      - minio
     networks:
       - mall-network
 
@@ -153,8 +160,56 @@ services:
     networks:
       - mall-network
 
+  minio:
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    container_name: mall-minio
+    restart: unless-stopped
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - mall-network
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: mall-minio-init
+    entrypoint: >
+      sh -c "
+        echo '等待 MinIO 就绪...' &&
+        until mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin123}; do
+          echo 'MinIO 尚未就绪，2 秒后重试...';
+          sleep 2;
+        done &&
+        echo 'MinIO 已就绪，创建存储桶...' &&
+        mc mb myminio/mall-images --ignore-existing &&
+        echo '设置公开读策略...' &&
+        mc anonymous set public myminio/mall-images &&
+        echo '上传种子图片...' &&
+        mc cp --recursive /seed-images/ myminio/mall-images/ &&
+        echo 'MinIO 初始化完成'
+      "
+    volumes:
+      - ./static/images:/seed-images:ro
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - mall-network
+
 volumes:
   mysql-data:
+  minio-data:
 
 networks:
   mall-network:

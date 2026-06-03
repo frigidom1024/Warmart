@@ -29,6 +29,7 @@ const menuItems = [
     label: '内容管理', icon: 'Document',
     children: [
       { path: '/banners', label: '轮播管理' },
+      { path: '/comments', label: '评价管理' },
       { path: '/notices', label: '公告管理' }
     ]
   },

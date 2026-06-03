@@ -57,6 +57,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '退款管理' }
       },
       {
+        path: 'comments',
+        name: 'CommentManage',
+        component: () => import('@/views/CommentManageView.vue'),
+        meta: { title: '评价管理' }
+      },
+      {
         path: 'banners',
         name: 'BannerList',
         component: () => import('@/views/BannerView.vue'),

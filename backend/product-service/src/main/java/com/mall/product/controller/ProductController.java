@@ -9,6 +9,7 @@ import com.mall.product.service.CommentService;
 import com.mall.product.service.FavoriteService;
 import com.mall.product.entity.Comment;
 import com.mall.product.mapper.ProductSpecMapper;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,14 +17,28 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.annotation.ExcelProperty;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mall.product.entity.Category;
+import com.mall.product.entity.ProductExportVO;
+import com.mall.product.mapper.ProductMapper;
+import com.mall.product.service.CategoryService;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/product")
@@ -34,6 +49,8 @@ public class ProductController {
     private final ProductSpecMapper productSpecMapper;
     private final CommentService commentService;
     private final FavoriteService favoriteService;
+    private final CategoryService categoryService;
+    private final ProductMapper productMapper;
 
     @Value("${upload.path:./static/images/products}")
     private String uploadPath;
@@ -137,5 +154,193 @@ public class ProductController {
         } catch (IOException e) {
             return Result.error(500, "文件上传失败: " + e.getMessage());
         }
+    }
+
+    // ─── Excel export / import ───
+
+    @GetMapping("/admin/export")
+    public void export(
+            HttpServletResponse response,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String keyword) throws IOException {
+
+        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
+        if (categoryId != null) {
+            wrapper.eq(Product::getCategoryId, categoryId);
+        }
+        if (status != null) {
+            wrapper.eq(Product::getStatus, status);
+        }
+        if (keyword != null && !keyword.isEmpty()) {
+            wrapper.like(Product::getName, keyword);
+        }
+        wrapper.orderByDesc(Product::getCreatedTime);
+
+        List<Product> products = productMapper.selectList(wrapper);
+
+        // Resolve category names
+        List<Category> allCategories = categoryService.listAll();
+        Map<Long, String> categoryMap = allCategories.stream()
+                .collect(Collectors.toMap(Category::getId, Category::getName, (a, b) -> a));
+
+        List<ProductExportVO> exportList = products.stream().map(p -> {
+            ProductExportVO vo = new ProductExportVO();
+            vo.setName(p.getName());
+            vo.setCategoryName(categoryMap.getOrDefault(p.getCategoryId(), ""));
+            vo.setPrice(p.getPrice() != null ? p.getPrice().doubleValue() : null);
+            vo.setOriginalPrice(p.getOriginalPrice() != null ? p.getOriginalPrice().doubleValue() : null);
+            vo.setStock(p.getStock());
+            vo.setSales(p.getSales());
+            vo.setDescription(p.getDescription());
+            vo.setMainImage(p.getMainImage());
+            vo.setTag(p.getTag());
+            vo.setStatusText(p.getStatus() != null && p.getStatus() == 0 ? "上架" : "下架");
+            vo.setRecommendText(p.getIsRecommend() != null && p.getIsRecommend() == 1 ? "是" : "否");
+            return vo;
+        }).collect(Collectors.toList());
+
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding("utf-8");
+        String fileName = URLEncoder.encode("商品数据", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+
+        EasyExcel.write(response.getOutputStream(), ProductExportVO.class)
+                .sheet("商品数据")
+                .doWrite(exportList);
+    }
+
+    @PostMapping("/admin/import")
+    public Result<Map<String, Object>> importProducts(@RequestParam("file") MultipartFile file) throws IOException {
+        // Validate file format
+        String originalName = file.getOriginalFilename();
+        if (originalName == null || !originalName.endsWith(".xlsx")) {
+            return Result.error(400, "仅支持 .xlsx 格式文件");
+        }
+
+        // Read Excel rows
+        List<ProductImportRow> rows = EasyExcel.read(file.getInputStream(), ProductImportRow.class, null)
+                .sheet()
+                .doReadSync();
+
+        if (rows == null || rows.isEmpty()) {
+            return Result.error(400, "文件无数据");
+        }
+
+        // Build category name-to-id map
+        List<Category> allCategories = categoryService.listAll();
+        Map<String, Long> categoryNameToId = allCategories.stream()
+                .collect(Collectors.toMap(Category::getName, Category::getId, (a, b) -> a));
+
+        int total = rows.size();
+        int success = 0;
+        List<String> errors = new ArrayList<>();
+
+        for (int i = 0; i < rows.size(); i++) {
+            ProductImportRow row = rows.get(i);
+            int rowNum = i + 2; // Excel row number (1-indexed + header row)
+
+            // Validate required fields
+            if (row.getName() == null || row.getName().isEmpty()) {
+                errors.add("第" + rowNum + "行：商品名称为空");
+                continue;
+            }
+            if (row.getPrice() == null) {
+                errors.add("第" + rowNum + "行：商品价格为空");
+                continue;
+            }
+            if (row.getStock() == null) {
+                errors.add("第" + rowNum + "行：商品库存为空");
+                continue;
+            }
+
+            // Resolve category name to ID
+            Long categoryId = null;
+            if (row.getCategoryName() != null && !row.getCategoryName().isEmpty()) {
+                categoryId = categoryNameToId.get(row.getCategoryName());
+                if (categoryId == null) {
+                    errors.add("第" + rowNum + "行：分类 '" + row.getCategoryName() + "' 不存在");
+                    continue;
+                }
+            }
+
+            // Match existing product by name
+            Product existing = productMapper.selectOne(
+                    new LambdaQueryWrapper<Product>().eq(Product::getName, row.getName()));
+
+            if (existing != null) {
+                // Update existing product
+                existing.setCategoryId(categoryId);
+                if (row.getPrice() != null) existing.setPrice(BigDecimal.valueOf(row.getPrice()));
+                if (row.getOriginalPrice() != null) existing.setOriginalPrice(BigDecimal.valueOf(row.getOriginalPrice()));
+                if (row.getStock() != null) existing.setStock(row.getStock());
+                if (row.getSales() != null) existing.setSales(row.getSales());
+                if (row.getDescription() != null) existing.setDescription(row.getDescription());
+                if (row.getMainImage() != null) existing.setMainImage(row.getMainImage());
+                if (row.getTag() != null) existing.setTag(row.getTag());
+                if (row.getStatus() != null) existing.setStatus(row.getStatus());
+                existing.setUpdatedTime(LocalDateTime.now());
+                productMapper.updateById(existing);
+            } else {
+                // Create new product
+                Product product = new Product();
+                product.setCategoryId(categoryId);
+                product.setName(row.getName());
+                product.setPrice(BigDecimal.valueOf(row.getPrice()));
+                if (row.getOriginalPrice() != null) product.setOriginalPrice(BigDecimal.valueOf(row.getOriginalPrice()));
+                product.setStock(row.getStock());
+                product.setSales(row.getSales() != null ? row.getSales() : 0);
+                product.setDescription(row.getDescription());
+                product.setMainImage(row.getMainImage());
+                product.setTag(row.getTag());
+                product.setStatus(row.getStatus() != null ? row.getStatus() : 0);
+                product.setCreatedTime(LocalDateTime.now());
+                product.setUpdatedTime(LocalDateTime.now());
+                productMapper.insert(product);
+            }
+            success++;
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("successCount", success);
+        result.put("totalCount", total);
+        result.put("errorList", errors);
+
+        return Result.success(result);
+    }
+
+    // ─── Inner class for import rows ───
+
+    @Data
+    public static class ProductImportRow {
+        @ExcelProperty("商品名称")
+        private String name;
+
+        @ExcelProperty("分类")
+        private String categoryName;
+
+        @ExcelProperty("价格")
+        private Double price;
+
+        @ExcelProperty("原价")
+        private Double originalPrice;
+
+        @ExcelProperty("库存")
+        private Integer stock;
+
+        @ExcelProperty("销量")
+        private Integer sales;
+
+        @ExcelProperty("商品描述")
+        private String description;
+
+        @ExcelProperty("主图URL")
+        private String mainImage;
+
+        @ExcelProperty("标签")
+        private String tag;
+
+        @ExcelProperty("状态(0=上架,1=下架)")
+        private Integer status;
     }
 }

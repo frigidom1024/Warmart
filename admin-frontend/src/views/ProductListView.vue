@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getAdminProductList, addProduct, updateProduct, deleteProduct, getProductDetail, saveSpecGroups } from '@/api/product'
+import { getAdminProductList, addProduct, updateProduct, deleteProduct, getProductDetail, saveSpecGroups, exportProducts, importProducts } from '@/api/product'
 import { getCategoryList } from '@/api/category'
 import type { Product, ProductSpec, ProductImage } from '@/api/product'
 import type { Category } from '@/api/category'
@@ -135,6 +135,59 @@ async function handleDelete(item: Product) {
 }
 
 function handlePageChange(page: number) { query.value.page = page; loadProducts() }
+
+const exporting = ref(false)
+
+function handleExport() {
+  exporting.value = true
+  const token = localStorage.getItem('admin_token')
+  const params = new URLSearchParams()
+  if (query.value.categoryId) params.set('categoryId', String(query.value.categoryId))
+  if (query.value.status !== undefined) params.set('status', String(query.value.status))
+  const url = `/api/product/admin/export?${params.toString()}`
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', '商品数据.xlsx')
+  // Need to add auth header - use fetch
+  fetch(url, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  }).then(res => res.blob()).then(blob => {
+    const blobUrl = URL.createObjectURL(blob)
+    link.href = blobUrl
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(blobUrl)
+    ElMessage.success('导出成功')
+  }).catch(() => {
+    ElMessage.error('导出失败')
+  }).finally(() => {
+    exporting.value = false
+  })
+}
+
+function handleImportClick() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.xlsx'
+  input.onchange = async (e: Event) => {
+    const file = (e.target as HTMLInputElement).files?.[0]
+    if (!file) return
+    try {
+      await ElMessageBox.confirm(`确定导入文件「${file.name}」？此操作将按商品名称匹配更新或新增商品。`, '确认导入', { type: 'warning' })
+      const res = await importProducts(file)
+      ElMessage.success(`导入完成：成功 ${res.success}/${res.total} 条`)
+      if (res.errors && res.errors.length > 0) {
+        console.warn('导入错误:', res.errors)
+        ElMessage.warning(`${res.errors.length} 条导入失败，详情见控制台`)
+      }
+      loadProducts()
+    } catch {
+      // user cancelled or error
+    }
+  }
+  input.click()
+}
 
 const categoryMap = computed(() => {
   const map: Record<number, string> = {}
@@ -284,6 +337,8 @@ onMounted(() => { loadCategories(); loadProducts() })
         </el-select>
         <el-button type="primary" @click="handleSearch">搜索</el-button>
         <el-button @click="handleReset">重置</el-button>
+        <el-button :loading="exporting" @click="handleExport">导出</el-button>
+        <el-button type="success" @click="handleImportClick">导入</el-button>
         <span class="search-spacer" />
         <el-button type="primary" class="btn-add" @click="openAddDialog">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="margin-right:4px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>

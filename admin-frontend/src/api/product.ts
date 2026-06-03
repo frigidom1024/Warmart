@@ -76,3 +76,23 @@ export function getProductDetail(id: number) {
 export function saveSpecGroups(productId: number, groups: any[], skus: any[]) {
   return request.put<void>('/product/admin/spec-groups', { productId, groups, skus })
 }
+
+export function exportProducts(params?: {
+  categoryId?: number
+  status?: number
+  keyword?: string
+}) {
+  const query = new URLSearchParams()
+  if (params?.categoryId) query.set('categoryId', String(params.categoryId))
+  if (params?.status !== undefined) query.set('status', String(params.status))
+  if (params?.keyword) query.set('keyword', params.keyword)
+  return `/product/admin/export?${query.toString()}`
+}
+
+export function importProducts(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post<any, { success: number; total: number; errors: string[] }>('/product/admin/import', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}

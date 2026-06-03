@@ -1,43 +1,28 @@
 package com.mall.product.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.annotation.ExcelProperty;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mall.product.common.Result;
-import com.mall.product.entity.Product;
-import com.mall.product.entity.ProductSpec;
-import com.mall.product.service.ProductService;
-import com.mall.product.service.CommentService;
-import com.mall.product.service.FavoriteService;
-import com.mall.product.entity.Comment;
+import com.mall.product.entity.*;
+import com.mall.product.mapper.ProductMapper;
 import com.mall.product.mapper.ProductSpecMapper;
+import com.mall.product.service.*;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.alibaba.excel.EasyExcel;
-import com.alibaba.excel.annotation.ExcelProperty;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.mall.product.entity.Category;
-import com.mall.product.entity.ProductExportVO;
-import com.mall.product.mapper.ProductMapper;
-import com.mall.product.service.CategoryService;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -51,9 +36,7 @@ public class ProductController {
     private final FavoriteService favoriteService;
     private final CategoryService categoryService;
     private final ProductMapper productMapper;
-
-    @Value("${upload.path:./static/images/products}")
-    private String uploadPath;
+    private final FileStorageService fileStorageService;
 
     @GetMapping("/list")
     public Result<IPage<Product>> list(
@@ -126,32 +109,12 @@ public class ProductController {
 
     @PostMapping("/admin/upload-image")
     public Result<String> uploadImage(@RequestParam("file") MultipartFile file) {
-        if (file.isEmpty()) {
-            return Result.error(400, "文件不能为空");
-        }
-        String originalName = file.getOriginalFilename();
-        if (originalName == null || originalName.isEmpty()) {
-            return Result.error(400, "文件名无效");
-        }
-        String ext = "";
-        int dotIdx = originalName.lastIndexOf('.');
-        if (dotIdx > 0) {
-            ext = originalName.substring(dotIdx).toLowerCase();
-        }
-        if (!ext.equals(".png") && !ext.equals(".jpg") && !ext.equals(".jpeg") && !ext.equals(".webp") && !ext.equals(".svg")) {
-            return Result.error(400, "仅支持 PNG、JPG、WebP、SVG 格式");
-        }
-        String filename = UUID.randomUUID().toString().replace("-", "") + ext;
         try {
-            Path dir = Paths.get(uploadPath);
-            if (!Files.exists(dir)) {
-                Files.createDirectories(dir);
-            }
-            Path dest = dir.resolve(filename);
-            file.transferTo(dest.toFile());
-            String url = "/images/products/" + filename;
+            String url = fileStorageService.uploadFile(file, "products");
             return Result.success(url);
-        } catch (IOException e) {
+        } catch (IllegalArgumentException e) {
+            return Result.error(400, e.getMessage());
+        } catch (Exception e) {
             return Result.error(500, "文件上传失败: " + e.getMessage());
         }
     }

@@ -53,3 +53,18 @@ export function updateOrderStatus(id: number, status: number) {
 export function shipOrder(id: number, logisticsCompany: string, logisticsNo: string) {
   return request.put<void>('/order/admin/ship', null, { params: { id, logisticsCompany, logisticsNo } })
 }
+
+export function cancelOrder(id: number) {
+  return request.put<void>('/order/admin/cancel', null, { params: { id } })
+}
+
+export function exportOrders(params: {
+  status?: number
+  orderNo?: string
+  receiverName?: string
+  receiverPhone?: string
+  startTime?: string
+  endTime?: string
+}) {
+  return request.get('/order/admin/export', { params, responseType: 'blob' })
+}

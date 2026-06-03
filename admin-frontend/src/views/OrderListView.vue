@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { ElTable } from 'element-plus'
-import { Van } from '@element-plus/icons-vue'
-import { getAdminOrderList, updateOrderStatus, shipOrder } from '@/api/order'
+import { getAdminOrderList, updateOrderStatus, shipOrder, cancelOrder, exportOrders } from '@/api/order'
+import { approveRefund, rejectRefund } from '@/api/refund'
 import type { Order } from '@/api/order'
 import { addLogisticsTrack } from '@/api/logistics'
 import { regionData, codeToText } from 'element-china-area-data'
@@ -12,10 +11,10 @@ import { regionData, codeToText } from 'element-china-area-data'
 const router = useRouter()
 const route = useRoute()
 
-const tableRef = ref<InstanceType<typeof ElTable>>()
 const orders = ref<Order[]>([])
 const total = ref(0)
 const loading = ref(false)
+const multipleSelection = ref<Order[]>([])
 
 // Search state (synced with URL query params)
 const query = ref({
@@ -29,16 +28,22 @@ const query = ref({
   size: 10
 })
 const dateRange = ref<[string, string] | null>(null)
+
+// ─── Ship dialog ───
 const shipDialogVisible = ref(false)
 const shipTarget = ref<Order | null>(null)
 const shipForm = ref({ logisticsCompany: '', logisticsNo: '' })
 const shipTrack = ref({ status: 'WAREHOUSE', message: '', location: '' })
 const shipLocationCascader = ref<string[]>([])
 
-// --- Status modify dialog ---
+// ─── Status modify dialog ───
 const statusDialogVisible = ref(false)
 const statusTarget = ref<Order | null>(null)
 const statusForm = ref({ status: 0 })
+
+// ─── Detail drawer ───
+const detailDrawerVisible = ref(false)
+const detailOrder = ref<Order | null>(null)
 
 const statusOptions = [
   { value: 0, label: '待付款' },
@@ -49,6 +54,16 @@ const statusOptions = [
   { value: 5, label: '退款中' }
 ]
 
+const statusMap: Record<number, { type: string; text: string }> = {
+  0: { type: 'warning', text: '待付款' },
+  1: { type: 'primary', text: '待发货' },
+  2: { type: '', text: '待收货' },
+  3: { type: 'success', text: '已完成' },
+  4: { type: 'info', text: '已取消' },
+  5: { type: 'danger', text: '退款中' }
+}
+
+// ─── Status modify ───
 function openStatusDialog(order: Order) {
   statusTarget.value = order
   statusForm.value = { status: order.status }
@@ -77,15 +92,7 @@ function onShipLocationChange() {
     .join('')
 }
 
-const statusMap: Record<number, { type: string; text: string }> = {
-  0: { type: 'warning', text: '待付款' },
-  1: { type: 'primary', text: '待发货' },
-  2: { type: '', text: '待收货' },
-  3: { type: 'success', text: '已完成' },
-  4: { type: 'info', text: '已取消' },
-  5: { type: 'danger', text: '退款中' }
-}
-
+// ─── Data loading ───
 function syncQueryFromRoute() {
   const q = route.query
   query.value.status = q.status ? Number(q.status) : undefined
@@ -144,6 +151,7 @@ function handleReset() {
   query.value.endTime = ''
   query.value.page = 1
   dateRange.value = null
+  multipleSelection.value = []
   router.replace({ query: {} })
   loadData()
 }
@@ -171,6 +179,43 @@ async function handleUpdateStatus(order: Order, newStatus: number, label: string
   } catch {}
 }
 
+// ─── Cancel order ───
+async function handleCancelOrder(order: Order) {
+  try {
+    await ElMessageBox.confirm(
+      `确定取消订单 ${order.orderNo} 吗？取消后不可恢复。`,
+      '取消订单', { type: 'warning', confirmButtonText: '确认取消', cancelButtonText: '暂不' }
+    )
+    await cancelOrder(order.id)
+    ElMessage.success('订单已取消')
+    await loadData()
+  } catch {}
+}
+
+// ─── Refund actions inline ───
+async function handleRefundApprove(order: Order) {
+  try {
+    await ElMessageBox.confirm(`确定通过订单 ${order.orderNo} 的退款申请？`, '确认操作', { type: 'info' })
+    await approveRefund(order.id)
+    ElMessage.success('退款已通过')
+    await loadData()
+  } catch {}
+}
+
+async function handleRefundReject(order: Order) {
+  try {
+    const { value } = await ElMessageBox.prompt(
+      `请填写拒绝订单 ${order.orderNo} 退款的理由`, '拒绝退款',
+      { confirmButtonText: '确认拒绝', cancelButtonText: '取消', inputPlaceholder: '请输入拒绝理由', inputType: 'textarea' }
+    )
+    if (!value) { ElMessage.warning('拒绝退款请填写理由'); return }
+    await rejectRefund(order.id, value)
+    ElMessage.success('已拒绝退款')
+    await loadData()
+  } catch {}
+}
+
+// ─── Ship ───
 function openShipDialog(order: Order) {
   shipTarget.value = order
   shipForm.value = { logisticsCompany: '', logisticsNo: '' }
@@ -199,9 +244,62 @@ async function handleShip() {
   } catch {}
 }
 
+// ─── Detail drawer ───
+function openDetailDrawer(order: Order) {
+  detailOrder.value = order
+  detailDrawerVisible.value = true
+}
+
+function formatTime(t: string | null | undefined): string {
+  if (!t) return '—'
+  return t.replace('T', ' ')
+}
+
+// ─── Export ───
+function triggerDownload(data: Blob, filename: string) {
+  const url = window.URL.createObjectURL(data)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
+}
+
+async function handleExport() {
+  try {
+    ElMessage.info('正在导出，请稍候…')
+    const params: any = {}
+    if (query.value.status !== undefined) params.status = query.value.status
+    if (query.value.orderNo) params.orderNo = query.value.orderNo
+    if (query.value.receiverName) params.receiverName = query.value.receiverName
+    if (query.value.receiverPhone) params.receiverPhone = query.value.receiverPhone
+    if (query.value.startTime) params.startTime = query.value.startTime
+    if (query.value.endTime) params.endTime = query.value.endTime
+    const data = await exportOrders(params)
+    triggerDownload(data as Blob, `订单数据_${new Date().toLocaleDateString()}.xlsx`)
+    ElMessage.success('导出成功')
+  } catch { ElMessage.error('导出失败') }
+}
+
+async function handleBatchExport() {
+  if (multipleSelection.value.length === 0) {
+    ElMessage.warning('请先勾选要导出的订单')
+    return
+  }
+  // Re-export with the selected order IDs by filtering locally
+  // We make the same call but the server actually respects the same filter params.
+  // For batch export of selected rows, we use the current search + export everything,
+  // since the server export uses the same filters. For true "selected only" we'd
+  // need a separate endpoint. Let's just export all matching current filters.
+  ElMessage.info(`将导出当前筛选条件下的全部订单（已选 ${multipleSelection.value.length} 条）`)
+  await handleExport()
+}
+
 function handlePageChange(page: number) { query.value.page = page; pushQueryToUrl(); loadData() }
-function toggleExpand(row: Order) {
-  tableRef.value?.toggleRowExpansion(row)
+function handleSelectionChange(val: Order[]) {
+  multipleSelection.value = val
 }
 
 onMounted(() => {
@@ -214,12 +312,13 @@ onMounted(() => {
   <div>
     <div class="page-header"><h2>订单管理</h2></div>
     <el-card>
+      <!-- Search bar -->
       <div class="search-bar">
         <div class="search-row">
           <el-input v-model="query.orderNo" placeholder="订单号" clearable class="search-input" @clear="handleSearch" @keyup.enter="handleSearch" />
           <el-input v-model="query.receiverName" placeholder="收货人" clearable class="search-input" @clear="handleSearch" @keyup.enter="handleSearch" />
           <el-input v-model="query.receiverPhone" placeholder="手机号" clearable class="search-input" @clear="handleSearch" @keyup.enter="handleSearch" />
-          <el-select v-model="query.status" placeholder="订单状态" clearable class="search-select" @change="handleSearch">
+          <el-select v-model="query.status" placeholder="订单状态" clearable class="search-input" @change="handleSearch">
             <el-option label="全部" :value="undefined" />
             <el-option label="待付款" :value="0" />
             <el-option label="待发货" :value="1" />
@@ -242,52 +341,81 @@ onMounted(() => {
           />
           <el-button type="primary" @click="handleSearch">搜索</el-button>
           <el-button @click="handleReset">重置</el-button>
+          <el-divider direction="vertical" />
+          <el-button type="success" plain @click="handleExport">
+            <template #icon><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></template>
+            导出 Excel
+          </el-button>
+          <el-button plain @click="handleBatchExport" :disabled="multipleSelection.length === 0">
+            批量导出 ({{ multipleSelection.length }})
+          </el-button>
         </div>
       </div>
-      <el-table ref="tableRef" :data="orders" v-loading="loading" stripe style="width:100%" row-key="id">
-        <el-table-column type="expand" width="40">
-          <template #default="{ row }">
-            <div class="order-items">
-              <div v-for="item in row.items" :key="item.id" class="order-item">
-                <el-image :src="item.productImage" fit="cover" style="width:50px;height:50px;border-radius:4px" />
-                <div class="item-info"><p class="item-name">{{ item.productName }}</p><p class="item-spec" v-if="item.specInfo">{{ item.specInfo }}</p></div>
-                <div class="item-price">¥{{ item.price }}</div><div class="item-qty">x{{ item.quantity }}</div><div class="item-subtotal">¥{{ item.subtotal }}</div>
-              </div>
-              <div v-if="row.logisticsCompany" class="order-logistics">
-                <el-icon><Van /></el-icon>
-                物流：{{ row.logisticsCompany }} · {{ row.logisticsNo }}
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="orderNo" label="订单号" width="180" />
-        <el-table-column prop="receiverName" label="收货人" width="100" />
+
+      <!-- Orders table -->
+      <el-table
+        :data="orders"
+        v-loading="loading"
+        stripe
+        style="width:100%"
+        row-key="id"
+        @selection-change="handleSelectionChange"
+      >
+        <el-table-column type="selection" width="40" />
+        <el-table-column prop="orderNo" label="订单号" width="170" />
+        <el-table-column prop="receiverName" label="收货人" width="90" />
         <el-table-column prop="totalAmount" label="金额" width="90"><template #default="{ row }">¥{{ row.totalAmount }}</template></el-table-column>
         <el-table-column prop="status" label="状态" width="90"><template #default="{ row }"><el-tag :type="statusMap[row.status]?.type" size="small">{{ statusMap[row.status]?.text || '未知' }}</el-tag></template></el-table-column>
-        <el-table-column prop="createdTime" label="下单时间" width="170" />
-        <el-table-column label="操作" width="310" fixed="right">
+        <el-table-column label="支付方式" width="90">
+          <template #default="{ row }">
+            <span v-if="row.paymentMethod" style="font-size:13px;color:#606266">{{ row.paymentMethod }}</span>
+            <span v-else style="font-size:12px;color:#c0c4cc">—</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createdTime" label="下单时间" width="160" />
+        <el-table-column label="操作" width="360" fixed="right">
           <template #default="{ row }">
             <div class="action-cell">
-              <el-button size="small" @click="toggleExpand(row)">详情</el-button>
-              <el-button size="small" @click="openStatusDialog(row)">改状态</el-button>
+              <el-button size="small" @click="openDetailDrawer(row)">详情</el-button>
+
+              <!-- Cancel: pending payment(0), pending delivery(1), refunding(5) -->
+              <el-button
+                v-if="row.status === 0 || row.status === 1 || row.status === 5"
+                size="small" type="danger" plain
+                @click="handleCancelOrder(row)"
+              >取消</el-button>
+
+              <!-- Ship: pending delivery(1) -->
               <el-button v-if="row.status === 1" size="small" type="primary" @click="openShipDialog(row)">发货</el-button>
+
+              <!-- Confirm receipt: pending receipt(2) -->
               <el-button v-if="row.status === 2" size="small" type="success" @click="handleUpdateStatus(row, 3, '已完成')">确认收货</el-button>
+
+              <!-- Refund actions inline: refunding(5) -->
+              <el-button v-if="row.status === 5" size="small" type="success" plain @click="handleRefundApprove(row)">通过退款</el-button>
+              <el-button v-if="row.status === 5" size="small" type="danger" plain @click="handleRefundReject(row)">拒绝退款</el-button>
+
+              <!-- Status modify -->
+              <el-button size="small" @click="openStatusDialog(row)">改状态</el-button>
+
+              <!-- Logistics -->
               <el-button
                 v-if="row.logisticsCompany"
                 size="small" type="info"
                 @click="router.push({ path: '/logistics', query: { orderId: row.id, orderNo: row.orderNo } })"
               >物流</el-button>
-              <el-button v-if="row.status === 5" size="small" @click="router.push('/refunds')">退款</el-button>
             </div>
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- Pagination -->
       <div class="pagination-wrap" v-if="total > 0">
         <el-pagination v-model:current-page="query.page" :page-size="query.size" :total="total" layout="prev, pager, next, total" @current-change="handlePageChange" />
       </div>
     </el-card>
 
-    <!-- Ship Dialog -->
+    <!-- ─── Ship Dialog ─── -->
     <el-dialog v-model="shipDialogVisible" title="发货" width="400px">
       <el-form v-if="shipTarget" label-width="80px">
         <el-form-item label="订单号">
@@ -338,7 +466,7 @@ onMounted(() => {
       </template>
     </el-dialog>
 
-    <!-- Status Modify Dialog -->
+    <!-- ─── Status Modify Dialog ─── -->
     <el-dialog v-model="statusDialogVisible" title="修改订单状态" width="380px">
       <el-form v-if="statusTarget" label-width="80px">
         <el-form-item label="订单号">
@@ -360,6 +488,76 @@ onMounted(() => {
         <el-button type="primary" @click="handleStatusChange">确认修改</el-button>
       </template>
     </el-dialog>
+
+    <!-- ─── Order Detail Drawer ─── -->
+    <el-drawer
+      v-model="detailDrawerVisible"
+      :title="`订单详情 — ${detailOrder?.orderNo || ''}`"
+      size="500px"
+    >
+      <template v-if="detailOrder">
+        <div class="detail-section">
+          <h3 class="detail-section__title">基本信息</h3>
+          <table class="detail-table">
+            <tr><td class="detail-label">订单号</td><td>{{ detailOrder.orderNo }}</td></tr>
+            <tr><td class="detail-label">订单状态</td><td><el-tag :type="statusMap[detailOrder.status]?.type" size="small">{{ statusMap[detailOrder.status]?.text || '未知' }}</el-tag></td></tr>
+            <tr><td class="detail-label">订单金额</td><td><strong style="color:#f56c6c">¥{{ detailOrder.totalAmount }}</strong></td></tr>
+            <tr><td class="detail-label">下单时间</td><td>{{ formatTime(detailOrder.createdTime) }}</td></tr>
+          </table>
+        </div>
+
+        <el-divider style="margin:12px 0" />
+
+        <div class="detail-section">
+          <h3 class="detail-section__title">支付信息</h3>
+          <table class="detail-table">
+            <tr><td class="detail-label">支付方式</td><td>{{ detailOrder.paymentMethod || '—' }}</td></tr>
+            <tr><td class="detail-label">支付时间</td><td>{{ formatTime(detailOrder.paymentTime) }}</td></tr>
+            <tr><td class="detail-label">发货时间</td><td>{{ formatTime(detailOrder.deliveryTime) }}</td></tr>
+            <tr><td class="detail-label">确认收货时间</td><td>{{ formatTime(detailOrder.receiveTime) }}</td></tr>
+          </table>
+        </div>
+
+        <el-divider style="margin:12px 0" />
+
+        <div class="detail-section">
+          <h3 class="detail-section__title">收货信息</h3>
+          <table class="detail-table">
+            <tr><td class="detail-label">收货人</td><td>{{ detailOrder.receiverName }}</td></tr>
+            <tr><td class="detail-label">联系电话</td><td>{{ detailOrder.receiverPhone }}</td></tr>
+            <tr><td class="detail-label">收货地址</td><td>{{ detailOrder.receiverAddress }}</td></tr>
+          </table>
+        </div>
+
+        <el-divider style="margin:12px 0" />
+
+        <div class="detail-section">
+          <h3 class="detail-section__title">物流信息</h3>
+          <table class="detail-table">
+            <tr><td class="detail-label">物流公司</td><td>{{ detailOrder.logisticsCompany || '—' }}</td></tr>
+            <tr><td class="detail-label">运单编号</td><td>{{ detailOrder.logisticsNo || '—' }}</td></tr>
+          </table>
+        </div>
+
+        <el-divider style="margin:12px 0" />
+
+        <div class="detail-section">
+          <h3 class="detail-section__title">商品明细</h3>
+          <div v-if="detailOrder.items && detailOrder.items.length" class="detail-items">
+            <div v-for="item in detailOrder.items" :key="item.id" class="detail-item">
+              <el-image :src="item.productImage" fit="cover" style="width:48px;height:48px;border-radius:4px;flex-shrink:0" />
+              <div class="detail-item__info">
+                <p class="detail-item__name">{{ item.productName }}</p>
+                <p v-if="item.specInfo" class="detail-item__spec">{{ item.specInfo }}</p>
+              </div>
+              <div class="detail-item__price">¥{{ item.price }} × {{ item.quantity }}</div>
+              <div class="detail-item__subtotal">¥{{ item.subtotal }}</div>
+            </div>
+          </div>
+          <span v-else style="color:#909399;font-size:13px">暂无商品信息</span>
+        </div>
+      </template>
+    </el-drawer>
   </div>
 </template>
 
@@ -369,15 +567,22 @@ onMounted(() => {
 .search-bar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
 .search-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .search-input { width: 160px; }
-.search-select { width: 160px; }
 .pagination-wrap { display: flex; justify-content: flex-end; margin-top: 16px; }
-.order-items { padding: 8px 0; }
-.order-item { display: flex; align-items: center; gap: 16px; padding: 8px 0; border-bottom: 1px solid #f2f2f2; }
-.order-item:last-child { border-bottom: none; }
-.item-info { flex: 1; min-width: 0; }
-.item-name { margin: 0 0 4px; font-size: 14px; color: #303133; }
-.item-spec { margin: 0; font-size: 12px; color: #909399; }
-.item-price, .item-qty, .item-subtotal { font-size: 14px; color: #606266; white-space: nowrap; }
-.order-logistics { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e4e7ed; font-size: 13px; color: #909399; display: flex; align-items: center; gap: 4px; }
 .action-cell { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* ── Detail Drawer ── */
+.detail-section { padding: 0 4px; }
+.detail-section__title { font-size: 14px; font-weight: 600; color: #303133; margin: 0 0 12px; }
+.detail-table { width: 100%; border-collapse: collapse; }
+.detail-table tr { border-bottom: 1px solid #f5f5f5; }
+.detail-table td { padding: 8px 4px; font-size: 13px; }
+.detail-label { width: 100px; color: #909399; white-space: nowrap; vertical-align: top; }
+.detail-items { display: flex; flex-direction: column; gap: 8px; }
+.detail-item { display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid #f5f5f5; }
+.detail-item:last-child { border-bottom: none; }
+.detail-item__info { flex: 1; min-width: 0; }
+.detail-item__name { margin: 0 0 2px; font-size: 13px; color: #303133; }
+.detail-item__spec { margin: 0; font-size: 12px; color: #909399; }
+.detail-item__price { font-size: 13px; color: #606266; white-space: nowrap; }
+.detail-item__subtotal { font-size: 13px; color: #303133; font-weight: 600; white-space: nowrap; }
 </style>

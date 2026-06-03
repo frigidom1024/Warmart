@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { login as loginApi, register as registerApi } from '@/api/auth'
+import { login as loginApi, register as registerApi, sendRegisterCode } from '@/api/auth'
 import { getUserInfo } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { showToast } from '@/utils/toast'
@@ -14,9 +14,43 @@ const mode = computed(() => (route.query.mode === 'register' ? 'register' : 'log
 const isLogin = computed(() => mode.value === 'login')
 
 const loginForm = ref({ account: '', password: '', remember: false })
-const registerForm = ref({ email: '', password: '', confirm: '' })
+const registerForm = ref({ email: '', password: '', confirm: '', code: '' })
 const showPassword = ref(false)
 const loading = ref(false)
+const codeSending = ref(false)
+const codeCountdown = ref(0)
+let countdownTimer: ReturnType<typeof setInterval> | null = null
+
+onUnmounted(() => {
+  if (countdownTimer) clearInterval(countdownTimer)
+})
+
+async function handleSendRegisterCode() {
+  if (!registerForm.value.email) {
+    showToast('请先输入邮箱', 'warning')
+    return
+  }
+  codeSending.value = true
+  try {
+    await sendRegisterCode(registerForm.value.email)
+    showToast('验证码已发送', 'success')
+    startCountdown()
+  } catch {
+    // handled by interceptor
+  } finally {
+    codeSending.value = false
+  }
+}
+
+function startCountdown() {
+  codeCountdown.value = 60
+  countdownTimer = setInterval(() => {
+    codeCountdown.value--
+    if (codeCountdown.value <= 0) {
+      if (countdownTimer) clearInterval(countdownTimer)
+    }
+  }, 1000)
+}
 
 function switchMode(m: 'login' | 'register') {
   router.replace({ query: { mode: m === 'login' ? undefined : 'register' } })
@@ -53,7 +87,8 @@ async function handleRegister() {
       username: registerForm.value.email,
       password: registerForm.value.password,
       nickname: registerForm.value.email.split('@')[0],
-      email: registerForm.value.email
+      email: registerForm.value.email,
+      code: registerForm.value.code
     })
     showToast('注册成功，请登录', 'success')
     switchMode('login')
@@ -240,6 +275,22 @@ function handleSubmit() {
                 <div class="auth-form__input-wrap">
                   <svg class="auth-form__input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                   <input v-model="registerForm.confirm" :type="showPassword ? 'text' : 'password'" class="auth-form__input" placeholder="请再次输入密码" />
+                </div>
+              </div>
+
+              <div class="auth-form__field">
+                <label class="auth-form__label">验证码</label>
+                <div class="auth-form__code-wrap">
+                  <div class="auth-form__input-wrap" style="flex:1">
+                    <svg class="auth-form__input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                    <input v-model="registerForm.code" type="text" class="auth-form__input" placeholder="请输入验证码" maxlength="6" />
+                  </div>
+                  <button
+                    type="button"
+                    class="auth-form__code-btn"
+                    :disabled="codeSending || codeCountdown > 0"
+                    @click="handleSendRegisterCode"
+                  >{{ codeCountdown > 0 ? `${codeCountdown}s` : '获取验证码' }}</button>
                 </div>
               </div>
 
@@ -722,5 +773,36 @@ function handleSubmit() {
 @media (max-width: 480px) {
   .auth-form__body { padding: 20px 16px 24px; }
   .auth-form__social { grid-template-columns: 1fr; }
+}
+
+.auth-form__code-wrap {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.auth-form__code-btn {
+  height: 44px;
+  padding: 0 16px;
+  background: var(--wz-orange);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-family: var(--wz-font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity var(--wz-duration-fast) var(--wz-ease-out);
+  flex-shrink: 0;
+}
+
+.auth-form__code-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-form__code-btn:hover:not(:disabled) {
+  opacity: 0.85;
 }
 </style>

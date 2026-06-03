@@ -10,6 +10,7 @@ export interface RegisterRequest {
   password: string
   nickname: string
   email: string
+  code: string
 }
 
 export interface AuthResponse {
@@ -28,9 +29,29 @@ export function register(data: RegisterRequest) {
 }
 
 export function forgotPassword(email: string) {
-  return request.post<void>('/auth/forgot-password', null, { params: { email } })
+  return request.post<void>('/auth/forgot-password', { email })
 }
 
 export function refreshToken(refreshToken: string) {
   return request.post<AuthResponse>('/auth/refresh', null, { params: { refreshToken } })
+}
+
+export function sendRegisterCode(email: string) {
+  return request.post<void>('/auth/code/send-register', { email })
+}
+
+export function sendResetCode(email: string) {
+  return request.post<void>('/auth/code/send-reset', { email })
+}
+
+export function verifyCode(email: string, code: string, type: string) {
+  return request.post<void>('/auth/code/verify', { email, code, type })
+}
+
+export function resetPassword(email: string, code: string, newPassword: string) {
+  return request.post<void>('/auth/reset-password', { email, code, newPassword })
+}
+
+export function checkEmailRegistered(email: string) {
+  return request.get<boolean>('/auth/check-email', { params: { email } })
 }

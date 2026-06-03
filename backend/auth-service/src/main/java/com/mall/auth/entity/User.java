@@ -14,6 +14,8 @@ public class User {
     private String nickname;
     private String email;
     private String phone;
+    @TableField("email_verified")
+    private Boolean emailVerified;
     private String avatar;
     private String role; // USER, ADMIN, SUPER_ADMIN
     private Integer status; // 0=normal, 1=disabled

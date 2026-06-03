@@ -1,9 +1,7 @@
 package com.mall.auth.controller;
 
 import com.mall.auth.common.Result;
-import com.mall.auth.dto.AuthResponse;
-import com.mall.auth.dto.LoginRequest;
-import com.mall.auth.dto.RegisterRequest;
+import com.mall.auth.dto.*;
 import com.mall.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,12 +25,39 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public Result<Void> forgotPassword(@RequestParam String email) {
-        return authService.forgotPassword(email);
+    public Result<Void> forgotPassword(@Valid @RequestBody SendCodeRequest req) {
+        return authService.sendResetCode(req);
     }
 
     @PostMapping("/refresh")
     public Result<AuthResponse> refresh(@RequestParam String refreshToken) {
         return authService.refresh(refreshToken);
+    }
+
+    // ---- 新增验证码端点 ----
+
+    @PostMapping("/code/send-register")
+    public Result<Void> sendRegisterCode(@Valid @RequestBody SendCodeRequest req) {
+        return authService.sendRegisterCode(req);
+    }
+
+    @PostMapping("/code/send-reset")
+    public Result<Void> sendResetCode(@Valid @RequestBody SendCodeRequest req) {
+        return authService.sendResetCode(req);
+    }
+
+    @PostMapping("/code/verify")
+    public Result<Void> verifyCode(@Valid @RequestBody VerifyCodeRequest req) {
+        return authService.verifyCode(req);
+    }
+
+    @PostMapping("/reset-password")
+    public Result<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
+        return authService.resetPassword(req);
+    }
+
+    @GetMapping("/check-email")
+    public Result<Boolean> checkEmail(@RequestParam String email) {
+        return authService.checkEmailRegistered(email);
     }
 }

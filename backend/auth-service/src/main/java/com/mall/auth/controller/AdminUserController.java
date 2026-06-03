@@ -53,6 +53,11 @@ public class AdminUserController {
         return Result.success(voPage);
     }
 
+    @GetMapping("/count")
+    public Result<Long> count() {
+        return Result.success(userMapper.selectCount(null));
+    }
+
     @GetMapping("/{id}")
     public Result<UserVO> detail(@PathVariable Long id) {
         User user = userMapper.selectById(id);

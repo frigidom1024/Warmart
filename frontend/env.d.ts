@@ -6,3 +6,12 @@ declare module '*.vue' {
   export default component
 }
 
+interface ImportMetaEnv {
+  /** Vite 开发服务器代理目标地址（Spring Cloud Gateway） */
+  readonly VITE_API_PROXY_TARGET: string
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv
+}
+

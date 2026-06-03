@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { getAdminOrderList } from '@/api/order'
-import { getAdminProductList } from '@/api/product'
 import { getAdminDashboardStats, getAdminUserCount } from '@/api/dashboard'
 import type { Order } from '@/api/order'
 import type { DashboardStats } from '@/api/dashboard'
@@ -362,7 +361,7 @@ const statCards = computed(() => [
         </el-table-column>
         <el-table-column prop="createdTime" label="下单时间" width="170" />
         <el-table-column label="操作" width="90">
-          <template #default="{ row }">
+          <template #default>
             <el-button size="small" @click="$router.push('/orders')">查看</el-button>
           </template>
         </el-table-column>

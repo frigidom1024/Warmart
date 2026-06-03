@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getAdminProductList, addProduct, updateProduct, deleteProduct, getProductDetail, saveSpecGroups, exportProducts, importProducts } from '@/api/product'
+import { getAdminProductList, addProduct, updateProduct, deleteProduct, getProductDetail, saveSpecGroups, importProducts } from '@/api/product'
 import { getCategoryList } from '@/api/category'
-import type { Product, ProductSpec, ProductImage } from '@/api/product'
+import type { Product } from '@/api/product'
 import type { Category } from '@/api/category'
 import { useUserStore } from '@/stores/user'
 
@@ -253,7 +253,6 @@ const skuGrid = ref<{ specValueRefs: string[]; price: number | null; stock: numb
 const batchPrice = ref<number | null>(null)
 const batchStock = ref<number>(0)
 const specNewValues = ref<string[]>([])
-const specPresets = ['颜色', '尺寸', '材质', '规格', '口味', '容量']
 
 function addDimension() {
   specGroupsInput.value.push({ name: '', values: [] })

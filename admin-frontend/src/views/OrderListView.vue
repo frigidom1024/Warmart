@@ -277,8 +277,8 @@ async function handleExport() {
     if (query.value.receiverPhone) params.receiverPhone = query.value.receiverPhone
     if (query.value.startTime) params.startTime = query.value.startTime
     if (query.value.endTime) params.endTime = query.value.endTime
-    const data = await exportOrders(params)
-    triggerDownload(data as Blob, `订单数据_${new Date().toLocaleDateString()}.xlsx`)
+    const res = await exportOrders(params)
+    triggerDownload(res.data as Blob, `订单数据_${new Date().toLocaleDateString()}.xlsx`)
     ElMessage.success('导出成功')
   } catch { ElMessage.error('导出失败') }
 }

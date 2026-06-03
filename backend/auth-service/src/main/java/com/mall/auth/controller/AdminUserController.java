@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth/admin/users")
@@ -77,6 +78,22 @@ public class AdminUserController {
             return Result.error(404, "用户不存在");
         }
         user.setStatus(status);
+        user.setUpdatedTime(LocalDateTime.now());
+        userMapper.updateById(user);
+        return Result.success(null);
+    }
+
+    @PutMapping("/{id}/role")
+    public Result<Void> updateRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String role = body.get("role");
+        if (role == null || (!role.equals("ADMIN") && !role.equals("USER") && !role.equals("SUPER_ADMIN"))) {
+            return Result.error(400, "无效的角色值");
+        }
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            return Result.error(404, "用户不存在");
+        }
+        user.setRole(role);
         user.setUpdatedTime(LocalDateTime.now());
         userMapper.updateById(user);
         return Result.success(null);

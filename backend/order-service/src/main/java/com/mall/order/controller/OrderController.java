@@ -2,7 +2,9 @@ package com.mall.order.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.mall.order.common.Result;
+import com.alibaba.excel.EasyExcel;
 import com.mall.order.entity.Order;
+import com.mall.order.entity.OrderExportVO;
 import com.mall.order.entity.RefundApplication;
 import com.mall.order.service.OrderService;
 import jakarta.validation.Valid;
@@ -15,7 +17,12 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/order")
@@ -112,12 +119,39 @@ public class OrderController {
         return Result.success(null);
     }
 
+    @GetMapping("/admin/stats")
+    public Result<Map<String, Object>> adminDashboardStats() {
+        return Result.success(orderService.getDashboardStats());
+    }
+
     @PutMapping("/admin/ship")
     public Result<Void> adminShip(@RequestParam Long id,
                                   @RequestParam String logisticsCompany,
                                   @RequestParam String logisticsNo) {
         orderService.adminShip(id, logisticsCompany, logisticsNo);
         return Result.success(null);
+    }
+
+    @PutMapping("/admin/cancel")
+    public Result<Void> adminCancel(@RequestParam Long id) {
+        orderService.adminCancel(id);
+        return Result.success(null);
+    }
+
+    @GetMapping("/admin/export")
+    public void adminExport(
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String orderNo,
+            @RequestParam(required = false) String receiverName,
+            @RequestParam(required = false) String receiverPhone,
+            @RequestParam(required = false) String startTime,
+            @RequestParam(required = false) String endTime,
+            HttpServletResponse response) throws IOException {
+        List<OrderExportVO> list = orderService.exportList(status, orderNo, receiverName, receiverPhone, startTime, endTime);
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename="
+                + URLEncoder.encode("订单数据", StandardCharsets.UTF_8) + ".xlsx");
+        EasyExcel.write(response.getOutputStream(), OrderExportVO.class).sheet("订单数据").doWrite(list);
     }
 
     @Data

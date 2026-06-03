@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mall.order.entity.Cart;
 import com.mall.order.entity.Order;
+import com.mall.order.entity.OrderExportVO;
 import com.mall.order.entity.OrderItem;
 import com.mall.order.entity.RefundApplication;
 import com.mall.order.mapper.CartMapper;
@@ -249,6 +250,97 @@ public class OrderService {
         logisticsService.addTrack(id, "WAREHOUSE", "商品已打包完成，等待快递揽收", null, LocalDateTime.now());
 
         transitionStatus(order, 2);
+    }
+
+    @Transactional
+    public void adminCancel(Long id) {
+        Order order = orderMapper.selectById(id);
+        if (order == null) {
+            throw new RuntimeException("Order not found");
+        }
+        int s = order.getStatus();
+        // Admin can cancel: pending payment(0), pending delivery(1), or refunding(5)
+        if (s != 0 && s != 1 && s != 5) {
+            throw new RuntimeException("Current order status does not allow cancellation");
+        }
+        transitionStatus(order, 4);
+    }
+
+    public List<OrderExportVO> exportList(Integer status, String orderNo, String receiverName,
+                                           String receiverPhone, String startTime, String endTime) {
+        LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<>();
+        if (status != null) wrapper.eq(Order::getStatus, status);
+        if (orderNo != null && !orderNo.isEmpty()) wrapper.like(Order::getOrderNo, orderNo);
+        if (receiverName != null && !receiverName.isEmpty()) wrapper.like(Order::getReceiverName, receiverName);
+        if (receiverPhone != null && !receiverPhone.isEmpty()) wrapper.like(Order::getReceiverPhone, receiverPhone);
+        if (startTime != null && !startTime.isEmpty()) wrapper.ge(Order::getCreatedTime, LocalDateTime.parse(startTime));
+        if (endTime != null && !endTime.isEmpty()) wrapper.le(Order::getCreatedTime, LocalDateTime.parse(endTime));
+        wrapper.orderByDesc(Order::getCreatedTime);
+        List<Order> orders = orderMapper.selectList(wrapper);
+
+        String[] statusTexts = {"待付款", "待发货", "待收货", "已完成", "已取消", "退款中"};
+        List<OrderExportVO> result = new java.util.ArrayList<>();
+        for (Order order : orders) {
+            List<OrderItem> items = orderItemMapper.selectList(
+                    new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, order.getId()));
+
+            OrderExportVO vo = new OrderExportVO();
+            vo.setOrderNo(order.getOrderNo());
+            vo.setReceiverName(order.getReceiverName());
+            vo.setReceiverPhone(order.getReceiverPhone());
+            vo.setReceiverAddress(order.getReceiverAddress());
+            vo.setTotalAmount(order.getTotalAmount());
+            vo.setStatusText(order.getStatus() >= 0 && order.getStatus() < statusTexts.length ? statusTexts[order.getStatus()] : "未知");
+            vo.setPaymentMethod(order.getPaymentMethod());
+            vo.setPaymentTime(order.getPaymentTime() != null ? order.getPaymentTime().toString().replace("T", " ") : "");
+            vo.setDeliveryTime(order.getDeliveryTime() != null ? order.getDeliveryTime().toString().replace("T", " ") : "");
+            vo.setReceiveTime(order.getReceiveTime() != null ? order.getReceiveTime().toString().replace("T", " ") : "");
+            vo.setLogisticsCompany(order.getLogisticsCompany());
+            vo.setLogisticsNo(order.getLogisticsNo());
+            vo.setCreatedTime(order.getCreatedTime() != null ? order.getCreatedTime().toString().replace("T", " ") : "");
+
+            // Build product info string: name x qty; name x qty
+            StringBuilder sb = new StringBuilder();
+            for (OrderItem item : items) {
+                if (sb.length() > 0) sb.append("; ");
+                sb.append(item.getProductName());
+                if (item.getSpecInfo() != null) sb.append("(").append(item.getSpecInfo()).append(")");
+                sb.append(" x").append(item.getQuantity());
+            }
+            vo.setProductInfo(sb.toString());
+            result.add(vo);
+        }
+        return result;
+    }
+
+    // ─── Dashboard stats ───
+
+    public Map<String, Object> getDashboardStats() {
+        Map<String, Object> stats = new java.util.HashMap<>();
+
+        // Total orders
+        stats.put("totalOrders", orderMapper.selectCount(null));
+
+        // Total sales (completed orders)
+        stats.put("totalSales", orderMapper.sumTotalSales());
+
+        // Today stats
+        LocalDateTime todayStart = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime todayEnd = todayStart.plusDays(1);
+        stats.put("todayOrders", orderMapper.countOrdersBetween(todayStart, todayEnd));
+        stats.put("todaySales", orderMapper.sumSalesBetween(todayStart, todayEnd));
+
+        // Order status distribution
+        stats.put("orderStatusStats", orderMapper.countByStatus());
+
+        // Sales trend (last 14 days)
+        LocalDateTime twoWeeksAgo = todayStart.minusDays(13);
+        stats.put("salesTrend", orderMapper.dailySalesSince(twoWeeksAgo));
+
+        // Hot products (top 10)
+        stats.put("hotProducts", orderItemMapper.hotProducts(10));
+
+        return stats;
     }
 
     @SuppressWarnings("unchecked")

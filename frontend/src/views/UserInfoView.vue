@@ -208,17 +208,6 @@ function switchTab(tab: Tab) {
           </button>
         </nav>
 
-        <!-- Extra links -->
-        <div class="sidebar__extras">
-          <button class="sidebar__extra-btn" @click="router.push('/user/feedback')">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span>意见反馈</span>
-          </button>
-          <button class="sidebar__extra-btn" @click="router.push('/service/notice')">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span>系统公告</span>
-          </button>
-        </div>
       </aside>
 
       <!-- ═══ CONTENT ═══ -->
@@ -539,41 +528,6 @@ function switchTab(tab: Tab) {
 .sidebar__nav-btn--active .sidebar__nav-arrow {
   opacity: 1;
   transform: translateX(2px);
-}
-
-/* Extra links */
-.sidebar__extras {
-  background: var(--wz-bg-card);
-  border: 1px solid var(--wz-border);
-  border-radius: 14px;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.sidebar__extra-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 14px;
-  background: none;
-  border: none;
-  border-radius: 8px;
-  font-family: var(--wz-font-body);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--wz-text-muted);
-  cursor: pointer;
-  text-align: left;
-  transition: background var(--wz-duration-fast) var(--wz-ease-out),
-              color var(--wz-duration-fast) var(--wz-ease-out);
-}
-
-.sidebar__extra-btn:hover {
-  background: var(--wz-bg-hover);
-  color: var(--wz-text);
 }
 
 /* ═══ Content ═══ */
@@ -1015,9 +969,6 @@ function switchTab(tab: Tab) {
     font-size: 13px;
   }
   .sidebar__nav-arrow {
-    display: none;
-  }
-  .sidebar__extras {
     display: none;
   }
 }

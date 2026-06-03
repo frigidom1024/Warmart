@@ -258,6 +258,7 @@ const feedSentinel = ref<HTMLElement | null>(null)
 
 // ─── Scroll-to-top ───
 const showScrollTop = ref(false)
+const showStickyFooter = ref(false)
 let scrollListener: (() => void) | null = null
 function onScrollTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -329,6 +330,7 @@ const router = useRouter()
 function goProductList() { router.push('/product/list') }
 function goProductDetail(id: number) { window.open('/product/detail/' + id, '_blank') }
 
+
 function retryLoad() {
   window.location.reload()
 }
@@ -380,7 +382,11 @@ function prevSlide() { goSlide((currentSlide.value - 1 + slides.length) % slides
 function nextSlide() { goSlide((currentSlide.value + 1) % slides.length) }
 onMounted(startAutoplay)
 
-const scrollTick = () => { showScrollTop.value = window.scrollY > 800 }
+const scrollTick = () => {
+  const y = window.scrollY
+  showScrollTop.value = y > 800
+  showStickyFooter.value = y > 400
+}
 window.addEventListener('scroll', scrollTick, { passive: true })
 
 const stats = [
@@ -666,7 +672,15 @@ const stats = [
             <span class="feed__spinner"></span>
             <span>加载中...</span>
           </div>
-          <div v-else-if="feedFinished" class="feed__finished">— 已经到底了 —</div>
+          <div v-else-if="feedFinished" class="feed__footer-wrap">
+            <div class="footer__divider">
+              <span class="footer__divider-line"></span>
+              <span class="footer__divider-ember">◇</span>
+              <span class="footer__divider-text">已经到底了</span>
+              <span class="footer__divider-ember">◇</span>
+              <span class="footer__divider-line"></span>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -676,6 +690,24 @@ const stats = [
       <button v-if="showScrollTop" class="scroll-top" @click="onScrollTop" title="回到顶部">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
       </button>
+    </Transition>
+
+    <!-- ============ STICKY BOTTOM BAR ============ -->
+    <Transition name="sticky-slide">
+      <div v-if="showStickyFooter" class="sticky-footer">
+        <div class="sticky-footer__inner">
+          <div class="sticky-footer__brand">
+            <span class="sticky-footer__logo">暖</span>
+            <span class="sticky-footer__sep">|</span>
+            <a class="sticky-footer__link" href="mailto:hello@warmart.cn">hello@warmart.cn</a>
+          </div>
+          <div class="sticky-footer__meta">
+            <span class="sticky-footer__phone">400-000-0000</span>
+            <span class="sticky-footer__dot">·</span>
+            <span class="sticky-footer__icp">京ICP备XXXXXXXX号-1</span>
+          </div>
+        </div>
+      </div>
     </Transition>
 
   </div>
@@ -1043,8 +1075,6 @@ const stats = [
 .feed__loading { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--wz-text-muted); }
 .feed__spinner { width: 18px; height: 18px; border: 2px solid var(--wz-border); border-top-color: var(--wz-orange); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.feed__finished { font-size: 13px; color: var(--wz-text-muted); letter-spacing: 0.08em; }
-
 @media (max-width: 900px) { .feed__grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 640px) { .feed__grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
 
@@ -1062,23 +1092,17 @@ const stats = [
   .zone-banner__desc { font-size: 12px; }
 }
 
-/* ---- Footer ---- */
-.footer__grid { display: grid; grid-template-columns: 1fr; gap: var(--wz-space-xl); padding-bottom: var(--wz-space-xl); border-bottom: 1px solid var(--wz-border); }
+/* ---- Footer (shown when feed finishes) ---- */
+.feed__footer-wrap { grid-column: 1 / -1; padding: var(--wz-space-xl) 0 0; }
 
-.footer__logo { font-family: 'Noto Serif SC', serif; font-size: 22px; font-weight: 700; color: var(--wz-orange); }
-.footer__brand h3 { font-size: 20px; font-weight: 700; color: var(--wz-text); display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
-.footer__desc { font-size: 14px; color: var(--wz-text-muted); line-height: 1.6; margin-bottom: 16px; max-width: 280px; }
-.footer__social { display: flex; gap: 10px; }
-.footer__social a { width: 36px; height: 36px; border-radius: 50%; background: var(--wz-bg-card); display: flex; align-items: center; justify-content: center; color: var(--wz-text-soft); transition: background var(--wz-duration-fast) var(--wz-ease-out), color var(--wz-duration-fast) var(--wz-ease-out); }
-.footer__social a:hover { background: var(--wz-orange); color: #fff; }
-.footer__col h4 { font-size: 16px; font-weight: 600; color: var(--wz-text); margin-bottom: 16px; }
-.footer__col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-.footer__col a { font-size: 14px; color: var(--wz-text-muted); transition: color var(--wz-duration-fast) var(--wz-ease-out); }
-.footer__col a:hover { color: var(--wz-orange); }
-.footer__col li { font-size: 14px; color: var(--wz-text-muted); display: flex; align-items: center; gap: 8px; }
-.footer__bottom { text-align: center; padding-top: 24px; font-size: 13px; color: var(--wz-text-muted); }
-.footer__logo { transition: text-shadow var(--wz-duration-normal) var(--wz-ease-out); }
-.footer__brand:hover .footer__logo { text-shadow: 0 0 16px rgba(255,107,53,0.30), 0 0 48px rgba(255,107,53,0.10); }
+.footer__divider { display: flex; align-items: center; justify-content: center; gap: var(--wz-space-md); margin-bottom: var(--wz-space-2xl); }
+.footer__divider-line { display: block; width: 60px; height: 1px; background: linear-gradient(90deg, transparent, var(--wz-border), transparent); }
+.footer__divider-ember { font-size: 9px; color: var(--wz-orange); opacity: 0.4; line-height: 1; }
+.footer__divider-text { font-size: 12px; font-weight: 500; color: var(--wz-text-muted); letter-spacing: 0.15em; }
+
+@media (max-width: 480px) {
+  .footer__divider-line { width: 40px; }
+}
 
 /* ---- Scroll to Top ---- */
 .scroll-top { position: fixed; bottom: 32px; right: 32px; z-index: 90; width: 44px; height: 44px; border-radius: 50%; background: var(--wz-bg-card); border: 1px solid var(--wz-border); color: var(--wz-text-soft); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.25); transition: background var(--wz-duration-fast) var(--wz-ease-out), color var(--wz-duration-fast) var(--wz-ease-out), border-color var(--wz-duration-fast) var(--wz-ease-out), box-shadow var(--wz-duration-fast) var(--wz-ease-out), transform var(--wz-duration-fast) var(--wz-ease-out); }
@@ -1093,4 +1117,101 @@ const stats = [
 
 @media (max-width: 640px) { .scroll-top { bottom: 20px; right: 20px; width: 40px; height: 40px; } }
 @media (prefers-reduced-motion: reduce) { .scroll-top { transition: none; } .scroll-top-enter-active, .scroll-top-leave-active { animation: none; } }
+
+/* ---- Sticky Bottom Bar (home only) ---- */
+.sticky-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 95;
+  height: 40px;
+  background: var(--wz-bg-card);
+  border-top: 1px solid var(--wz-border);
+  display: flex;
+  align-items: center;
+  box-shadow: 0 -1px 12px rgba(0, 0, 0, 0.2);
+}
+.sticky-footer__inner {
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sticky-footer__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sticky-footer__logo {
+  font-family: 'Noto Serif SC', Georgia, serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--wz-orange);
+  line-height: 1;
+}
+.sticky-footer__sep {
+  font-size: 12px;
+  color: var(--wz-border);
+  font-weight: 300;
+}
+.sticky-footer__link {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--wz-text-muted);
+  letter-spacing: 0.02em;
+  transition: color var(--wz-duration-fast) var(--wz-ease-out);
+  white-space: nowrap;
+  text-decoration: none;
+}
+.sticky-footer__link:hover { color: var(--wz-orange); }
+.sticky-footer__meta {
+  display: flex;
+  align-items: center;
+}
+.sticky-footer__phone {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--wz-text-muted);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.sticky-footer__dot {
+  font-size: 10px;
+  color: var(--wz-border);
+  margin: 0 8px;
+  user-select: none;
+}
+.sticky-footer__icp {
+  font-size: 10px;
+  color: var(--wz-text-muted);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.sticky-slide-enter-active {
+  transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+}
+.sticky-slide-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.sticky-slide-leave-active {
+  transition: opacity 0.2s ease-in, transform 0.2s ease-in;
+}
+.sticky-slide-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+@media (max-width: 768px) {
+  .sticky-footer { height: 36px; }
+  .sticky-footer__inner { padding: 0 16px; }
+  .sticky-footer__link { font-size: 10px; }
+  .sticky-footer__dot { margin: 0 5px; }
+  .sticky-footer__icp { font-size: 9px; }
+}
 </style>

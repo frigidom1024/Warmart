@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import HeaderNav from './layouts/HeaderNav.vue'
+import AppFooter from './layouts/AppFooter.vue'
 </script>
 
 <template>
@@ -7,4 +8,5 @@ import HeaderNav from './layouts/HeaderNav.vue'
   <main>
     <router-view />
   </main>
+  <AppFooter />
 </template>

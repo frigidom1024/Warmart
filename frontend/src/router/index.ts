@@ -106,6 +106,24 @@ const routes: RouteRecordRaw[] = [
     name: 'Consultation',
     component: () => import('@/views/ConsultationView.vue'),
     meta: { title: '售前咨询', requiresAuth: true }
+  },
+  {
+    path: '/help',
+    name: 'Help',
+    component: () => import('@/views/StaticPage.vue'),
+    meta: { title: '帮助中心' }
+  },
+  {
+    path: '/about',
+    name: 'About',
+    component: () => import('@/views/StaticPage.vue'),
+    meta: { title: '关于我们' }
+  },
+  {
+    path: '/privacy',
+    name: 'Privacy',
+    component: () => import('@/views/StaticPage.vue'),
+    meta: { title: '隐私政策' }
   }
 ]
 

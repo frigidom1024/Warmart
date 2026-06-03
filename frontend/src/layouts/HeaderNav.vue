@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getCategoryList } from '@/api/product'
 import type { Category } from '@/api/product'
+import { getNoticeList } from '@/api/notice'
+import type { Notice } from '@/api/notice'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -14,6 +16,11 @@ let lastScrollY = 0
 const searchKeyword = ref('')
 const cartCount = ref(0)
 const showSuggestions = ref(false)
+
+// ─── Notifications ───
+const notices = ref<Notice[]>([])
+const showNotices = ref(false)
+const noticeLoading = ref(false)
 
 const allCategories = ref<Category[]>([])
 const firstLevelCategories = computed(() => allCategories.value.filter(c => !c.parentId))
@@ -71,9 +78,32 @@ function handleLogout() {
   router.push('/')
 }
 
+async function loadNotices() {
+  noticeLoading.value = true
+  try {
+    const res = await getNoticeList()
+    notices.value = (res as Notice[]).slice(0, 3)
+  } catch { /* ignore */ } finally {
+    noticeLoading.value = false
+  }
+}
+
+function toggleNotices() {
+  showNotices.value = !showNotices.value
+  if (showNotices.value && !notices.value.length) {
+    loadNotices()
+  }
+}
+
+function goNotices() {
+  showNotices.value = false
+  router.push('/service/notice')
+}
+
 onMounted(async () => {
   window.addEventListener('scroll', handleScroll)
   try { allCategories.value = await getCategoryList() } catch {}
+  loadNotices()
 })
 onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 </script>
@@ -151,6 +181,64 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 
       <!-- Actions -->
       <div class="header-nav__actions">
+        <!-- Notifications -->
+        <div class="header-nav__notice-wrap">
+          <button
+            class="header-nav__icon-btn"
+            :class="{ 'header-nav__icon-btn--active': showNotices }"
+            @click="toggleNotices"
+            title="系统公告"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span v-if="notices.length" class="header-nav__notice-dot" />
+          </button>
+
+          <!-- Notice dropdown -->
+          <Transition name="notice-drop">
+            <div v-if="showNotices" class="header-nav__notice-dropdown">
+              <div class="header-nav__notice-header">系统公告</div>
+
+              <div v-if="noticeLoading" class="header-nav__notice-loading">
+                <div class="header-nav__notice-spinner" />
+                <span>加载中…</span>
+              </div>
+
+              <template v-else-if="notices.length">
+                <div
+                  v-for="item in notices"
+                  :key="item.id"
+                  class="header-nav__notice-item"
+                  @click="showNotices = false; router.push('/service/notice')"
+                >
+                  <div class="header-nav__notice-item-title">{{ item.title }}</div>
+                  <div class="header-nav__notice-item-meta">
+                    {{ item.type || '公告' }}
+                    <span class="header-nav__notice-item-dot">·</span>
+                    {{ item.createdTime }}
+                  </div>
+                </div>
+              </template>
+
+              <div v-else class="header-nav__notice-empty">暂无公告</div>
+
+              <div class="header-nav__notice-footer" @click="goNotices">
+                查看全部
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Customer Service -->
+        <button class="header-nav__icon-btn" @click="goRoute('Consultation')" title="客服咨询">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </button>
+
         <!-- Cart -->
         <button class="header-nav__icon-btn header-nav__cart-btn" @click="goCart">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -567,6 +655,147 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
   background: var(--wz-orange-dark);
   transform: translateY(-1px);
   box-shadow: var(--wz-shadow-glow);
+}
+
+/* ─── Notice bell ─── */
+.header-nav__icon-btn--active {
+  color: var(--wz-orange) !important;
+  background: var(--wz-orange-muted) !important;
+}
+
+.header-nav__notice-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--wz-orange);
+  border: 2px solid var(--wz-bg);
+}
+
+.header-nav__notice-wrap {
+  position: relative;
+}
+
+.header-nav__notice-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  background: var(--wz-bg-card);
+  border: 1px solid var(--wz-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 300;
+  overflow: hidden;
+}
+
+.header-nav__notice-header {
+  padding: 14px 16px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--wz-text);
+  border-bottom: 1px solid var(--wz-border);
+}
+
+.header-nav__notice-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 16px;
+  font-size: 13px;
+  color: var(--wz-text-muted);
+}
+
+.header-nav__notice-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--wz-border);
+  border-top-color: var(--wz-orange);
+  border-radius: 50%;
+  animation: notice-spin 0.7s linear infinite;
+}
+
+@keyframes notice-spin {
+  to { transform: rotate(360deg); }
+}
+
+.header-nav__notice-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background var(--wz-duration-fast) var(--wz-ease-out);
+  border-bottom: 1px solid var(--wz-border);
+}
+
+.header-nav__notice-item:last-child {
+  border-bottom: none;
+}
+
+.header-nav__notice-item:hover {
+  background: var(--wz-bg-hover);
+}
+
+.header-nav__notice-item-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--wz-text);
+  line-height: 1.4;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-nav__notice-item-meta {
+  font-size: 11px;
+  color: var(--wz-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header-nav__notice-item-dot {
+  color: var(--wz-border);
+}
+
+.header-nav__notice-empty {
+  padding: 32px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--wz-text-muted);
+}
+
+.header-nav__notice-footer {
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--wz-orange);
+  cursor: pointer;
+  border-top: 1px solid var(--wz-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: background var(--wz-duration-fast) var(--wz-ease-out);
+}
+
+.header-nav__notice-footer:hover {
+  background: var(--wz-orange-muted);
+}
+
+/* Notice dropdown transition */
+.notice-drop-enter-active {
+  animation: notice-in 0.15s var(--wz-ease-out);
+}
+.notice-drop-leave-active {
+  animation: notice-in 0.12s var(--wz-ease-out) reverse;
+}
+@keyframes notice-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Dropdown active state */

@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS `user` (
     nickname VARCHAR(50),
     email VARCHAR(100),
     phone VARCHAR(20),
+    email_verified TINYINT(1) NOT NULL DEFAULT 0,
     avatar VARCHAR(500),
     role VARCHAR(20) NOT NULL DEFAULT 'USER',
     status INT DEFAULT 0,
@@ -316,3 +317,8 @@ CREATE TABLE IF NOT EXISTS refund_application (
     INDEX idx_user_id (user_id),
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 邮箱验证码功能：为已有 user 表补充 email_verified 字段
+-- ============================================================
+ALTER TABLE `mall_auth`.`user` ADD COLUMN IF NOT EXISTS `email_verified` tinyint(1) NOT NULL DEFAULT 0 COMMENT '邮箱是否已验证' AFTER `phone`;

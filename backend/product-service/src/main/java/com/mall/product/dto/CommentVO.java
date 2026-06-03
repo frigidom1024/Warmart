@@ -15,4 +15,5 @@ public class CommentVO {
 
     private String userNickname;
     private String userAvatar;
+    private String productName;
 }

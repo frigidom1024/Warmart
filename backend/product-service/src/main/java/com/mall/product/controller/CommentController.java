@@ -37,6 +37,22 @@ public class CommentController {
         return Result.success(commentService.listByProductId(productId, page, size));
     }
 
+    @GetMapping("/admin/comment/list")
+    public Result<IPage<CommentVO>> adminList(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String productName,
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) Integer rating) {
+        return Result.success(commentService.adminList(page, size, productName, username, rating));
+    }
+
+    @DeleteMapping("/admin/comment/{id}")
+    public Result<Void> delete(@PathVariable Long id) {
+        commentService.deleteById(id);
+        return Result.success(null);
+    }
+
     @PostMapping("/comment/add")
     public Result<Void> add(@AuthenticationPrincipal Jwt jwt,
                              @RequestBody Map<String, Object> body) {

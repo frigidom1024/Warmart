@@ -8,12 +8,18 @@ export interface CommentItem {
   username: string
   content: string
   rating: number
-  imageUrls: string[]
+  imageUrls: string
   createdTime: string
 }
 
-export function getAdminCommentList(params: Record<string, any>) {
-  return request.get<any, CommentItem[]>('/product/admin/comment/list', { params })
+export function getAdminCommentList(params: {
+  productName?: string
+  username?: string
+  rating?: number
+  page?: number
+  size?: number
+}) {
+  return request.get<any, { records: CommentItem[]; total: number }>('/product/admin/comment/list', { params })
 }
 
 export function deleteAdminComment(id: number) {

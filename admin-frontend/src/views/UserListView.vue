@@ -3,8 +3,9 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UserFilled } from '@element-plus/icons-vue'
-import { getAdminUserList, updateUserStatus, getUserDetail } from '@/api/user'
+import { getAdminUserList, updateUserStatus, getUserDetail, updateUserRole } from '@/api/user'
 import type { User } from '@/api/user'
+import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,6 +28,12 @@ const query = ref({
 // --- Detail dialog ---
 const detailDialogVisible = ref(false)
 const detailUser = ref<User | null>(null)
+
+// --- Role editing ---
+const userStore = useUserStore()
+const roleDialogVisible = ref(false)
+const roleForm = ref({ userId: 0, username: '', role: 'USER' })
+const roleSaving = ref(false)
 
 // --- Role display config ---
 const roleMap: Record<string, { type: string; text: string }> = {
@@ -68,6 +75,26 @@ async function loadData() {
     users.value = res.records
     total.value = res.total
   } catch {} finally { loading.value = false }
+}
+
+// --- Role editing ---
+function handleRoleChange(row: any) {
+  roleForm.value = { userId: row.id, username: row.nickname || row.username, role: row.role || 'USER' }
+  roleDialogVisible.value = true
+}
+
+async function submitRoleChange() {
+  roleSaving.value = true
+  try {
+    await updateUserRole(roleForm.value.userId, roleForm.value.role)
+    ElMessage.success('角色更新成功')
+    roleDialogVisible.value = false
+    loadData()
+  } catch {
+    ElMessage.error('角色更新失败')
+  } finally {
+    roleSaving.value = false
+  }
 }
 
 // --- Search / Reset ---
@@ -172,7 +199,7 @@ onMounted(() => {
           </template>
         </el-table-column>
         <el-table-column prop="createdTime" label="注册时间" width="170" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="openDetail(row)">详情</el-button>
             <el-button
@@ -182,6 +209,12 @@ onMounted(() => {
             >
               {{ row.status === 0 ? '禁用' : '启用' }}
             </el-button>
+            <el-button
+              v-if="userStore.isSuperAdmin && row.role !== 'SUPER_ADMIN'"
+              size="small"
+              type="primary"
+              @click="handleRoleChange(row)"
+            >修改角色</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -197,6 +230,26 @@ onMounted(() => {
         />
       </div>
     </el-card>
+
+    <!-- Role Edit Dialog -->
+    <el-dialog v-model="roleDialogVisible" title="修改角色" width="400px">
+      <el-form :model="roleForm" label-width="80px">
+        <el-form-item label="用户名">
+          <el-input v-model="roleForm.username" disabled />
+        </el-form-item>
+        <el-form-item label="角色">
+          <el-select v-model="roleForm.role">
+            <el-option label="用户" value="USER" />
+            <el-option label="管理员" value="ADMIN" />
+            <el-option label="超级管理员" value="SUPER_ADMIN" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="roleDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="roleSaving" @click="submitRoleChange">保存</el-button>
+      </template>
+    </el-dialog>
 
     <!-- Detail Dialog -->
     <el-dialog v-model="detailDialogVisible" title="用户详情" width="500px">

@@ -24,6 +24,13 @@ const handleLogin = async () => {
       password: loginForm.value.password
     })
     userStore.setToken(res.accessToken)
+    // Decode JWT to extract user info and role
+    try {
+      const payload = JSON.parse(atob(res.accessToken.split('.')[1]))
+      const username = payload.sub || payload.username || loginForm.value.username
+      const userRole = payload.role || (payload.scopes?.[0]) || 'ADMIN'
+      userStore.setUserInfo({ username, role: userRole })
+    } catch {}
     ElMessage.success('登录成功')
     router.push('/dashboard')
   } catch (e: any) {

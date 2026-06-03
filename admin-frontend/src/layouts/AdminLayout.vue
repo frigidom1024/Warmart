@@ -7,9 +7,9 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-const menuItems = [
+const menuItems = computed(() => [
   { path: '/dashboard', icon: 'Odometer', label: '控制台' },
-  { path: '/users', icon: 'User', label: '用户管理' },
+  ...(userStore.isSuperAdmin ? [{ path: '/users', icon: 'User', label: '用户管理' }] : []),
   {
     label: '商品管理', icon: 'Goods',
     children: [
@@ -41,7 +41,7 @@ const menuItems = [
       { path: '/profile', label: '个人信息' }
     ]
   }
-]
+])
 
 const activeMenu = computed(() => route.path)
 
@@ -94,6 +94,8 @@ function handleLogout() {
         <div class="admin-layout__header-actions">
           <span class="admin-layout__header-user">
             {{ userStore.userInfo?.nickname || userStore.userInfo?.username || '管理员' }}
+            <span v-if="userStore.isSuperAdmin" style="color:#e6a23c;font-size:11px;margin-left:4px">(超级管理员)</span>
+            <span v-else-if="userStore.isAdmin" style="color:#909399;font-size:11px;margin-left:4px">(管理员)</span>
           </span>
           <el-button size="small" type="danger" plain @click="handleLogout">退出</el-button>
         </div>

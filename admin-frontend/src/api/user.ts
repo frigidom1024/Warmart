@@ -34,3 +34,7 @@ export function getUserDetail(id: number) {
 export function updateUserStatus(id: number, status: number) {
   return request.put<void>('/auth/admin/users/' + id + '/status', null, { params: { status } })
 }
+
+export function updateUserRole(id: number, role: string) {
+  return request.put<void>('/auth/admin/users/' + id + '/role', { role })
+}

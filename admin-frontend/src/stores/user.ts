@@ -6,6 +6,9 @@ export const useUserStore = defineStore('admin-user', () => {
   const userInfo = ref<Record<string, any> | null>(null)
 
   const isLoggedIn = computed(() => !!token.value)
+  const role = computed(() => userInfo.value?.role || '')
+  const isSuperAdmin = computed(() => role.value === 'SUPER_ADMIN')
+  const isAdmin = computed(() => role.value === 'ADMIN' || role.value === 'SUPER_ADMIN')
 
   function setToken(newToken: string) {
     token.value = newToken
@@ -22,5 +25,5 @@ export const useUserStore = defineStore('admin-user', () => {
     localStorage.removeItem('admin_token')
   }
 
-  return { token, userInfo, isLoggedIn, setToken, setUserInfo, logout }
+  return { token, userInfo, isLoggedIn, role, isSuperAdmin, isAdmin, setToken, setUserInfo, logout }
 })
